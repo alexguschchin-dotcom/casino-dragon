@@ -1,0 +1,73 @@
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    font-family: 'Cinzel', serif;
+    background: #0a0a1a;
+    color: gold;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+.game-container {
+    max-width: 900px;
+    width: 100%;
+    background: rgba(10,10,30,0.9);
+    border: 3px solid gold;
+    border-radius: 50px;
+    padding: 30px;
+    box-shadow: 0 0 50px gold;
+}
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+h1 { font-size: 2.5rem; text-shadow: 0 0 20px gold; }
+.balance-info {
+    background: #1a1625;
+    border: 2px solid gold;
+    border-radius: 60px;
+    padding: 10px 20px;
+    font-size: 1.5rem;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+.btn-gold {
+    background: gold; border: none; color: #0a0a1a; font-weight: bold; padding: 8px 20px; border-radius: 40px; cursor: pointer; transition: 0.2s;
+}
+.btn-gold:hover { background: #daa520; transform: scale(1.02); box-shadow: 0 0 15px gold; }
+.btn-danger { background: #b22222; border: none; color: white; padding: 12px 30px; border-radius: 50px; font-size: 1.2rem; cursor: pointer; transition: 0.2s; }
+.btn-danger:hover { background: #8b1a1a; transform: scale(1.02); }
+
+.hourglass-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 20px 0;
+}
+canvas { background: #1a1625; border: 2px solid gold; border-radius: 30px; }
+.sand-level { font-size: 1.5rem; margin-top: 10px; }
+
+.controls { display: flex; gap: 20px; justify-content: center; margin: 20px 0; }
+.history {
+    background: #1a1625; border: 2px solid gold; border-radius: 30px; padding: 20px; max-height: 200px; overflow-y: auto;
+}
+.history h3 { color: gold; margin-bottom: 10px; }
+#history-list { display: flex; flex-direction: column; gap: 5px; }
+.history-item { background: #2a2440; padding: 5px 10px; border-radius: 20px; border-left: 3px solid gold; }
+
+/* модалки аналогично Монополии */
+.modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); display:flex; justify-content:center; align-items:center; z-index:2000; }
+.modal-content { background:#1a1625; border:3px solid gold; border-radius:30px; padding:30px; max-width:500px; width:90%; color:gold; text-align:center; }
+.modal-content h2 { margin-bottom:20px; }
+#task-description { background:#2a2440; padding:15px; border-radius:20px; margin:20px 0; border:1px solid gold; }
+.balance-input { margin:20px 0; }
+.balance-input input { width:100%; background:#2a2440; border:1px solid gold; color:gold; padding:12px; border-radius:30px; font-size:1.2rem; text-align:center; }
+.modal-buttons { display:flex; gap:15px; justify-content:center; }
+.modal-buttons button { padding:12px 25px; border:none; border-radius:50px; font-size:1.2rem; cursor:pointer; }
+.btn-success { background:#4ecca7; color:black; }
+.btn-success:hover { background:#3bb893; transform:scale(1.05); }
+.hidden { display:none !important; }

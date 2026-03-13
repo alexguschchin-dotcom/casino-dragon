@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Песочные часы</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="game-container">
+        <header>
+            <h1>Песочные часы</h1>
+            <div class="balance-info">
+                <span>💰 <span id="current-balance">0</span></span>
+                <button id="apply-start-balance" class="btn-gold">Изменить</button>
+            </div>
+        </header>
+
+        <div class="hourglass-area">
+            <canvas id="hourglassCanvas" width="400" height="600"></canvas>
+            <div class="sand-level" id="sand-level">Песок: <span>100%</span></div>
+        </div>
+
+        <div class="controls">
+            <button id="start-task" class="btn-gold">✨ Взять задание</button>
+            <button id="reset-btn" class="btn-danger">🔄 Новая игра</button>
+        </div>
+
+        <div class="history">
+            <h3>📋 Хроника</h3>
+            <div id="history-list"></div>
+        </div>
+    </div>
+
+    <!-- Модалка задания -->
+    <div id="task-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Задание</h2>
+            <p id="task-description"></p>
+            <div class="balance-input">
+                <label>Новый баланс:</label>
+                <input type="number" id="new-balance" step="100">
+            </div>
+            <div class="modal-buttons">
+                <button id="complete-task" class="btn-success">✅ Выполнено</button>
+                <button id="fail-task" class="btn-danger">⚠️ Провал</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка окончания -->
+    <div id="completion-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>⏳ Время истекло</h2>
+            <p>Песок закончился. Вы проиграли.</p>
+            <p>Итоговый баланс: <span id="final-balance"></span> ₽</p>
+            <button id="completion-reset-btn" class="btn-gold">🔄 Новая игра</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
