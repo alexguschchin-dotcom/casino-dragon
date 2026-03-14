@@ -1,255 +1,172 @@
 const socket = io();
 
 // Ключ сохранения
-const SAVE_KEY = 'rogue_save';
+const SAVE_KEY = 'dragon_save';
 
 // Состояние игры
 let gameState = {
-    floor: 1,
-    maxFloor: 3,
-    map: [],            // массив комнат для текущего этажа
-    currentRoomId: null,
-    health: 100,
-    maxHealth: 100,
+    currentPath: null,        // 'left', 'center', 'right'
+    pathProgress: { left: 0, center: 0, right: 0 }, // пройдено этапов на пути
+    pathLength: 5,            // всего этапов на пути (включая босса)
     balance: 1500000,
     balanceHistory: [],
     availableTasks: [],
     currentTaskId: null,
-    completedRooms: [],
     gameOver: false
 };
 
 // DOM элементы
-const healthSpan = document.getElementById('health');
 const balanceSpan = document.getElementById('balance');
-const floorSpan = document.getElementById('floor');
 const mapCanvas = document.getElementById('mapCanvas');
 const ctx = mapCanvas.getContext('2d');
-const roomTitle = document.getElementById('room-title');
+const pathSelector = document.getElementById('path-selector');
+const pathLeft = document.getElementById('path-left');
+const pathCenter = document.getElementById('path-center');
+const pathRight = document.getElementById('path-right');
+const roomName = document.getElementById('room-name');
 const roomDesc = document.getElementById('room-desc');
 const actionBtn = document.getElementById('action-btn');
 const logList = document.getElementById('log-list');
 const resetBtn = document.getElementById('reset-btn');
+const applyBalanceBtn = document.getElementById('apply-start-balance');
 const taskModal = document.getElementById('task-modal');
 const taskDesc = document.getElementById('task-description');
 const newBalanceInput = document.getElementById('new-balance');
 const completeBtn = document.getElementById('complete-task');
 const failBtn = document.getElementById('fail-task');
-const shopModal = document.getElementById('shop-modal');
-const closeShopBtn = document.getElementById('close-shop');
 const gameoverModal = document.getElementById('gameover-modal');
 const finalBalanceSpan = document.getElementById('final-balance');
-const finalFloorSpan = document.getElementById('final-floor');
+const finalStepsSpan = document.getElementById('final-steps');
 const newGameBtn = document.getElementById('new-game-btn');
 
-// Магазин
-const shopHealth = document.getElementById('shop-health');
-const shopDamage = document.getElementById('shop-damage');
-const shopGold = document.getElementById('shop-gold');
-
-// ------------------- Генерация карты -------------------
-function generateFloor(floorNum) {
-    const rooms = [];
-    const roomsPerRow = 5; // 5 колонок
-    const rows = 3; // 3 строки
-    const startX = 150;
-    const startY = 50;
-    const offsetX = 120;
-    const offsetY = 100;
-
-    for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < roomsPerRow; col++) {
-            const x = startX + col * offsetX;
-            const y = startY + row * offsetY;
-            // Тип комнаты: 0-бой, 1-сундук, 2-магазин, 3-событие
-            let type = 0; // по умолчанию бой
-            if (row === 0 && col === 0) type = 'start'; // старт
-            else if (row === rows-1 && col === roomsPerRow-1) type = 'boss'; // босс
-            else {
-                const r = Math.random();
-                if (r < 0.2) type = 'chest';
-                else if (r < 0.35) type = 'shop';
-                else if (r < 0.5) type = 'event';
-                else type = 'fight';
-            }
-
-            rooms.push({
-                id: `r${floorNum}-${row}-${col}`,
-                x, y,
-                row, col,
-                type,
-                visited: false,
-                available: (row === 0 && col === 0), // только старт доступен
-                task: null, // для боя будет задание
-                reward: Math.floor(Math.random() * 500) + 100 // для сундука
-            });
-        }
-    }
-
-    // Устанавливаем связи (соседние комнаты)
-    rooms.forEach(room => {
-        room.neighbors = [];
-        // сосед справа
-        const right = rooms.find(r => r.row === room.row && r.col === room.col + 1);
-        if (right) room.neighbors.push(right.id);
-        // сосед снизу
-        const down = rooms.find(r => r.row === room.row + 1 && r.col === room.col);
-        if (down) room.neighbors.push(down.id);
-        // можно добавить диагонали для ветвления
-        const downRight = rooms.find(r => r.row === room.row + 1 && r.col === room.col + 1);
-        if (downRight && Math.random() > 0.5) room.neighbors.push(downRight.id);
-    });
-
-    return rooms;
-}
-
-// ------------------- Отрисовка карты -------------------
+// ------------------- Рисование карты -------------------
 function drawMap() {
     ctx.clearRect(0, 0, mapCanvas.width, mapCanvas.height);
-    ctx.strokeStyle = '#6a6f7f';
-    ctx.lineWidth = 2;
-    ctx.fillStyle = '#2a2f3f';
+    const cx = mapCanvas.width / 2;
+    const cy = mapCanvas.height / 2;
 
-    // Рисуем связи
-    gameState.map.forEach(room => {
-        room.neighbors.forEach(nId => {
-            const neighbor = gameState.map.find(r => r.id === nId);
-            if (neighbor) {
-                ctx.beginPath();
-                ctx.moveTo(room.x, room.y);
-                ctx.lineTo(neighbor.x, neighbor.y);
-                ctx.strokeStyle = room.available && neighbor.available ? '#ffd966' : '#6a6f7f';
-                ctx.stroke();
-            }
-        });
-    });
+    // Рисуем три пути (линии)
+    ctx.lineWidth = 6;
+    ctx.shadowColor = 'gold';
+    ctx.shadowBlur = 15;
 
-    // Рисуем комнаты
-    gameState.map.forEach(room => {
-        // Цвет в зависимости от типа и статуса
-        if (room.id === gameState.currentRoomId) {
-            ctx.fillStyle = '#ffaa00';
-        } else if (room.visited) {
-            ctx.fillStyle = '#4a6f8f';
-        } else if (room.available) {
-            ctx.fillStyle = '#2a6f2a';
-        } else {
-            ctx.fillStyle = '#3a3f4f';
-        }
+    // Левый путь
+    ctx.beginPath();
+    ctx.strokeStyle = '#4a6f8f';
+    ctx.moveTo(150, 500);
+    ctx.lineTo(300, 300);
+    ctx.lineTo(450, 200);
+    ctx.lineTo(600, 150);
+    ctx.lineTo(750, 130);
+    ctx.stroke();
 
-        ctx.beginPath();
-        ctx.arc(room.x, room.y, 15, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.strokeStyle = '#aaa';
-        ctx.lineWidth = 2;
-        ctx.stroke();
+    // Центральный путь
+    ctx.beginPath();
+    ctx.strokeStyle = '#8f6f4a';
+    ctx.moveTo(300, 500);
+    ctx.lineTo(450, 350);
+    ctx.lineTo(600, 250);
+    ctx.lineTo(750, 200);
+    ctx.lineTo(900, 180);
+    ctx.stroke();
 
-        // Иконка типа
-        ctx.font = '20px "Press Start 2P"';
-        ctx.fillStyle = '#fff';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        let icon = '?';
-        if (room.type === 'start') icon = '🏠';
-        else if (room.type === 'boss') icon = '👑';
-        else if (room.type === 'fight') icon = '⚔️';
-        else if (room.type === 'chest') icon = '📦';
-        else if (room.type === 'shop') icon = '🏪';
-        else if (room.type === 'event') icon = '❓';
-        ctx.fillText(icon, room.x, room.y - 5);
-    });
+    // Правый путь
+    ctx.beginPath();
+    ctx.strokeStyle = '#6f4a8f';
+    ctx.moveTo(450, 500);
+    ctx.lineTo(600, 400);
+    ctx.lineTo(750, 300);
+    ctx.lineTo(900, 250);
+    ctx.lineTo(1050, 220);
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+
+    // Рисуем этапы (точки)
+    for (let i = 0; i < gameState.pathLength; i++) {
+        // Левый путь
+        drawStage(150 + i*150, 500 - i*90, 'left', i);
+        // Центральный путь
+        drawStage(300 + i*150, 500 - i*70, 'center', i);
+        // Правый путь
+        drawStage(450 + i*150, 500 - i*60, 'right', i);
+    }
+
+    // Боссы (последние этапы)
+    ctx.font = '30px "Font Awesome 6 Free"';
+    ctx.fillStyle = 'gold';
+    ctx.fillText('👑', 750, 130-20);
+    ctx.fillText('👑', 900, 180-20);
+    ctx.fillText('👑', 1050, 220-20);
 }
 
-// ------------------- Выбор комнаты -------------------
-mapCanvas.addEventListener('click', (e) => {
-    const rect = mapCanvas.getBoundingClientRect();
-    const scaleX = mapCanvas.width / rect.width;
-    const scaleY = mapCanvas.height / rect.height;
-    const mouseX = (e.clientX - rect.left) * scaleX;
-    const mouseY = (e.clientY - rect.top) * scaleY;
-
-    const clickedRoom = gameState.map.find(room => {
-        const dist = Math.hypot(mouseX - room.x, mouseY - room.y);
-        return dist < 20 && room.available && !room.visited;
-    });
-
-    if (clickedRoom) {
-        enterRoom(clickedRoom);
+function drawStage(x, y, path, index) {
+    ctx.beginPath();
+    if (index < gameState.pathProgress[path]) {
+        // Пройден
+        ctx.fillStyle = '#4ecca7';
+        ctx.shadowColor = '#4ecca7';
+    } else if (index === gameState.pathProgress[path] && gameState.currentPath === path) {
+        // Текущий
+        ctx.fillStyle = 'gold';
+        ctx.shadowColor = 'gold';
+    } else {
+        ctx.fillStyle = '#2a2440';
+        ctx.shadowColor = 'transparent';
     }
-});
+    ctx.arc(x, y, 15, 0, 2*Math.PI);
+    ctx.fill();
+    ctx.strokeStyle = 'gold';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
 
-function enterRoom(room) {
+    // Номер этапа
+    ctx.font = '14px "Cinzel"';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(index+1, x-5, y-20);
+}
+
+// ------------------- Выбор пути -------------------
+pathLeft.addEventListener('click', () => selectPath('left'));
+pathCenter.addEventListener('click', () => selectPath('center'));
+pathRight.addEventListener('click', () => selectPath('right'));
+
+function selectPath(path) {
     if (gameState.gameOver) return;
-    gameState.currentRoomId = room.id;
-    room.visited = true;
-    room.available = false;
-
-    // Открываем соседние комнаты
-    room.neighbors.forEach(nId => {
-        const neighbor = gameState.map.find(r => r.id === nId);
-        if (neighbor) neighbor.available = true;
-    });
-
-    // Обновляем панель
-    roomTitle.textContent = getRoomTitle(room.type);
-    roomDesc.textContent = getRoomDesc(room.type);
+    gameState.currentPath = path;
+    pathSelector.style.display = 'none';
+    roomName.textContent = getStageName(path, gameState.pathProgress[path]);
+    roomDesc.textContent = getStageDesc(path, gameState.pathProgress[path]);
     actionBtn.disabled = false;
-    actionBtn.onclick = () => roomAction(room);
-
     drawMap();
     saveGame();
 }
 
-function getRoomTitle(type) {
-    const titles = {
-        start: 'Вход',
-        boss: 'Тронный зал',
-        fight: 'Бой',
-        chest: 'Сундук',
-        shop: 'Лавка',
-        event: 'Случай'
+function getStageName(path, stage) {
+    const names = {
+        left: ['Лесная застава', 'Горный перевал', 'Тёмный рудник', 'Замок теней', 'Логово дракона'],
+        center: ['Крепость', 'Королевский город', 'Храм солнца', 'Дворец', 'Тронный зал'],
+        right: ['Порт', 'Остров', 'Подводный грот', 'Вулкан', 'Пещера']
     };
-    return titles[type] || 'Комната';
+    return names[path][stage] || 'Испытание';
 }
 
-function getRoomDesc(type) {
-    const descs = {
-        start: 'Вы начинаете путь.',
-        boss: 'Финальный бой!',
-        fight: 'Вас ждёт испытание в казино.',
-        chest: 'Здесь может быть сокровище.',
-        shop: 'Можно купить полезные вещи.',
-        event: 'Что-то произойдёт...'
-    };
-    return descs[type] || '';
+function getStageDesc(path, stage) {
+    return `Вы на пути "${path}". Этап ${stage+1}. Готовьтесь к битве.`;
 }
 
-function roomAction(room) {
-    switch (room.type) {
-        case 'fight':
-        case 'boss':
-            startFight(room);
-            break;
-        case 'chest':
-            openChest(room);
-            break;
-        case 'shop':
-            openShop();
-            break;
-        case 'event':
-            randomEvent(room);
-            break;
-        default:
-            // старт ничего не делает
-            roomTitle.textContent = 'Вход';
-            roomDesc.textContent = 'Вы уже здесь.';
+// ------------------- Начало испытания -------------------
+actionBtn.addEventListener('click', () => {
+    if (!gameState.currentPath) return;
+    const stage = gameState.pathProgress[gameState.currentPath];
+    if (stage >= gameState.pathLength) {
+        // Босс уже побеждён, но такого не должно быть
+        return;
     }
-}
-
-// ------------------- Бой -------------------
-function startFight(room) {
+    // Берём случайное задание
     if (gameState.availableTasks.length === 0) {
-        log('❌ Нет заданий для боя!');
+        log('❌ Нет заданий в пуле!');
         return;
     }
     const task = gameState.availableTasks[Math.floor(Math.random() * gameState.availableTasks.length)];
@@ -257,128 +174,58 @@ function startFight(room) {
     taskDesc.textContent = task.description;
     newBalanceInput.value = gameState.balance;
     taskModal.classList.remove('hidden');
-}
+});
 
+// ------------------- Завершение задания -------------------
 function completeTask(success) {
     const newBalance = parseFloat(newBalanceInput.value);
     if (isNaN(newBalance)) return;
 
     const change = newBalance - gameState.balance;
     const taskId = gameState.currentTaskId;
+    const path = gameState.currentPath;
+    const stage = gameState.pathProgress[path];
 
     if (success) {
         socket.emit('completeTask', taskId, change);
         gameState.balance = newBalance;
-        log(`✅ Бой выигран! Баланс изменён на ${change>0?'+'+change:change}`);
-        // Возможно награда за бой
+        log(`✅ Этап ${stage+1} пройден! Баланс изменён на ${change>0?'+'+change:change}`);
+
+        // Продвигаемся
+        gameState.pathProgress[path]++;
+        if (gameState.pathProgress[path] >= gameState.pathLength) {
+            // Победа на пути
+            log(`🏆 Вы завершили путь ${path}!`);
+            gameState.currentPath = null;
+            pathSelector.style.display = 'block';
+            actionBtn.disabled = true;
+            roomName.textContent = 'Выберите новый путь';
+            roomDesc.textContent = '';
+        } else {
+            // Остались этапы
+            roomName.textContent = getStageName(path, gameState.pathProgress[path]);
+            roomDesc.textContent = getStageDesc(path, gameState.pathProgress[path]);
+        }
     } else {
         socket.emit('penaltyWithBalance', taskId, newBalance);
         gameState.balance = newBalance;
-        const damage = Math.floor(Math.random() * 20) + 10;
-        gameState.health -= damage;
-        log(`💥 Поражение! Потеряно ${damage} здоровья. Баланс изменён на ${change}`);
-        if (gameState.health <= 0) gameOver();
-    }
+        log(`💔 Поражение на этапе ${stage+1}. Баланс изменён на ${change}`);
 
-    // Проверяем, не босс ли это
-    const currentRoom = gameState.map.find(r => r.id === gameState.currentRoomId);
-    if (currentRoom && currentRoom.type === 'boss') {
-        if (success) {
-            if (gameState.floor < gameState.maxFloor) {
-                gameState.floor++;
-                floorSpan.textContent = gameState.floor;
-                gameState.map = generateFloor(gameState.floor);
-                gameState.currentRoomId = null;
-                log(`⬇️ Спуск на этаж ${gameState.floor}`);
-            } else {
-                // Победа!
-                alert('Поздравляем! Вы прошли подземелье!');
-                resetGame();
-            }
+        // Наказание: откат на один этап назад (если не первый)
+        if (gameState.pathProgress[path] > 0) {
+            gameState.pathProgress[path]--;
         }
+        roomName.textContent = getStageName(path, gameState.pathProgress[path]);
+        roomDesc.textContent = getStageDesc(path, gameState.pathProgress[path]);
     }
 
     taskModal.classList.add('hidden');
     updateUI();
+    drawMap();
     saveGame();
 }
 
-// ------------------- Сундук -------------------
-function openChest(room) {
-    const reward = room.reward || 200;
-    gameState.balance += reward;
-    log(`💰 Сундук открыт! +${reward} золота`);
-    roomTitle.textContent = 'Сундук открыт';
-    roomDesc.textContent = '';
-    actionBtn.disabled = true;
-    updateUI();
-    saveGame();
-}
-
-// ------------------- Магазин -------------------
-function openShop() {
-    shopModal.classList.remove('hidden');
-}
-
-shopHealth.addEventListener('click', () => {
-    if (gameState.balance >= 500) {
-        gameState.balance -= 500;
-        gameState.health = Math.min(gameState.health + 30, gameState.maxHealth);
-        log('❤️ Куплено зелье лечения +30 HP');
-        updateUI();
-        saveGame();
-    }
-});
-
-shopDamage.addEventListener('click', () => {
-    if (gameState.balance >= 1000) {
-        gameState.balance -= 1000;
-        // можно добавить модификатор урона для заданий
-        log('⚔️ Куплен меч +5% урона');
-        updateUI();
-        saveGame();
-    }
-});
-
-shopGold.addEventListener('click', () => {
-    if (gameState.balance >= 400) {
-        gameState.balance -= 400;
-        gameState.balance += 500;
-        log('💰 Куплен мешок монет +500');
-        updateUI();
-        saveGame();
-    }
-});
-
-closeShopBtn.addEventListener('click', () => {
-    shopModal.classList.add('hidden');
-});
-
-// ------------------- Случайное событие -------------------
-function randomEvent(room) {
-    const r = Math.random();
-    if (r < 0.5) {
-        // бонус
-        const gain = Math.floor(Math.random() * 300) + 100;
-        gameState.balance += gain;
-        log(`✨ Удача! +${gain} золота`);
-    } else {
-        // штраф
-        const loss = Math.floor(Math.random() * 200) + 50;
-        gameState.balance -= loss;
-        const dmg = Math.floor(Math.random() * 10) + 5;
-        gameState.health -= dmg;
-        log(`💢 Неудача! Потеряно ${loss} золота и ${dmg} здоровья`);
-        if (gameState.health <= 0) gameOver();
-    }
-    roomTitle.textContent = 'Событие';
-    roomDesc.textContent = '';
-    actionBtn.disabled = true;
-    updateUI();
-    saveGame();
-}
-
-// ------------------- Вспомогательные -------------------
+// ------------------- Логи -------------------
 function log(text) {
     const entry = document.createElement('div');
     entry.className = 'log-entry';
@@ -388,38 +235,7 @@ function log(text) {
 }
 
 function updateUI() {
-    healthSpan.textContent = gameState.health;
     balanceSpan.textContent = gameState.balance;
-}
-
-function gameOver() {
-    gameState.gameOver = true;
-    finalBalanceSpan.textContent = gameState.balance;
-    finalFloorSpan.textContent = gameState.floor;
-    gameoverModal.classList.remove('hidden');
-    clearSavedGame();
-}
-
-function resetGame() {
-    gameState = {
-        floor: 1,
-        maxFloor: 3,
-        map: generateFloor(1),
-        currentRoomId: null,
-        health: 100,
-        maxHealth: 100,
-        balance: 1500000,
-        balanceHistory: [],
-        availableTasks: [],
-        currentTaskId: null,
-        completedRooms: [],
-        gameOver: false
-    };
-    socket.emit('reset', gameState.balance);
-    updateUI();
-    drawMap();
-    logList.innerHTML = '';
-    log('🔄 Новое приключение!');
 }
 
 // ------------------- Сохранение -------------------
@@ -460,6 +276,15 @@ socket.on('connect', () => {
             gameState = saved;
             updateUI();
             drawMap();
+            if (gameState.currentPath) {
+                pathSelector.style.display = 'none';
+                roomName.textContent = getStageName(gameState.currentPath, gameState.pathProgress[gameState.currentPath]);
+                roomDesc.textContent = getStageDesc(gameState.currentPath, gameState.pathProgress[gameState.currentPath]);
+                actionBtn.disabled = false;
+            } else {
+                pathSelector.style.display = 'block';
+                actionBtn.disabled = true;
+            }
             return;
         } else {
             clearSavedGame();
@@ -471,13 +296,50 @@ socket.on('connect', () => {
 socket.on('state', (serverState) => {
     gameState.balanceHistory = serverState.balanceHistory;
     gameState.availableTasks = serverState.availableTasks;
-    // баланс может обновиться с сервера, но у нас он локальный
-    // balanceSpan.textContent = gameState.balance; // оставляем локальный
+    // баланс может измениться на сервере (например, штраф), но у нас локальный уже обновлён
+    // Обновляем баланс, если он пришёл с сервера? Оставим локальный.
     updateUI();
     saveGame();
 });
 
-// ------------------- Обработчики -------------------
+// ------------------- Сброс -------------------
+resetBtn.addEventListener('click', () => {
+    if (confirm('Начать новое путешествие?')) {
+        resetGame();
+        clearSavedGame();
+    }
+});
+
+function resetGame() {
+    gameState = {
+        currentPath: null,
+        pathProgress: { left: 0, center: 0, right: 0 },
+        pathLength: 5,
+        balance: 1500000,
+        balanceHistory: [],
+        availableTasks: [],
+        currentTaskId: null,
+        gameOver: false
+    };
+    socket.emit('reset', 1500000);
+    pathSelector.style.display = 'block';
+    actionBtn.disabled = true;
+    roomName.textContent = 'Нажмите на карту';
+    roomDesc.textContent = '';
+    updateUI();
+    drawMap();
+    log('🔄 Новое путешествие начато');
+}
+
+applyBalanceBtn.addEventListener('click', () => {
+    const newBal = prompt('Введите новый начальный баланс:', gameState.balance);
+    if (newBal && !isNaN(newBal)) {
+        gameState.balance = parseFloat(newBal);
+        updateUI();
+        socket.emit('addBalance', 'Изменение баланса', 0);
+    }
+});
+
 completeBtn.addEventListener('click', () => completeTask(true));
 failBtn.addEventListener('click', () => completeTask(false));
 
@@ -486,39 +348,5 @@ newGameBtn.addEventListener('click', () => {
     resetGame();
 });
 
-resetBtn.addEventListener('click', () => {
-    if (confirm('Начать новый поход?')) {
-        resetGame();
-        clearSavedGame();
-    }
-});
-
 // Инициализация
-resetGame();
-
-// Пиксельный фон
-(function initBg() {
-    const canvas = document.getElementById('bg-canvas');
-    const ctx = canvas.getContext('2d');
-    let w, h;
-    function resize() {
-        w = window.innerWidth;
-        h = window.innerHeight;
-        canvas.width = w;
-        canvas.height = h;
-    }
-    window.addEventListener('resize', resize);
-    resize();
-
-    function draw() {
-        ctx.fillStyle = '#1a1e2b';
-        ctx.fillRect(0,0,w,h);
-        // шум
-        for (let i = 0; i < 100; i++) {
-            ctx.fillStyle = `rgba(100,100,100,${Math.random()*0.1})`;
-            ctx.fillRect(Math.random()*w, Math.random()*h, 2, 2);
-        }
-        requestAnimationFrame(draw);
-    }
-    draw();
-})();
+drawMap();

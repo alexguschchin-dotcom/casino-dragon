@@ -3,101 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Путь героя</title>
+    <title>Сказания о Золотом Драконе</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Goudy+Bookletter+1911&family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-    <!-- Фоновый шум (пиксельный) -->
-    <canvas id="bg-canvas"></canvas>
-
     <div class="game-wrapper">
-        <!-- Верхняя панель -->
-        <div class="stats-bar">
-            <div class="stat">
-                <span>❤️ Здоровье</span>
-                <span id="health">100</span>
+        <!-- Шапка -->
+        <div class="top-bar">
+            <div class="balance">
+                <i class="fas fa-coins"></i>
+                <span id="balance">1500000</span>
             </div>
-            <div class="stat">
-                <span>💰 Баланс</span>
-                <span id="balance">0</span>
-            </div>
-            <div class="stat">
-                <span>🗺️ Этаж</span>
-                <span id="floor">1</span>
+            <div class="game-title">Сказания о Золотом Драконе</div>
+            <div class="settings">
+                <button id="apply-start-balance" class="btn-gold"><i class="fas fa-pen"></i></button>
+                <button id="reset-btn" class="btn-gold"><i class="fas fa-redo-alt"></i></button>
             </div>
         </div>
 
-        <!-- Карта подземелья -->
+        <!-- Карта -->
         <div class="map-container">
-            <canvas id="mapCanvas" width="800" height="400"></canvas>
+            <canvas id="mapCanvas" width="1200" height="600"></canvas>
+            <div class="path-selector" id="path-selector" style="display: none;">
+                <h3>Выберите путь</h3>
+                <div class="path-buttons">
+                    <button id="path-left" class="path-btn left">Левый путь</button>
+                    <button id="path-center" class="path-btn center">Центральный путь</button>
+                    <button id="path-right" class="path-btn right">Правый путь</button>
+                </div>
+            </div>
         </div>
 
-        <!-- Панель информации о текущей комнате -->
+        <!-- Панель текущего задания/комнаты -->
         <div class="room-panel" id="room-panel">
-            <div class="room-title" id="room-title">Нажмите на комнату</div>
+            <div class="room-name" id="room-name">Нажмите на карту</div>
             <div class="room-desc" id="room-desc"></div>
-            <button id="action-btn" class="pixel-btn" disabled>Действие</button>
+            <button id="action-btn" class="btn-action" disabled>Начать</button>
         </div>
 
         <!-- История -->
         <div class="log-panel">
-            <div class="log-title">📜 Журнал</div>
+            <div class="log-title"><i class="fas fa-scroll"></i> Хроники</div>
             <div id="log-list" class="log-list"></div>
         </div>
-
-        <!-- Кнопка сброса -->
-        <button id="reset-btn" class="pixel-btn reset-btn">🔄 Новый поход</button>
     </div>
 
     <!-- Модалка задания -->
     <div id="task-modal" class="modal hidden">
         <div class="modal-content">
-            <h2>⚔️ Битва!</h2>
+            <h2><i class="fas fa-dragon"></i> Испытание</h2>
             <p id="task-description"></p>
             <div class="input-group">
-                <label>Новый баланс после битвы:</label>
+                <label>Новый баланс:</label>
                 <input type="number" id="new-balance" step="100">
             </div>
             <div class="modal-buttons">
-                <button id="complete-task" class="pixel-btn green">✅ Победа</button>
-                <button id="fail-task" class="pixel-btn red">💀 Поражение</button>
+                <button id="complete-task" class="btn-gold">✅ Выполнено</button>
+                <button id="fail-task" class="btn-danger">💔 Провал</button>
             </div>
-        </div>
-    </div>
-
-    <!-- Модалка магазина -->
-    <div id="shop-modal" class="modal hidden">
-        <div class="modal-content">
-            <h2>🏪 Лавка</h2>
-            <div class="shop-items">
-                <div class="shop-item" id="shop-health">
-                    <span>❤️ Зелье лечения</span>
-                    <span>+30 HP</span>
-                    <span class="price">500</span>
-                </div>
-                <div class="shop-item" id="shop-damage">
-                    <span>⚔️ Меч +5</span>
-                    <span>урон +5% к заданиям</span>
-                    <span class="price">1000</span>
-                </div>
-                <div class="shop-item" id="shop-gold">
-                    <span>💰 Мешок монет</span>
-                    <span>+500 золота</span>
-                    <span class="price">400</span>
-                </div>
-            </div>
-            <button id="close-shop" class="pixel-btn">Закрыть</button>
         </div>
     </div>
 
     <!-- Модалка окончания игры -->
     <div id="gameover-modal" class="modal hidden">
         <div class="modal-content">
-            <h2>💔 Вы погибли...</h2>
-            <p>Ваш баланс: <span id="final-balance"></span></p>
-            <p>Пройдено этажей: <span id="final-floor"></span></p>
-            <button id="new-game-btn" class="pixel-btn">🔄 Новая игра</button>
+            <h2><i class="fas fa-crown"></i> Итоги похода</h2>
+            <p>Ваш итоговый баланс: <span id="final-balance"></span></p>
+            <p>Пройдено этапов: <span id="final-steps"></span></p>
+            <button id="new-game-btn" class="btn-gold">🔄 Новое путешествие</button>
         </div>
     </div>
 
