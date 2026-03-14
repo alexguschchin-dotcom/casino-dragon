@@ -3,59 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Песочные часы</title>
+    <title>Путь героя</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="game-container">
-        <header>
-            <h1>Песочные часы</h1>
-            <div class="balance-info">
-                <span>💰 <span id="current-balance">0</span></span>
-                <button id="apply-start-balance" class="btn-gold">Изменить</button>
+    <!-- Фоновый шум (пиксельный) -->
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="game-wrapper">
+        <!-- Верхняя панель -->
+        <div class="stats-bar">
+            <div class="stat">
+                <span>❤️ Здоровье</span>
+                <span id="health">100</span>
             </div>
-        </header>
-
-        <div class="hourglass-area">
-            <canvas id="hourglassCanvas" width="400" height="600"></canvas>
-            <div class="sand-level" id="sand-level">Песок: <span>100%</span></div>
+            <div class="stat">
+                <span>💰 Баланс</span>
+                <span id="balance">0</span>
+            </div>
+            <div class="stat">
+                <span>🗺️ Этаж</span>
+                <span id="floor">1</span>
+            </div>
         </div>
 
-        <div class="controls">
-            <button id="start-task" class="btn-gold">✨ Взять задание</button>
-            <button id="reset-btn" class="btn-danger">🔄 Новая игра</button>
+        <!-- Карта подземелья -->
+        <div class="map-container">
+            <canvas id="mapCanvas" width="800" height="400"></canvas>
         </div>
 
-        <div class="history">
-            <h3>📋 Хроника</h3>
-            <div id="history-list"></div>
+        <!-- Панель информации о текущей комнате -->
+        <div class="room-panel" id="room-panel">
+            <div class="room-title" id="room-title">Нажмите на комнату</div>
+            <div class="room-desc" id="room-desc"></div>
+            <button id="action-btn" class="pixel-btn" disabled>Действие</button>
         </div>
+
+        <!-- История -->
+        <div class="log-panel">
+            <div class="log-title">📜 Журнал</div>
+            <div id="log-list" class="log-list"></div>
+        </div>
+
+        <!-- Кнопка сброса -->
+        <button id="reset-btn" class="pixel-btn reset-btn">🔄 Новый поход</button>
     </div>
 
     <!-- Модалка задания -->
     <div id="task-modal" class="modal hidden">
         <div class="modal-content">
-            <h2>Задание</h2>
+            <h2>⚔️ Битва!</h2>
             <p id="task-description"></p>
-            <div class="balance-input">
-                <label>Новый баланс:</label>
+            <div class="input-group">
+                <label>Новый баланс после битвы:</label>
                 <input type="number" id="new-balance" step="100">
             </div>
             <div class="modal-buttons">
-                <button id="complete-task" class="btn-success">✅ Выполнено</button>
-                <button id="fail-task" class="btn-danger">⚠️ Провал</button>
+                <button id="complete-task" class="pixel-btn green">✅ Победа</button>
+                <button id="fail-task" class="pixel-btn red">💀 Поражение</button>
             </div>
         </div>
     </div>
 
-    <!-- Модалка окончания -->
-    <div id="completion-modal" class="modal hidden">
+    <!-- Модалка магазина -->
+    <div id="shop-modal" class="modal hidden">
         <div class="modal-content">
-            <h2>⏳ Время истекло</h2>
-            <p>Песок закончился. Вы проиграли.</p>
-            <p>Итоговый баланс: <span id="final-balance"></span> ₽</p>
-            <button id="completion-reset-btn" class="btn-gold">🔄 Новая игра</button>
+            <h2>🏪 Лавка</h2>
+            <div class="shop-items">
+                <div class="shop-item" id="shop-health">
+                    <span>❤️ Зелье лечения</span>
+                    <span>+30 HP</span>
+                    <span class="price">500</span>
+                </div>
+                <div class="shop-item" id="shop-damage">
+                    <span>⚔️ Меч +5</span>
+                    <span>урон +5% к заданиям</span>
+                    <span class="price">1000</span>
+                </div>
+                <div class="shop-item" id="shop-gold">
+                    <span>💰 Мешок монет</span>
+                    <span>+500 золота</span>
+                    <span class="price">400</span>
+                </div>
+            </div>
+            <button id="close-shop" class="pixel-btn">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- Модалка окончания игры -->
+    <div id="gameover-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>💔 Вы погибли...</h2>
+            <p>Ваш баланс: <span id="final-balance"></span></p>
+            <p>Пройдено этажей: <span id="final-floor"></span></p>
+            <button id="new-game-btn" class="pixel-btn">🔄 Новая игра</button>
         </div>
     </div>
 

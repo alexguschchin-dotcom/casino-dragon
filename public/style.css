@@ -1,73 +1,253 @@
-* { margin:0; padding:0; box-sizing:border-box; }
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
 body {
-    font-family: 'Cinzel', serif;
-    background: #0a0a1a;
-    color: gold;
+    background: #1a1e2b;
+    font-family: 'Press Start 2P', cursive;
+    color: #e0e0e0;
     min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px;
+    padding: 10px;
 }
-.game-container {
-    max-width: 900px;
+
+/* Пиксельный фон */
+#bg-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
-    background: rgba(10,10,30,0.9);
-    border: 3px solid gold;
-    border-radius: 50px;
-    padding: 30px;
-    box-shadow: 0 0 50px gold;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+    background: #1a1e2b;
 }
-header {
+
+.game-wrapper {
+    max-width: 1200px;
+    width: 100%;
+    background: #2a2f3f;
+    border: 4px solid #6a6f7f;
+    padding: 20px;
+    box-shadow: 10px 10px 0 #0f0f1f;
+}
+
+/* Статистика */
+.stats-bar {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    background: #0f0f1f;
+    border: 4px solid #6a6f7f;
+    padding: 15px;
     margin-bottom: 20px;
+    font-size: 12px;
 }
-h1 { font-size: 2.5rem; text-shadow: 0 0 20px gold; }
-.balance-info {
-    background: #1a1625;
-    border: 2px solid gold;
-    border-radius: 60px;
-    padding: 10px 20px;
-    font-size: 1.5rem;
-    display: flex;
-    gap: 15px;
-    align-items: center;
-}
-.btn-gold {
-    background: gold; border: none; color: #0a0a1a; font-weight: bold; padding: 8px 20px; border-radius: 40px; cursor: pointer; transition: 0.2s;
-}
-.btn-gold:hover { background: #daa520; transform: scale(1.02); box-shadow: 0 0 15px gold; }
-.btn-danger { background: #b22222; border: none; color: white; padding: 12px 30px; border-radius: 50px; font-size: 1.2rem; cursor: pointer; transition: 0.2s; }
-.btn-danger:hover { background: #8b1a1a; transform: scale(1.02); }
 
-.hourglass-area {
+.stat {
     display: flex;
     flex-direction: column;
     align-items: center;
+    color: #ffd966;
+}
+
+.stat span:first-child {
+    color: #aaa;
+    margin-bottom: 5px;
+}
+
+/* Карта */
+.map-container {
+    background: #1a1e2b;
+    border: 4px solid #6a6f7f;
+    margin-bottom: 20px;
+    padding: 10px;
+}
+
+#mapCanvas {
+    width: 100%;
+    height: auto;
+    display: block;
+    background: #1a1e2b;
+}
+
+/* Панель комнаты */
+.room-panel {
+    background: #0f0f1f;
+    border: 4px solid #6a6f7f;
+    padding: 15px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.room-title {
+    font-size: 16px;
+    color: #ffd966;
+}
+
+.room-desc {
+    font-size: 10px;
+    color: #aaa;
+    text-align: center;
+    min-height: 20px;
+}
+
+/* Пиксельные кнопки */
+.pixel-btn {
+    background: #4a6f8f;
+    border: none;
+    border-bottom: 4px solid #1e3a5f;
+    color: white;
+    font-family: inherit;
+    font-size: 12px;
+    padding: 12px 24px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    transition: 0.05s linear;
+    image-rendering: pixelated;
+}
+
+.pixel-btn:active {
+    border-bottom-width: 0;
+    transform: translateY(4px);
+}
+
+.pixel-btn:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.pixel-btn.green {
+    background: #4f8f4a;
+    border-bottom-color: #1e5f1e;
+}
+
+.pixel-btn.red {
+    background: #8f4a4a;
+    border-bottom-color: #5f1e1e;
+}
+
+/* История */
+.log-panel {
+    background: #0f0f1f;
+    border: 4px solid #6a6f7f;
+    padding: 15px;
+    margin-bottom: 20px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.log-title {
+    color: #ffd966;
+    margin-bottom: 10px;
+    font-size: 12px;
+}
+
+.log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 8px;
+}
+
+.log-entry {
+    color: #aaa;
+    border-left: 4px solid #4a6f8f;
+    padding-left: 8px;
+}
+
+/* Модальные окна */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: #2a2f3f;
+    border: 4px solid #6a6f7f;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+}
+
+.modal-content h2 {
+    color: #ffd966;
+    margin-bottom: 20px;
+}
+
+#task-description {
+    background: #1a1e2b;
+    border: 2px solid #6a6f7f;
+    padding: 15px;
+    margin: 20px 0;
+    font-size: 12px;
+}
+
+.input-group {
     margin: 20px 0;
 }
-canvas { background: #1a1625; border: 2px solid gold; border-radius: 30px; }
-.sand-level { font-size: 1.5rem; margin-top: 10px; }
 
-.controls { display: flex; gap: 20px; justify-content: center; margin: 20px 0; }
-.history {
-    background: #1a1625; border: 2px solid gold; border-radius: 30px; padding: 20px; max-height: 200px; overflow-y: auto;
+.input-group input {
+    width: 100%;
+    background: #1a1e2b;
+    border: 2px solid #6a6f7f;
+    color: #ffd966;
+    padding: 12px;
+    font-family: inherit;
+    font-size: 16px;
+    text-align: center;
 }
-.history h3 { color: gold; margin-bottom: 10px; }
-#history-list { display: flex; flex-direction: column; gap: 5px; }
-.history-item { background: #2a2440; padding: 5px 10px; border-radius: 20px; border-left: 3px solid gold; }
 
-/* модалки аналогично Монополии */
-.modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); display:flex; justify-content:center; align-items:center; z-index:2000; }
-.modal-content { background:#1a1625; border:3px solid gold; border-radius:30px; padding:30px; max-width:500px; width:90%; color:gold; text-align:center; }
-.modal-content h2 { margin-bottom:20px; }
-#task-description { background:#2a2440; padding:15px; border-radius:20px; margin:20px 0; border:1px solid gold; }
-.balance-input { margin:20px 0; }
-.balance-input input { width:100%; background:#2a2440; border:1px solid gold; color:gold; padding:12px; border-radius:30px; font-size:1.2rem; text-align:center; }
-.modal-buttons { display:flex; gap:15px; justify-content:center; }
-.modal-buttons button { padding:12px 25px; border:none; border-radius:50px; font-size:1.2rem; cursor:pointer; }
-.btn-success { background:#4ecca7; color:black; }
-.btn-success:hover { background:#3bb893; transform:scale(1.05); }
-.hidden { display:none !important; }
+.modal-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.shop-items {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.shop-item {
+    background: #1a1e2b;
+    border: 2px solid #6a6f7f;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: 0.1s;
+}
+
+.shop-item:hover {
+    background: #3a3f5f;
+    border-color: #ffd966;
+}
+
+.price {
+    color: #ffd966;
+}
+
+.hidden {
+    display: none !important;
+}
