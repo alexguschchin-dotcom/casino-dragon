@@ -3,63 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Драконьи яйца</title>
+    <title>Драконья сокровищница</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="game-container">
-        <!-- Верхняя панель -->
-        <div class="top-bar">
+    <div class="game-wrapper">
+        <canvas id="gameCanvas" width="1000" height="700"></canvas>
+
+        <div class="ui-panel">
             <div class="balance">
-                <i class="fas fa-coins"></i>
-                <span id="balance">1500000</span>
+                <span class="label">💰 Баланс</span>
+                <span class="value" id="balanceValue">1500000</span>
+                <button id="applyBalance" class="btn-small">✎</button>
             </div>
-            <div class="title">Драконьи яйца</div>
-            <div class="actions">
-                <button id="apply-start-balance" class="btn-gold"><i class="fas fa-pen"></i></button>
-                <button id="reset-btn" class="btn-gold"><i class="fas fa-redo-alt"></i></button>
+            <div class="scales">
+                <span class="label">✨ Чешуйки</span>
+                <span class="value" id="scalesValue">0</span>
             </div>
+            <button id="resetBtn" class="btn-reset">🔄 Новая игра</button>
         </div>
 
-        <!-- Контейнер для яиц -->
-        <div class="eggs-container" id="eggsContainer"></div>
-
-        <!-- Счётчик чешуек -->
-        <div class="scales-counter">
-            <span class="scales-icon">✨</span>
-            <span id="scalesCount">0</span> / 30
-        </div>
-
-        <!-- История -->
-        <div class="log-panel">
-            <div class="log-title"><i class="fas fa-scroll"></i> Хроники</div>
-            <div id="logList" class="log-list"></div>
-        </div>
+        <div id="log" class="log"></div>
     </div>
 
-    <!-- Модалка задания -->
     <div id="taskModal" class="modal hidden">
         <div class="modal-content">
-            <h2><i class="fas fa-dragon"></i> Задание</h2>
-            <p id="taskDescription"></p>
+            <h2>Задание</h2>
+            <p id="taskDesc"></p>
             <div class="input-group">
-                <label>Новый баланс после испытания:</label>
+                <label>Новый баланс:</label>
                 <input type="number" id="newBalance" step="100">
             </div>
-            <div class="modal-buttons">
-                <button id="completeTask" class="btn-success"><i class="fas fa-check"></i> Выполнено</button>
-                <button id="failTask" class="btn-fail"><i class="fas fa-skull"></i> Провал</button>
+            <div class="button-group">
+                <button id="completeBtn" class="btn-success">✅ Выполнено</button>
+                <button id="failBtn" class="btn-fail">💔 Провал</button>
             </div>
         </div>
     </div>
 
-    <!-- Модалка окончания игры -->
-    <div id="gameoverModal" class="modal hidden">
+    <div id="winModal" class="modal hidden">
         <div class="modal-content">
-            <h2><i class="fas fa-crown"></i> Пробуждение дракона</h2>
-            <p>Вы собрали 30 чешуек! Дракон пробуждён.</p>
+            <h2>🏆 Дракон пробуждён</h2>
+            <p>Вы собрали 30 чешуек!</p>
             <p>Итоговый баланс: <span id="finalBalance"></span></p>
             <button id="newGameBtn" class="btn-gold">🔄 Новая игра</button>
         </div>
