@@ -1,209 +1,108 @@
 const socket = io();
-const SAVE_KEY = 'dragon_quest_save';
+const SAVE_KEY = 'dragon_eggs_save';
 
 let gameState = {
-    currentPath: null,
-    pathProgress: { left: 0, center: 0, right: 0 },
-    pathLength: 5,
+    scales: 0,              // собранные чешуйки (прогресс)
     balance: 1500000,
     balanceHistory: [],
     availableTasks: [],
     currentTaskId: null,
+    eggs: [],                // состояние яиц (для анимаций)
     gameOver: false
 };
 
-// DOM elements
+// DOM элементы
 const balanceSpan = document.getElementById('balance');
-const canvas = document.getElementById('mapCanvas');
-const ctx = canvas.getContext('2d');
-const pathSelector = document.getElementById('path-selector');
-const pathLeft = document.getElementById('path-left');
-const pathCenter = document.getElementById('path-center');
-const pathRight = document.getElementById('path-right');
-const islandName = document.getElementById('island-name');
-const islandDesc = document.getElementById('island-desc');
-const actionBtn = document.getElementById('action-btn');
-const logList = document.getElementById('log-list');
+const eggsContainer = document.getElementById('eggsContainer');
+const scalesSpan = document.getElementById('scalesCount');
+const logList = document.getElementById('logList');
 const resetBtn = document.getElementById('reset-btn');
 const applyBalanceBtn = document.getElementById('apply-start-balance');
-const taskModal = document.getElementById('task-modal');
-const taskDesc = document.getElementById('task-description');
-const newBalanceInput = document.getElementById('new-balance');
-const completeBtn = document.getElementById('complete-task');
-const failBtn = document.getElementById('fail-task');
-const gameoverModal = document.getElementById('gameover-modal');
-const finalBalanceSpan = document.getElementById('final-balance');
-const finalStepsSpan = document.getElementById('final-steps');
-const newGameBtn = document.getElementById('new-game-btn');
+const taskModal = document.getElementById('taskModal');
+const taskDesc = document.getElementById('taskDescription');
+const newBalanceInput = document.getElementById('newBalance');
+const completeBtn = document.getElementById('completeTask');
+const failBtn = document.getElementById('failTask');
+const gameoverModal = document.getElementById('gameoverModal');
+const finalBalanceSpan = document.getElementById('finalBalance');
+const newGameBtn = document.getElementById('newGameBtn');
 
-// Пути и острова
-const pathColors = {
-    left: '#4a7a9a',
-    center: '#b8860b',
-    right: '#8a6a9a'
-};
+// Количество яиц
+const EGG_COUNT = 3;
 
-const islandNames = {
-    left: ['Лесная застава', 'Горный перевал', 'Тёмный рудник', 'Замок теней', 'Логово дракона'],
-    center: ['Пограничная крепость', 'Королевский город', 'Храм солнца', 'Дворец', 'Тронный зал'],
-    right: ['Пиратский порт', 'Остров бури', 'Подводный грот', 'Вулкан', 'Пещера дракона']
-};
-
-// Рисование карты
-function drawMap() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Звёздное небо
-    ctx.fillStyle = '#0b0e1a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    for (let i = 0; i < 100; i++) {
-        ctx.fillStyle = `rgba(255,255,200,${Math.random()*0.5+0.3})`;
-        ctx.beginPath();
-        ctx.arc(Math.random()*canvas.width, Math.random()*canvas.height, Math.random()*2+1, 0, 2*Math.PI);
-        ctx.fill();
-    }
-
-    // Облака (анимируются позже)
-    drawClouds();
-
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2 - 50;
-
-    // Координаты островов для каждого пути
-    const islandCoords = {
-        left: [],
-        center: [],
-        right: []
-    };
-
-    // Генерация позиций островов
-    for (let i = 0; i < gameState.pathLength; i++) {
-        // Левый путь (смещён влево, идёт вверх)
-        islandCoords.left.push({
-            x: cx - 250 + i * 60,
-            y: cy + 150 - i * 80
-        });
-        // Центральный путь
-        islandCoords.center.push({
-            x: cx - 50 + i * 80,
-            y: cy + 200 - i * 70
-        });
-        // Правый путь
-        islandCoords.right.push({
-            x: cx + 150 + i * 70,
-            y: cy + 150 - i * 60
+// Инициализация яиц
+function initEggs() {
+    gameState.eggs = [];
+    for (let i = 0; i < EGG_COUNT; i++) {
+        gameState.eggs.push({
+            id: i,
+            state: 'idle',    // idle, hatching, hatched, flown, broken
+            task: null,
+            dragonfly: null    // для анимации улёта
         });
     }
+    renderEggs();
+}
 
-    // Рисуем мосты (линии между островами)
-    ctx.lineWidth = 6;
-    ctx.shadowColor = 'gold';
-    ctx.shadowBlur = 20;
-    for (let path of ['left', 'center', 'right']) {
-        const coords = islandCoords[path];
-        ctx.strokeStyle = pathColors[path];
-        ctx.globalAlpha = 0.6;
-        ctx.beginPath();
-        ctx.moveTo(coords[0].x, coords[0].y);
-        for (let i = 1; i < coords.length; i++) {
-            ctx.lineTo(coords[i].x, coords[i].y);
+function renderEggs() {
+    eggsContainer.innerHTML = '';
+    gameState.eggs.forEach((egg, index) => {
+        const eggDiv = document.createElement('div');
+        eggDiv.className = `egg ${egg.state}`;
+        eggDiv.dataset.index = index;
+        
+        // Визуальные эффекты в зависимости от состояния
+        if (egg.state === 'idle') {
+            eggDiv.addEventListener('click', () => startHatching(index));
+        } else if (egg.state === 'hatching') {
+            // анимация трещин уже через CSS
+        } else if (egg.state === 'hatched') {
+            // появился дракончик
+            eggDiv.innerHTML = '<div class="dragon-icon">🐉</div>';
+        } else if (egg.state === 'flown') {
+            // осталась чешуйка
+            eggDiv.innerHTML = '<div class="scale-icon">✨</div>';
+        } else if (egg.state === 'broken') {
+            // разбитое яйцо
+            eggDiv.innerHTML = '<div class="broken">💔</div>';
         }
-        ctx.stroke();
-    }
-    ctx.shadowBlur = 0;
-    ctx.globalAlpha = 1;
 
-    // Рисуем острова
-    for (let path of ['left', 'center', 'right']) {
-        const progress = gameState.pathProgress[path];
-        const coords = islandCoords[path];
-        for (let i = 0; i < coords.length; i++) {
-            const x = coords[i].x;
-            const y = coords[i].y;
-
-            // Определяем цвет острова
-            if (i < progress) {
-                // Пройден
-                ctx.fillStyle = '#4ecca7';
-                ctx.shadowColor = '#4ecca7';
-            } else if (i === progress && gameState.currentPath === path) {
-                // Текущий
-                ctx.fillStyle = 'gold';
-                ctx.shadowColor = 'gold';
-            } else {
-                ctx.fillStyle = '#2a2a4a';
-                ctx.shadowColor = 'transparent';
-            }
-            ctx.shadowBlur = 20;
-            
-            // Рисуем остров (круг с имитацией земли)
-            ctx.beginPath();
-            ctx.arc(x, y, 30, 0, 2*Math.PI);
-            ctx.fill();
-            
-            // Добавляем текстуру (небольшие крапинки)
-            ctx.fillStyle = 'rgba(255,255,255,0.1)';
-            for (let j = 0; j < 5; j++) {
-                ctx.beginPath();
-                ctx.arc(x-5+Math.random()*10, y-5+Math.random()*10, 2, 0, 2*Math.PI);
-                ctx.fill();
-            }
-
-            // Иконка
-            ctx.font = '20px "Font Awesome 6 Free"';
-            ctx.fillStyle = '#fff';
-            ctx.shadowBlur = 10;
-            let icon = i === gameState.pathLength-1 ? '👑' : '🗻';
-            ctx.fillText(icon, x-12, y-10);
-
-            // Номер этапа
-            ctx.font = '14px "Cinzel"';
-            ctx.fillText(i+1, x-5, y-40);
-        }
-    }
-    ctx.shadowBlur = 0;
+        eggsContainer.appendChild(eggDiv);
+    });
 }
 
-function drawClouds() {
-    // Простая анимация облаков (можно улучшить позже)
-    // Пока оставим статичными
-}
-
-// Выбор пути
-pathLeft.addEventListener('click', () => selectPath('left'));
-pathCenter.addEventListener('click', () => selectPath('center'));
-pathRight.addEventListener('click', () => selectPath('right'));
-
-function selectPath(path) {
-    if (gameState.gameOver) return;
-    gameState.currentPath = path;
-    pathSelector.classList.add('hidden');
-    updateIslandPanel();
-    actionBtn.disabled = false;
-    drawMap();
-    saveGame();
-}
-
-function updateIslandPanel() {
-    if (!gameState.currentPath) return;
-    const stage = gameState.pathProgress[gameState.currentPath];
-    islandName.textContent = islandNames[gameState.currentPath][stage];
-    islandDesc.textContent = `Этап ${stage+1} из ${gameState.pathLength}. Приготовьтесь к испытанию.`;
-}
-
-// Нажатие на кнопку действия
-actionBtn.addEventListener('click', () => {
-    if (!gameState.currentPath) return;
+// Начало вылупления
+function startHatching(index) {
+    if (gameState.eggs[index].state !== 'idle') return;
     if (gameState.availableTasks.length === 0) {
-        log('❌ В пуле нет заданий!');
+        log('❌ Нет заданий в пуле!');
         return;
     }
+
+    // Помечаем яйцо как вылупляющееся
+    gameState.eggs[index].state = 'hatching';
+    renderEggs();
+
+    // Через 1.5 секунды появляется дракончик
+    setTimeout(() => {
+        if (gameState.eggs[index].state === 'hatching') {
+            gameState.eggs[index].state = 'hatched';
+            renderEggs();
+            // Запоминаем индекс для открытия модалки
+            gameState.currentEggIndex = index;
+            openTaskModal();
+        }
+    }, 1500);
+}
+
+// Открыть модалку с заданием
+function openTaskModal() {
     const task = gameState.availableTasks[Math.floor(Math.random() * gameState.availableTasks.length)];
     gameState.currentTaskId = task.id;
     taskDesc.textContent = task.description;
     newBalanceInput.value = gameState.balance;
     taskModal.classList.remove('hidden');
-});
+}
 
 // Завершение задания
 function completeTask(success) {
@@ -212,42 +111,46 @@ function completeTask(success) {
 
     const change = newBalance - gameState.balance;
     const taskId = gameState.currentTaskId;
-    const path = gameState.currentPath;
-    const stage = gameState.pathProgress[path];
+    const eggIndex = gameState.currentEggIndex;
 
     if (success) {
         socket.emit('completeTask', taskId, change);
         gameState.balance = newBalance;
-        log(`✅ Этап ${stage+1} пройден! Баланс изменён на ${change>0?'+'+change:change}`);
+        gameState.scales++;
+        scalesSpan.textContent = gameState.scales;
 
-        gameState.pathProgress[path]++;
+        // Анимация улёта дракончика
+        if (eggIndex !== undefined) {
+            gameState.eggs[eggIndex].state = 'flown';
+        }
+        log(`✅ Дракончик вылупился и улетел! +1 чешуйка. Баланс изменён на ${change>0?'+'+change:change}`);
 
-        if (gameState.pathProgress[path] >= gameState.pathLength) {
-            // Завершение пути
-            log(`🏆 Вы завершили путь ${path}!`);
-            gameState.currentPath = null;
-            pathSelector.classList.remove('hidden');
-            actionBtn.disabled = true;
-            islandName.textContent = '';
-            islandDesc.textContent = 'Выберите новый путь';
-        } else {
-            updateIslandPanel();
+        // Проверка на победу
+        if (gameState.scales >= 30) {
+            winGame();
         }
     } else {
         socket.emit('penaltyWithBalance', taskId, newBalance);
         gameState.balance = newBalance;
-        log(`💔 Поражение на этапе ${stage+1}. Баланс изменён на ${change}`);
-
-        if (gameState.pathProgress[path] > 0) {
-            gameState.pathProgress[path]--;
+        // Яйцо разбивается
+        if (eggIndex !== undefined) {
+            gameState.eggs[eggIndex].state = 'broken';
         }
-        updateIslandPanel();
+        log(`💥 Яйцо разбилось! Баланс изменён на ${change}`);
     }
 
     taskModal.classList.add('hidden');
+    gameState.currentEggIndex = undefined;
+    renderEggs();
     updateUI();
-    drawMap();
     saveGame();
+}
+
+function winGame() {
+    gameState.gameOver = true;
+    finalBalanceSpan.textContent = gameState.balance;
+    gameoverModal.classList.remove('hidden');
+    clearSavedGame();
 }
 
 function log(text) {
@@ -260,6 +163,7 @@ function log(text) {
 
 function updateUI() {
     balanceSpan.textContent = gameState.balance;
+    scalesSpan.textContent = gameState.scales;
 }
 
 // Сохранение и загрузка
@@ -292,27 +196,21 @@ function clearSavedGame() {
     localStorage.removeItem(SAVE_KEY);
 }
 
-// Сброс игры
 function resetGame() {
     gameState = {
-        currentPath: null,
-        pathProgress: { left: 0, center: 0, right: 0 },
-        pathLength: 5,
+        scales: 0,
         balance: 1500000,
         balanceHistory: [],
         availableTasks: [],
         currentTaskId: null,
+        eggs: [],
         gameOver: false
     };
     socket.emit('reset', 1500000);
-    pathSelector.classList.remove('hidden');
-    actionBtn.disabled = true;
-    islandName.textContent = '';
-    islandDesc.textContent = 'Выберите путь';
+    initEggs();
     updateUI();
-    drawMap();
     logList.innerHTML = '';
-    log('🔄 Новое путешествие начато');
+    log('🔄 Новая игра начата');
     saveGame();
 }
 
@@ -320,20 +218,10 @@ function resetGame() {
 socket.on('connect', () => {
     const saved = loadGame();
     if (saved && !saved.gameOver) {
-        if (confirm('Найден сохранённый поход. Восстановить?')) {
+        if (confirm('Найден сохранённый прогресс. Восстановить?')) {
             gameState = saved;
+            renderEggs();
             updateUI();
-            drawMap();
-            if (gameState.currentPath) {
-                pathSelector.classList.add('hidden');
-                updateIslandPanel();
-                actionBtn.disabled = false;
-            } else {
-                pathSelector.classList.remove('hidden');
-                actionBtn.disabled = true;
-                islandName.textContent = '';
-                islandDesc.textContent = 'Выберите путь';
-            }
             return;
         } else {
             clearSavedGame();
@@ -345,7 +233,7 @@ socket.on('connect', () => {
 socket.on('state', (serverState) => {
     gameState.balanceHistory = serverState.balanceHistory;
     gameState.availableTasks = serverState.availableTasks;
-    // Баланс может обновиться, но мы уже локально меняем
+    // Баланс уже локальный
     updateUI();
     saveGame();
 });
@@ -354,7 +242,7 @@ socket.on('state', (serverState) => {
 completeBtn.addEventListener('click', () => completeTask(true));
 failBtn.addEventListener('click', () => completeTask(false));
 resetBtn.addEventListener('click', () => {
-    if (confirm('Начать новое путешествие?')) {
+    if (confirm('Начать новую игру?')) {
         resetGame();
         clearSavedGame();
     }
@@ -373,8 +261,4 @@ newGameBtn.addEventListener('click', () => {
 });
 
 // Инициализация
-drawMap();
-setInterval(() => {
-    // Анимация облаков (перерисовываем карту, облака можно анимировать)
-    drawMap();
-}, 100);
+initEggs();

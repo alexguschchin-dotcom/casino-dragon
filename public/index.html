@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Сказания о Золотом Драконе</title>
+    <title>Драконьи яйца</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -16,63 +16,52 @@
                 <i class="fas fa-coins"></i>
                 <span id="balance">1500000</span>
             </div>
-            <div class="title">Сказания о Золотом Драконе</div>
+            <div class="title">Драконьи яйца</div>
             <div class="actions">
                 <button id="apply-start-balance" class="btn-gold"><i class="fas fa-pen"></i></button>
                 <button id="reset-btn" class="btn-gold"><i class="fas fa-redo-alt"></i></button>
             </div>
         </div>
 
-        <!-- Карта -->
-        <div class="map-wrapper">
-            <canvas id="mapCanvas" width="1200" height="700"></canvas>
-            <div id="path-selector" class="path-selector hidden">
-                <h3>Выберите путь</h3>
-                <div class="path-buttons">
-                    <button id="path-left" class="path-btn left">Левый путь</button>
-                    <button id="path-center" class="path-btn center">Центральный путь</button>
-                    <button id="path-right" class="path-btn right">Правый путь</button>
-                </div>
-            </div>
+        <!-- Контейнер для яиц -->
+        <div class="eggs-container" id="eggsContainer"></div>
+
+        <!-- Счётчик чешуек -->
+        <div class="scales-counter">
+            <span class="scales-icon">✨</span>
+            <span id="scalesCount">0</span> / 30
         </div>
 
-        <!-- Панель текущего острова -->
-        <div class="island-panel" id="island-panel">
-            <div class="island-name" id="island-name"></div>
-            <div class="island-desc" id="island-desc"></div>
-            <button id="action-btn" class="btn-action" disabled>Начать испытание</button>
-        </div>
-
-        <!-- Лог -->
+        <!-- История -->
         <div class="log-panel">
             <div class="log-title"><i class="fas fa-scroll"></i> Хроники</div>
-            <div id="log-list" class="log-list"></div>
+            <div id="logList" class="log-list"></div>
         </div>
     </div>
 
     <!-- Модалка задания -->
-    <div id="task-modal" class="modal hidden">
+    <div id="taskModal" class="modal hidden">
         <div class="modal-content">
-            <h2><i class="fas fa-dragon"></i> Испытание</h2>
-            <p id="task-description"></p>
+            <h2><i class="fas fa-dragon"></i> Задание</h2>
+            <p id="taskDescription"></p>
             <div class="input-group">
-                <label>Новый баланс после битвы:</label>
-                <input type="number" id="new-balance" step="100">
+                <label>Новый баланс после испытания:</label>
+                <input type="number" id="newBalance" step="100">
             </div>
             <div class="modal-buttons">
-                <button id="complete-task" class="btn-success"><i class="fas fa-check"></i> Победа</button>
-                <button id="fail-task" class="btn-fail"><i class="fas fa-skull"></i> Поражение</button>
+                <button id="completeTask" class="btn-success"><i class="fas fa-check"></i> Выполнено</button>
+                <button id="failTask" class="btn-fail"><i class="fas fa-skull"></i> Провал</button>
             </div>
         </div>
     </div>
 
     <!-- Модалка окончания игры -->
-    <div id="gameover-modal" class="modal hidden">
+    <div id="gameoverModal" class="modal hidden">
         <div class="modal-content">
-            <h2><i class="fas fa-crown"></i> Путь завершён</h2>
-            <p>Ваш итоговый баланс: <span id="final-balance"></span></p>
-            <p>Пройдено этапов: <span id="final-steps"></span></p>
-            <button id="new-game-btn" class="btn-gold">🔄 Новое путешествие</button>
+            <h2><i class="fas fa-crown"></i> Пробуждение дракона</h2>
+            <p>Вы собрали 30 чешуек! Дракон пробуждён.</p>
+            <p>Итоговый баланс: <span id="finalBalance"></span></p>
+            <button id="newGameBtn" class="btn-gold">🔄 Новая игра</button>
         </div>
     </div>
 
