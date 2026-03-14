@@ -1,13 +1,10 @@
 const socket = io();
+const SAVE_KEY = 'dragon_quest_save';
 
-// Ключ сохранения
-const SAVE_KEY = 'dragon_save';
-
-// Состояние игры
 let gameState = {
-    currentPath: null,        // 'left', 'center', 'right'
-    pathProgress: { left: 0, center: 0, right: 0 }, // пройдено этапов на пути
-    pathLength: 5,            // всего этапов на пути (включая босса)
+    currentPath: null,
+    pathProgress: { left: 0, center: 0, right: 0 },
+    pathLength: 5,
     balance: 1500000,
     balanceHistory: [],
     availableTasks: [],
@@ -15,16 +12,16 @@ let gameState = {
     gameOver: false
 };
 
-// DOM элементы
+// DOM elements
 const balanceSpan = document.getElementById('balance');
-const mapCanvas = document.getElementById('mapCanvas');
-const ctx = mapCanvas.getContext('2d');
+const canvas = document.getElementById('mapCanvas');
+const ctx = canvas.getContext('2d');
 const pathSelector = document.getElementById('path-selector');
 const pathLeft = document.getElementById('path-left');
 const pathCenter = document.getElementById('path-center');
 const pathRight = document.getElementById('path-right');
-const roomName = document.getElementById('room-name');
-const roomDesc = document.getElementById('room-desc');
+const islandName = document.getElementById('island-name');
+const islandDesc = document.getElementById('island-desc');
 const actionBtn = document.getElementById('action-btn');
 const logList = document.getElementById('log-list');
 const resetBtn = document.getElementById('reset-btn');
@@ -39,95 +36,140 @@ const finalBalanceSpan = document.getElementById('final-balance');
 const finalStepsSpan = document.getElementById('final-steps');
 const newGameBtn = document.getElementById('new-game-btn');
 
-// ------------------- Рисование карты -------------------
-function drawMap() {
-    ctx.clearRect(0, 0, mapCanvas.width, mapCanvas.height);
-    const cx = mapCanvas.width / 2;
-    const cy = mapCanvas.height / 2;
+// Пути и острова
+const pathColors = {
+    left: '#4a7a9a',
+    center: '#b8860b',
+    right: '#8a6a9a'
+};
 
-    // Рисуем три пути (линии)
+const islandNames = {
+    left: ['Лесная застава', 'Горный перевал', 'Тёмный рудник', 'Замок теней', 'Логово дракона'],
+    center: ['Пограничная крепость', 'Королевский город', 'Храм солнца', 'Дворец', 'Тронный зал'],
+    right: ['Пиратский порт', 'Остров бури', 'Подводный грот', 'Вулкан', 'Пещера дракона']
+};
+
+// Рисование карты
+function drawMap() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Звёздное небо
+    ctx.fillStyle = '#0b0e1a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < 100; i++) {
+        ctx.fillStyle = `rgba(255,255,200,${Math.random()*0.5+0.3})`;
+        ctx.beginPath();
+        ctx.arc(Math.random()*canvas.width, Math.random()*canvas.height, Math.random()*2+1, 0, 2*Math.PI);
+        ctx.fill();
+    }
+
+    // Облака (анимируются позже)
+    drawClouds();
+
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2 - 50;
+
+    // Координаты островов для каждого пути
+    const islandCoords = {
+        left: [],
+        center: [],
+        right: []
+    };
+
+    // Генерация позиций островов
+    for (let i = 0; i < gameState.pathLength; i++) {
+        // Левый путь (смещён влево, идёт вверх)
+        islandCoords.left.push({
+            x: cx - 250 + i * 60,
+            y: cy + 150 - i * 80
+        });
+        // Центральный путь
+        islandCoords.center.push({
+            x: cx - 50 + i * 80,
+            y: cy + 200 - i * 70
+        });
+        // Правый путь
+        islandCoords.right.push({
+            x: cx + 150 + i * 70,
+            y: cy + 150 - i * 60
+        });
+    }
+
+    // Рисуем мосты (линии между островами)
     ctx.lineWidth = 6;
     ctx.shadowColor = 'gold';
-    ctx.shadowBlur = 15;
-
-    // Левый путь
-    ctx.beginPath();
-    ctx.strokeStyle = '#4a6f8f';
-    ctx.moveTo(150, 500);
-    ctx.lineTo(300, 300);
-    ctx.lineTo(450, 200);
-    ctx.lineTo(600, 150);
-    ctx.lineTo(750, 130);
-    ctx.stroke();
-
-    // Центральный путь
-    ctx.beginPath();
-    ctx.strokeStyle = '#8f6f4a';
-    ctx.moveTo(300, 500);
-    ctx.lineTo(450, 350);
-    ctx.lineTo(600, 250);
-    ctx.lineTo(750, 200);
-    ctx.lineTo(900, 180);
-    ctx.stroke();
-
-    // Правый путь
-    ctx.beginPath();
-    ctx.strokeStyle = '#6f4a8f';
-    ctx.moveTo(450, 500);
-    ctx.lineTo(600, 400);
-    ctx.lineTo(750, 300);
-    ctx.lineTo(900, 250);
-    ctx.lineTo(1050, 220);
-    ctx.stroke();
-
-    ctx.shadowBlur = 0;
-
-    // Рисуем этапы (точки)
-    for (let i = 0; i < gameState.pathLength; i++) {
-        // Левый путь
-        drawStage(150 + i*150, 500 - i*90, 'left', i);
-        // Центральный путь
-        drawStage(300 + i*150, 500 - i*70, 'center', i);
-        // Правый путь
-        drawStage(450 + i*150, 500 - i*60, 'right', i);
+    ctx.shadowBlur = 20;
+    for (let path of ['left', 'center', 'right']) {
+        const coords = islandCoords[path];
+        ctx.strokeStyle = pathColors[path];
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(coords[0].x, coords[0].y);
+        for (let i = 1; i < coords.length; i++) {
+            ctx.lineTo(coords[i].x, coords[i].y);
+        }
+        ctx.stroke();
     }
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
 
-    // Боссы (последние этапы)
-    ctx.font = '30px "Font Awesome 6 Free"';
-    ctx.fillStyle = 'gold';
-    ctx.fillText('👑', 750, 130-20);
-    ctx.fillText('👑', 900, 180-20);
-    ctx.fillText('👑', 1050, 220-20);
+    // Рисуем острова
+    for (let path of ['left', 'center', 'right']) {
+        const progress = gameState.pathProgress[path];
+        const coords = islandCoords[path];
+        for (let i = 0; i < coords.length; i++) {
+            const x = coords[i].x;
+            const y = coords[i].y;
+
+            // Определяем цвет острова
+            if (i < progress) {
+                // Пройден
+                ctx.fillStyle = '#4ecca7';
+                ctx.shadowColor = '#4ecca7';
+            } else if (i === progress && gameState.currentPath === path) {
+                // Текущий
+                ctx.fillStyle = 'gold';
+                ctx.shadowColor = 'gold';
+            } else {
+                ctx.fillStyle = '#2a2a4a';
+                ctx.shadowColor = 'transparent';
+            }
+            ctx.shadowBlur = 20;
+            
+            // Рисуем остров (круг с имитацией земли)
+            ctx.beginPath();
+            ctx.arc(x, y, 30, 0, 2*Math.PI);
+            ctx.fill();
+            
+            // Добавляем текстуру (небольшие крапинки)
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            for (let j = 0; j < 5; j++) {
+                ctx.beginPath();
+                ctx.arc(x-5+Math.random()*10, y-5+Math.random()*10, 2, 0, 2*Math.PI);
+                ctx.fill();
+            }
+
+            // Иконка
+            ctx.font = '20px "Font Awesome 6 Free"';
+            ctx.fillStyle = '#fff';
+            ctx.shadowBlur = 10;
+            let icon = i === gameState.pathLength-1 ? '👑' : '🗻';
+            ctx.fillText(icon, x-12, y-10);
+
+            // Номер этапа
+            ctx.font = '14px "Cinzel"';
+            ctx.fillText(i+1, x-5, y-40);
+        }
+    }
+    ctx.shadowBlur = 0;
 }
 
-function drawStage(x, y, path, index) {
-    ctx.beginPath();
-    if (index < gameState.pathProgress[path]) {
-        // Пройден
-        ctx.fillStyle = '#4ecca7';
-        ctx.shadowColor = '#4ecca7';
-    } else if (index === gameState.pathProgress[path] && gameState.currentPath === path) {
-        // Текущий
-        ctx.fillStyle = 'gold';
-        ctx.shadowColor = 'gold';
-    } else {
-        ctx.fillStyle = '#2a2440';
-        ctx.shadowColor = 'transparent';
-    }
-    ctx.arc(x, y, 15, 0, 2*Math.PI);
-    ctx.fill();
-    ctx.strokeStyle = 'gold';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-
-    // Номер этапа
-    ctx.font = '14px "Cinzel"';
-    ctx.fillStyle = '#fff';
-    ctx.fillText(index+1, x-5, y-20);
+function drawClouds() {
+    // Простая анимация облаков (можно улучшить позже)
+    // Пока оставим статичными
 }
 
-// ------------------- Выбор пути -------------------
+// Выбор пути
 pathLeft.addEventListener('click', () => selectPath('left'));
 pathCenter.addEventListener('click', () => selectPath('center'));
 pathRight.addEventListener('click', () => selectPath('right'));
@@ -135,38 +177,25 @@ pathRight.addEventListener('click', () => selectPath('right'));
 function selectPath(path) {
     if (gameState.gameOver) return;
     gameState.currentPath = path;
-    pathSelector.style.display = 'none';
-    roomName.textContent = getStageName(path, gameState.pathProgress[path]);
-    roomDesc.textContent = getStageDesc(path, gameState.pathProgress[path]);
+    pathSelector.classList.add('hidden');
+    updateIslandPanel();
     actionBtn.disabled = false;
     drawMap();
     saveGame();
 }
 
-function getStageName(path, stage) {
-    const names = {
-        left: ['Лесная застава', 'Горный перевал', 'Тёмный рудник', 'Замок теней', 'Логово дракона'],
-        center: ['Крепость', 'Королевский город', 'Храм солнца', 'Дворец', 'Тронный зал'],
-        right: ['Порт', 'Остров', 'Подводный грот', 'Вулкан', 'Пещера']
-    };
-    return names[path][stage] || 'Испытание';
-}
-
-function getStageDesc(path, stage) {
-    return `Вы на пути "${path}". Этап ${stage+1}. Готовьтесь к битве.`;
-}
-
-// ------------------- Начало испытания -------------------
-actionBtn.addEventListener('click', () => {
+function updateIslandPanel() {
     if (!gameState.currentPath) return;
     const stage = gameState.pathProgress[gameState.currentPath];
-    if (stage >= gameState.pathLength) {
-        // Босс уже побеждён, но такого не должно быть
-        return;
-    }
-    // Берём случайное задание
+    islandName.textContent = islandNames[gameState.currentPath][stage];
+    islandDesc.textContent = `Этап ${stage+1} из ${gameState.pathLength}. Приготовьтесь к испытанию.`;
+}
+
+// Нажатие на кнопку действия
+actionBtn.addEventListener('click', () => {
+    if (!gameState.currentPath) return;
     if (gameState.availableTasks.length === 0) {
-        log('❌ Нет заданий в пуле!');
+        log('❌ В пуле нет заданий!');
         return;
     }
     const task = gameState.availableTasks[Math.floor(Math.random() * gameState.availableTasks.length)];
@@ -176,7 +205,7 @@ actionBtn.addEventListener('click', () => {
     taskModal.classList.remove('hidden');
 });
 
-// ------------------- Завершение задания -------------------
+// Завершение задания
 function completeTask(success) {
     const newBalance = parseFloat(newBalanceInput.value);
     if (isNaN(newBalance)) return;
@@ -191,32 +220,28 @@ function completeTask(success) {
         gameState.balance = newBalance;
         log(`✅ Этап ${stage+1} пройден! Баланс изменён на ${change>0?'+'+change:change}`);
 
-        // Продвигаемся
         gameState.pathProgress[path]++;
+
         if (gameState.pathProgress[path] >= gameState.pathLength) {
-            // Победа на пути
+            // Завершение пути
             log(`🏆 Вы завершили путь ${path}!`);
             gameState.currentPath = null;
-            pathSelector.style.display = 'block';
+            pathSelector.classList.remove('hidden');
             actionBtn.disabled = true;
-            roomName.textContent = 'Выберите новый путь';
-            roomDesc.textContent = '';
+            islandName.textContent = '';
+            islandDesc.textContent = 'Выберите новый путь';
         } else {
-            // Остались этапы
-            roomName.textContent = getStageName(path, gameState.pathProgress[path]);
-            roomDesc.textContent = getStageDesc(path, gameState.pathProgress[path]);
+            updateIslandPanel();
         }
     } else {
         socket.emit('penaltyWithBalance', taskId, newBalance);
         gameState.balance = newBalance;
         log(`💔 Поражение на этапе ${stage+1}. Баланс изменён на ${change}`);
 
-        // Наказание: откат на один этап назад (если не первый)
         if (gameState.pathProgress[path] > 0) {
             gameState.pathProgress[path]--;
         }
-        roomName.textContent = getStageName(path, gameState.pathProgress[path]);
-        roomDesc.textContent = getStageDesc(path, gameState.pathProgress[path]);
+        updateIslandPanel();
     }
 
     taskModal.classList.add('hidden');
@@ -225,7 +250,6 @@ function completeTask(success) {
     saveGame();
 }
 
-// ------------------- Логи -------------------
 function log(text) {
     const entry = document.createElement('div');
     entry.className = 'log-entry';
@@ -238,7 +262,7 @@ function updateUI() {
     balanceSpan.textContent = gameState.balance;
 }
 
-// ------------------- Сохранение -------------------
+// Сохранение и загрузка
 function saveGame() {
     try {
         const saveData = {
@@ -268,48 +292,7 @@ function clearSavedGame() {
     localStorage.removeItem(SAVE_KEY);
 }
 
-// ------------------- Подключение к серверу -------------------
-socket.on('connect', () => {
-    const saved = loadGame();
-    if (saved && !saved.gameOver) {
-        if (confirm('Найден сохранённый поход. Восстановить?')) {
-            gameState = saved;
-            updateUI();
-            drawMap();
-            if (gameState.currentPath) {
-                pathSelector.style.display = 'none';
-                roomName.textContent = getStageName(gameState.currentPath, gameState.pathProgress[gameState.currentPath]);
-                roomDesc.textContent = getStageDesc(gameState.currentPath, gameState.pathProgress[gameState.currentPath]);
-                actionBtn.disabled = false;
-            } else {
-                pathSelector.style.display = 'block';
-                actionBtn.disabled = true;
-            }
-            return;
-        } else {
-            clearSavedGame();
-        }
-    }
-    socket.emit('reset', 1500000);
-});
-
-socket.on('state', (serverState) => {
-    gameState.balanceHistory = serverState.balanceHistory;
-    gameState.availableTasks = serverState.availableTasks;
-    // баланс может измениться на сервере (например, штраф), но у нас локальный уже обновлён
-    // Обновляем баланс, если он пришёл с сервера? Оставим локальный.
-    updateUI();
-    saveGame();
-});
-
-// ------------------- Сброс -------------------
-resetBtn.addEventListener('click', () => {
-    if (confirm('Начать новое путешествие?')) {
-        resetGame();
-        clearSavedGame();
-    }
-});
-
+// Сброс игры
 function resetGame() {
     gameState = {
         currentPath: null,
@@ -322,15 +305,60 @@ function resetGame() {
         gameOver: false
     };
     socket.emit('reset', 1500000);
-    pathSelector.style.display = 'block';
+    pathSelector.classList.remove('hidden');
     actionBtn.disabled = true;
-    roomName.textContent = 'Нажмите на карту';
-    roomDesc.textContent = '';
+    islandName.textContent = '';
+    islandDesc.textContent = 'Выберите путь';
     updateUI();
     drawMap();
+    logList.innerHTML = '';
     log('🔄 Новое путешествие начато');
+    saveGame();
 }
 
+// Socket
+socket.on('connect', () => {
+    const saved = loadGame();
+    if (saved && !saved.gameOver) {
+        if (confirm('Найден сохранённый поход. Восстановить?')) {
+            gameState = saved;
+            updateUI();
+            drawMap();
+            if (gameState.currentPath) {
+                pathSelector.classList.add('hidden');
+                updateIslandPanel();
+                actionBtn.disabled = false;
+            } else {
+                pathSelector.classList.remove('hidden');
+                actionBtn.disabled = true;
+                islandName.textContent = '';
+                islandDesc.textContent = 'Выберите путь';
+            }
+            return;
+        } else {
+            clearSavedGame();
+        }
+    }
+    socket.emit('reset', 1500000);
+});
+
+socket.on('state', (serverState) => {
+    gameState.balanceHistory = serverState.balanceHistory;
+    gameState.availableTasks = serverState.availableTasks;
+    // Баланс может обновиться, но мы уже локально меняем
+    updateUI();
+    saveGame();
+});
+
+// Обработчики
+completeBtn.addEventListener('click', () => completeTask(true));
+failBtn.addEventListener('click', () => completeTask(false));
+resetBtn.addEventListener('click', () => {
+    if (confirm('Начать новое путешествие?')) {
+        resetGame();
+        clearSavedGame();
+    }
+});
 applyBalanceBtn.addEventListener('click', () => {
     const newBal = prompt('Введите новый начальный баланс:', gameState.balance);
     if (newBal && !isNaN(newBal)) {
@@ -339,10 +367,6 @@ applyBalanceBtn.addEventListener('click', () => {
         socket.emit('addBalance', 'Изменение баланса', 0);
     }
 });
-
-completeBtn.addEventListener('click', () => completeTask(true));
-failBtn.addEventListener('click', () => completeTask(false));
-
 newGameBtn.addEventListener('click', () => {
     gameoverModal.classList.add('hidden');
     resetGame();
@@ -350,3 +374,7 @@ newGameBtn.addEventListener('click', () => {
 
 // Инициализация
 drawMap();
+setInterval(() => {
+    // Анимация облаков (перерисовываем карту, облака можно анимировать)
+    drawMap();
+}, 100);

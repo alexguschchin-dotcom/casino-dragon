@@ -5,8 +5,8 @@
 }
 
 body {
-    background: #0d0b1a;
-    font-family: 'Goudy Bookletter 1911', serif;
+    font-family: 'MedievalSharp', cursive;
+    background: #0a0c1a;
     color: #f0e6d2;
     min-height: 100vh;
     display: flex;
@@ -14,6 +14,7 @@ body {
     align-items: center;
     padding: 10px;
     position: relative;
+    overflow: hidden;
 }
 
 body::before {
@@ -23,22 +24,21 @@ body::before {
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle at 20% 30%, rgba(184, 134, 11, 0.1) 0%, transparent 40%),
-                radial-gradient(circle at 80% 70%, rgba(184, 134, 11, 0.1) 0%, transparent 40%);
+    background: radial-gradient(circle at 20% 30%, rgba(184, 134, 11, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(184, 134, 11, 0.15) 0%, transparent 40%);
     pointer-events: none;
+    z-index: -1;
 }
 
-.game-wrapper {
+.game-container {
     max-width: 1400px;
     width: 100%;
     background: rgba(20, 15, 30, 0.7);
-    backdrop-filter: blur(10px);
-    border: 3px solid #b8860b;
-    border-radius: 50px;
+    backdrop-filter: blur(12px);
+    border: 3px solid gold;
+    border-radius: 70px;
     padding: 30px;
-    box-shadow: 0 0 50px rgba(184, 134, 11, 0.5);
-    position: relative;
-    z-index: 1;
+    box-shadow: 0 0 80px rgba(184, 134, 11, 0.6);
 }
 
 .top-bar {
@@ -50,30 +50,30 @@ body::before {
 }
 
 .balance {
-    background: #1e1a2b;
+    background: #1a1a2e;
     border: 2px solid gold;
     border-radius: 60px;
-    padding: 12px 25px;
-    font-size: 1.8rem;
+    padding: 15px 30px;
+    font-size: 2rem;
     color: gold;
-    box-shadow: inset 0 -3px 0 #b8860b;
+    box-shadow: inset 0 -3px 0 #b8860b, 0 0 30px rgba(255,215,0,0.3);
 }
 
 .balance i {
-    margin-right: 10px;
+    margin-right: 15px;
 }
 
-.game-title {
+.title {
     font-family: 'Cinzel', serif;
-    font-size: 2.2rem;
+    font-size: 2.5rem;
     color: gold;
-    text-shadow: 0 0 20px gold, 2px 2px 0 #b8860b;
+    text-shadow: 0 0 30px gold, 2px 2px 0 #b8860b;
     letter-spacing: 4px;
 }
 
-.settings {
+.actions {
     display: flex;
-    gap: 10px;
+    gap: 15px;
 }
 
 .btn-gold {
@@ -81,158 +81,160 @@ body::before {
     border: none;
     color: #1a1625;
     font-weight: bold;
-    padding: 10px 20px;
-    border-radius: 40px;
+    padding: 12px 25px;
+    border-radius: 50px;
     cursor: pointer;
     transition: 0.2s;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     font-family: 'Cinzel', serif;
-    box-shadow: 0 5px 0 #b8860b;
+    box-shadow: 0 5px 0 #b8860b, 0 0 20px gold;
 }
 
 .btn-gold:hover {
     background: #ffd700;
     transform: translateY(-2px);
-    box-shadow: 0 7px 0 #b8860b;
+    box-shadow: 0 7px 0 #b8860b, 0 0 30px gold;
 }
 
 .btn-gold:active {
     transform: translateY(5px);
-    box-shadow: none;
+    box-shadow: 0 2px 0 #b8860b;
 }
 
-.map-container {
+.map-wrapper {
     position: relative;
-    background: #1a1a2e;
+    background: #0f0f1f;
     border: 3px solid gold;
-    border-radius: 40px;
+    border-radius: 50px;
     margin-bottom: 30px;
     padding: 10px;
-    box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+    box-shadow: inset 0 0 70px black;
 }
 
 #mapCanvas {
     width: 100%;
     height: auto;
     display: block;
-    border-radius: 30px;
-    background: #1a1a2e;
+    border-radius: 40px;
+    background: #0b0e1a;
 }
 
 .path-selector {
     position: absolute;
-    bottom: 30px;
+    bottom: 40px;
     left: 50%;
     transform: translateX(-50%);
     background: rgba(26, 22, 37, 0.9);
     backdrop-filter: blur(10px);
     border: 2px solid gold;
     border-radius: 60px;
-    padding: 20px 40px;
+    padding: 25px 50px;
     text-align: center;
+    box-shadow: 0 0 50px gold;
 }
 
 .path-selector h3 {
     color: gold;
-    margin-bottom: 15px;
-    font-size: 1.4rem;
+    margin-bottom: 20px;
+    font-size: 1.8rem;
 }
 
 .path-buttons {
     display: flex;
-    gap: 20px;
+    gap: 30px;
 }
 
 .path-btn {
     padding: 15px 30px;
     border: none;
-    border-radius: 40px;
-    font-size: 1.2rem;
+    border-radius: 50px;
+    font-size: 1.3rem;
     cursor: pointer;
     transition: 0.2s;
     font-family: 'Cinzel', serif;
     color: white;
-    text-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+    box-shadow: 0 5px 0 rgba(0,0,0,0.3);
 }
 
 .path-btn.left {
-    background: #4a6f8f;
-    box-shadow: 0 5px 0 #1e3a5f;
+    background: #2a5f7a;
+    box-shadow: 0 5px 0 #0e3a4f;
 }
 .path-btn.center {
-    background: #8f6f4a;
-    box-shadow: 0 5px 0 #5f3e1e;
+    background: #b8860b;
+    box-shadow: 0 5px 0 #6a4f0a;
 }
 .path-btn.right {
-    background: #6f4a8f;
-    box-shadow: 0 5px 0 #3e1e5f;
+    background: #6a4f8a;
+    box-shadow: 0 5px 0 #3a2a5a;
 }
 .path-btn:hover {
-    transform: translateY(-2px);
     filter: brightness(1.2);
+    transform: translateY(-2px);
 }
 .path-btn:active {
     transform: translateY(5px);
     box-shadow: none;
 }
 
-.room-panel {
-    background: #1e1a2b;
+.island-panel {
+    background: #1a1a2e;
     border: 2px solid gold;
     border-radius: 60px;
     padding: 20px 30px;
     margin-bottom: 20px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 20px;
-    flex-wrap: wrap;
+    box-shadow: 0 0 30px rgba(255,215,0,0.2);
 }
 
-.room-name {
-    font-size: 1.6rem;
+.island-name {
+    font-size: 2rem;
     color: gold;
     font-family: 'Cinzel', serif;
+    min-width: 250px;
 }
 
-.room-desc {
+.island-desc {
     flex: 1;
+    font-size: 1.2rem;
     color: #f0e6d2;
-    font-size: 1.1rem;
 }
 
 .btn-action {
-    background: #b8860b;
+    background: linear-gradient(145deg, #b8860b, #6a4f0a);
     border: none;
     color: white;
-    padding: 12px 30px;
-    border-radius: 40px;
-    font-size: 1.2rem;
+    padding: 15px 40px;
+    border-radius: 60px;
+    font-size: 1.3rem;
     cursor: pointer;
     transition: 0.2s;
     font-family: 'Cinzel', serif;
-    box-shadow: 0 5px 0 #6a4a0b;
+    box-shadow: 0 5px 0 #3a2a0a, 0 0 20px gold;
 }
 
 .btn-action:hover:not(:disabled) {
-    background: gold;
-    color: #1a1625;
+    background: linear-gradient(145deg, gold, #b8860b);
     transform: translateY(-2px);
-    box-shadow: 0 7px 0 #6a4a0b;
+    box-shadow: 0 7px 0 #3a2a0a, 0 0 30px gold;
 }
 .btn-action:active:not(:disabled) {
     transform: translateY(5px);
-    box-shadow: none;
+    box-shadow: 0 2px 0 #3a2a0a;
 }
 .btn-action:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    box-shadow: none;
 }
 
 .log-panel {
-    background: #1e1a2b;
+    background: #1a1a2e;
     border: 2px solid gold;
-    border-radius: 40px;
+    border-radius: 50px;
     padding: 20px;
     max-height: 200px;
     overflow-y: auto;
@@ -240,7 +242,7 @@ body::before {
 
 .log-title {
     color: gold;
-    font-size: 1.3rem;
+    font-size: 1.5rem;
     margin-bottom: 15px;
     font-family: 'Cinzel', serif;
 }
@@ -252,15 +254,14 @@ body::before {
 }
 
 .log-entry {
-    background: #2a2440;
+    background: #2a2a4a;
     padding: 8px 15px;
-    border-radius: 30px;
+    border-radius: 40px;
     border-left: 5px solid gold;
-    color: #e0d6b0;
-    font-size: 0.9rem;
+    color: #f0e6d2;
+    font-size: 1rem;
 }
 
-/* Модальные окна */
 .modal {
     position: fixed;
     top: 0;
@@ -272,29 +273,30 @@ body::before {
     justify-content: center;
     align-items: center;
     z-index: 2000;
+    backdrop-filter: blur(5px);
 }
 
 .modal-content {
-    background: #1e1a2b;
+    background: #1a1a2e;
     border: 4px solid gold;
-    border-radius: 60px;
-    padding: 40px;
-    max-width: 500px;
+    border-radius: 80px;
+    padding: 50px;
+    max-width: 600px;
     width: 90%;
     text-align: center;
-    box-shadow: 0 0 70px gold;
+    box-shadow: 0 0 100px gold;
 }
 
 .modal-content h2 {
     color: gold;
-    font-size: 2rem;
-    margin-bottom: 20px;
+    font-size: 2.5rem;
+    margin-bottom: 30px;
 }
 
 #task-description {
-    background: #2a2440;
+    background: #2a2a4a;
     border: 2px solid gold;
-    border-radius: 30px;
+    border-radius: 50px;
     padding: 20px;
     margin: 20px 0;
     font-size: 1.2rem;
@@ -309,16 +311,17 @@ body::before {
     display: block;
     color: gold;
     margin-bottom: 10px;
+    font-size: 1.2rem;
 }
 
 .input-group input {
     width: 100%;
     padding: 15px;
-    background: #2a2440;
+    background: #2a2a4a;
     border: 2px solid gold;
     color: gold;
-    border-radius: 40px;
-    font-size: 1.3rem;
+    border-radius: 50px;
+    font-size: 1.5rem;
     text-align: center;
 }
 
@@ -331,25 +334,29 @@ body::before {
 .modal-buttons button {
     padding: 15px 30px;
     border: none;
-    border-radius: 40px;
-    font-size: 1.2rem;
+    border-radius: 50px;
+    font-size: 1.3rem;
     cursor: pointer;
     transition: 0.2s;
+    font-family: 'Cinzel', serif;
+    box-shadow: 0 5px 0 rgba(0,0,0,0.3);
 }
 
-.btn-danger {
+.btn-success {
+    background: #2a7a4a;
+    color: white;
+}
+.btn-success:hover {
+    background: #3a9a5a;
+    transform: translateY(-2px);
+}
+.btn-fail {
     background: #b22222;
     color: white;
-    box-shadow: 0 5px 0 #6b0f0f;
 }
-.btn-danger:hover {
+.btn-fail:hover {
     background: #d03030;
     transform: translateY(-2px);
-    box-shadow: 0 7px 0 #6b0f0f;
-}
-.btn-danger:active {
-    transform: translateY(5px);
-    box-shadow: none;
 }
 
 .hidden {
