@@ -1,358 +1,81 @@
 const socket = io();
-const SAVE_KEY = 'dragon_hoard_save';
+
+const SAVE_KEY = 'lab_save';
 
 let gameState = {
-    scales: 0,
-    maxScales: 30,
-    balance: 1500000,
+    level: 1,
+    currentBalance: 1500000,
     balanceHistory: [],
     availableTasks: [],
-    currentTaskId: null,
-    eggs: [
-        { x: 250, y: 350, state: 'idle', hatchProgress: 0, broken: false, scale: 1 },
-        { x: 500, y: 350, state: 'idle', hatchProgress: 0, broken: false, scale: 1 },
-        { x: 750, y: 350, state: 'idle', hatchProgress: 0, broken: false, scale: 1 }
-    ],
-    particles: [],
-    gameOver: false,
-    winAnimation: false
+    penaltyPool: [],
+    currentCards: [],
+    selectedTaskId: null,
+    gameCompleted: false,
+    successCount: 0,
+    failCount: 0,
+    penaltyCount: 0,
+    penaltyMode: false
 };
 
+let level30CardsGenerated = false;
+
 // DOM элементы
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const balanceSpan = document.getElementById('balanceValue');
-const scalesSpan = document.getElementById('scalesValue');
-const resetBtn = document.getElementById('resetBtn');
-const applyBalanceBtn = document.getElementById('applyBalance');
-const taskModal = document.getElementById('taskModal');
-const taskDesc = document.getElementById('taskDesc');
-const newBalanceInput = document.getElementById('newBalance');
-const completeBtn = document.getElementById('completeBtn');
-const failBtn = document.getElementById('failBtn');
-const winModal = document.getElementById('winModal');
-const finalBalanceSpan = document.getElementById('finalBalance');
-const newGameBtn = document.getElementById('newGameBtn');
-const logDiv = document.getElementById('log');
+const levelSpan = document.getElementById('current-level');
+const balanceSpan = document.getElementById('current-balance');
+const cardsContainer = document.getElementById('cards-container');
+const historyDiv = document.getElementById('history-list');
+const poolStatsDiv = document.getElementById('pool-stats');
+const resetBtn = document.getElementById('reset-btn');
+const applyBalanceBtn = document.getElementById('apply-start-balance');
+const taskModal = document.getElementById('task-modal');
+const taskDesc = document.getElementById('task-description');
+const newBalanceInput = document.getElementById('new-balance');
+const completeBtn = document.getElementById('complete-task');
+const failBtn = document.getElementById('fail-task');
+const completionModal = document.getElementById('completion-modal');
+const finalMessage = document.getElementById('final-message');
+const finalBalanceSpan = document.getElementById('final-balance');
+const finalSuccess = document.getElementById('final-success');
+const finalFail = document.getElementById('final-fail');
+const finalPenalty = document.getElementById('final-penalty');
+const flaskGagBtn = document.getElementById('flask-gag-btn');
+const completionResetBtn = document.getElementById('completion-reset-btn');
+const rulesModal = document.getElementById('rules-modal');
+const dontShowCheckbox = document.getElementById('dont-show-rules');
+const startQuestBtn = document.getElementById('start-quest-btn');
+const toast = document.getElementById('toast');
 
-let currentEggIndex = null;
-let animationFrame = null;
-let lastTime = 0;
+let isAnimating = false;
+let pendingState = null;
+let toastTimeout = null;
 
-// ------------------- Анимация и отрисовка -------------------
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Рисуем фон (пещера)
-    ctx.fillStyle = '#1a1a2e';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    // Добавим текстуру камня
-    for (let i = 0; i < 200; i++) {
-        ctx.fillStyle = `rgba(100,100,120,${Math.random()*0.2})`;
-        ctx.fillRect(Math.random()*canvas.width, Math.random()*canvas.height, 4, 4);
-    }
-
-    // Рисуем яйца
-    gameState.eggs.forEach((egg, idx) => {
-        drawEgg(egg, idx);
-    });
-
-    // Рисуем частицы (чешуйки, осколки)
-    drawParticles();
-
-    // Анимация победы (дракон)
-    if (gameState.winAnimation) {
-        drawVictoryDragon();
-    }
-
-    // Рисуем дракончика, если яйцо вылупилось и не улетело
-    gameState.eggs.forEach((egg, idx) => {
-        if (egg.state === 'hatched' && !egg.broken) {
-            drawDragon(egg.x, egg.y - 60);
-        }
-    });
-
-    animationFrame = requestAnimationFrame(draw);
+function getReagentClass(diff) {
+    const classes = ['F', 'D', 'C', 'B', 'A', 'S'];
+    return classes[diff-1] || '?';
 }
 
-function drawEgg(egg, idx) {
-    const x = egg.x;
-    const y = egg.y;
-    const w = 100;
-    const h = 120;
-
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(egg.scale, 1);
-    ctx.translate(-x, -y);
-
-    // Тень
-    ctx.shadowColor = 'gold';
-    ctx.shadowBlur = 20;
-
-    // Градиент для яйца
-    const gradient = ctx.createRadialGradient(x-20, y-20, 10, x, y, 80);
-    gradient.addColorStop(0, '#f7e5c2');
-    gradient.addColorStop(1, '#c9a87c');
-
-    ctx.fillStyle = gradient;
-    ctx.strokeStyle = '#b8860b';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.ellipse(x, y, w/2, h/2, 0, 0, Math.PI*2);
-    ctx.fill();
-    ctx.stroke();
-
-    // Крапинки
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#8b5a2b';
-    for (let i = 0; i < 5; i++) {
-        ctx.beginPath();
-        ctx.arc(x-20+Math.random()*40, y-20+Math.random()*40, 2+Math.random()*3, 0, 2*Math.PI);
-        ctx.fill();
-    }
-
-    // Трещины при вылуплении
-    if (egg.state === 'hatching') {
-        ctx.strokeStyle = '#4a2a1a';
-        ctx.lineWidth = 2;
-        for (let i = 0; i < 5; i++) {
-            ctx.beginPath();
-            ctx.moveTo(x-30 + i*15, y-30);
-            ctx.lineTo(x-20 + i*15, y+30);
-            ctx.stroke();
-        }
-    }
-
-    // Если разбито
-    if (egg.broken) {
-        ctx.fillStyle = '#5a3a1a';
-        ctx.font = '40px "Font Awesome 6 Free"';
-        ctx.fillText('💔', x-20, y-20);
-    }
-
-    ctx.restore();
+function getClassColor(diff) {
+    const colors = ['f', 'd', 'c', 'b', 'a', 's'];
+    return colors[diff-1] || 'f';
 }
 
-function drawDragon(x, y) {
-    // Рисуем маленького дракончика
-    ctx.save();
-    ctx.translate(x, y);
-    // Голова
-    ctx.fillStyle = '#6b8e23';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 20, 15, 0, 0, 2*Math.PI);
-    ctx.fill();
-    // Глаза
-    ctx.fillStyle = 'white';
-    ctx.beginPath();
-    ctx.arc(-5, -5, 5, 0, 2*Math.PI);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(5, -5, 5, 0, 2*Math.PI);
-    ctx.fill();
-    ctx.fillStyle = 'black';
-    ctx.beginPath();
-    ctx.arc(-5, -5, 2, 0, 2*Math.PI);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(5, -5, 2, 0, 2*Math.PI);
-    ctx.fill();
-    // Крылья (анимированные)
-    ctx.fillStyle = '#8fbc8f';
-    ctx.beginPath();
-    ctx.moveTo(-10, 0);
-    ctx.lineTo(-30, -15);
-    ctx.lineTo(-20, 5);
-    ctx.closePath();
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(10, 0);
-    ctx.lineTo(30, -15);
-    ctx.lineTo(20, 5);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
+function showToast(message) {
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toast.textContent = message;
+    toast.classList.remove('hidden');
+    toastTimeout = setTimeout(() => {
+        toast.classList.add('hidden');
+    }, 3000);
 }
 
-function drawParticles() {
-    gameState.particles.forEach(p => {
-        ctx.save();
-        ctx.globalAlpha = p.alpha;
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, 2*Math.PI);
-        ctx.fill();
-        ctx.restore();
-    });
-}
-
-function drawVictoryDragon() {
-    // Большой дракон
-    ctx.save();
-    ctx.shadowColor = 'gold';
-    ctx.shadowBlur = 50;
-    ctx.fillStyle = '#d4af37';
-    ctx.font = '120px "Font Awesome 6 Free"';
-    ctx.fillText('🐉', canvas.width/2-60, canvas.height/2);
-    ctx.restore();
-}
-
-// ------------------- Анимация частиц -------------------
-function createParticles(x, y, count, color) {
-    for (let i = 0; i < count; i++) {
-        gameState.particles.push({
-            x: x,
-            y: y,
-            vx: (Math.random() - 0.5) * 2,
-            vy: (Math.random() - 0.5) * 2,
-            size: Math.random() * 5 + 2,
-            color: color,
-            alpha: 1,
-            life: 1
-        });
-    }
-}
-
-function updateParticles() {
-    for (let i = gameState.particles.length - 1; i >= 0; i--) {
-        const p = gameState.particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.alpha -= 0.01;
-        p.life -= 0.01;
-        if (p.alpha <= 0 || p.life <= 0) {
-            gameState.particles.splice(i, 1);
-        }
-    }
-}
-
-// ------------------- Выбор яйца -------------------
-canvas.addEventListener('click', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const mouseX = (e.clientX - rect.left) * scaleX;
-    const mouseY = (e.clientY - rect.top) * scaleY;
-
-    gameState.eggs.forEach((egg, idx) => {
-        const dx = mouseX - egg.x;
-        const dy = mouseY - egg.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist < 60 && egg.state === 'idle' && !gameState.gameOver && !gameState.winAnimation) {
-            startHatching(idx);
-        }
-    });
-});
-
-function startHatching(idx) {
-    if (gameState.eggs[idx].state !== 'idle') return;
-    if (gameState.availableTasks.length === 0) {
-        log('❌ Нет заданий в пуле');
-        return;
-    }
-    gameState.eggs[idx].state = 'hatching';
-    log('Яйцо начинает трескаться...');
-    setTimeout(() => {
-        if (gameState.eggs[idx].state === 'hatching') {
-            gameState.eggs[idx].state = 'hatched';
-            createParticles(gameState.eggs[idx].x, gameState.eggs[idx].y, 20, 'gold');
-            currentEggIndex = idx;
-            openTaskModal();
-        }
-    }, 2000);
-}
-
-function openTaskModal() {
-    const task = gameState.availableTasks[Math.floor(Math.random() * gameState.availableTasks.length)];
-    gameState.currentTaskId = task.id;
-    taskDesc.textContent = task.description;
-    newBalanceInput.value = gameState.balance;
-    taskModal.classList.remove('hidden');
-}
-
-function completeTask(success) {
-    const newBalance = parseFloat(newBalanceInput.value);
-    if (isNaN(newBalance)) return;
-
-    const change = newBalance - gameState.balance;
-    const taskId = gameState.currentTaskId;
-    const eggIndex = currentEggIndex;
-
-    if (success) {
-        socket.emit('completeTask', taskId, change);
-        gameState.balance = newBalance;
-        gameState.scales++;
-        scalesSpan.textContent = gameState.scales;
-
-        // Дракончик улетает
-        if (eggIndex !== null) {
-            gameState.eggs[eggIndex].state = 'flown';
-            // Анимация улёта: дракон поднимается вверх
-            for (let i = 0; i < 30; i++) {
-                createParticles(gameState.eggs[eggIndex].x, gameState.eggs[eggIndex].y-50, 5, '#ffd700');
-            }
-        }
-
-        log(`✅ Дракончик улетел! +1 чешуйка. Баланс: ${change>0?'+'+change:change}`);
-
-        if (gameState.scales >= gameState.maxScales) {
-            winGame();
-        }
-    } else {
-        socket.emit('penaltyWithBalance', taskId, newBalance);
-        gameState.balance = newBalance;
-        // Яйцо разбивается
-        if (eggIndex !== null) {
-            gameState.eggs[eggIndex].broken = true;
-            gameState.eggs[eggIndex].state = 'broken';
-            createParticles(gameState.eggs[eggIndex].x, gameState.eggs[eggIndex].y, 30, '#8b4513');
-        }
-        log(`💥 Яйцо разбито! Баланс: ${change}`);
-    }
-
-    taskModal.classList.add('hidden');
-    currentEggIndex = null;
-    updateUI();
-    saveGame();
-}
-
-function winGame() {
-    gameState.gameOver = true;
-    gameState.winAnimation = true;
-    finalBalanceSpan.textContent = gameState.balance;
-    winModal.classList.remove('hidden');
-    clearSavedGame();
-    // Через некоторое время убираем дракона
-    setTimeout(() => {
-        gameState.winAnimation = false;
-    }, 5000);
-}
-
-function log(text) {
-    const entry = document.createElement('div');
-    entry.textContent = text;
-    logDiv.appendChild(entry);
-    logDiv.scrollTop = logDiv.scrollHeight;
-}
-
-function updateUI() {
-    balanceSpan.textContent = gameState.balance;
-    scalesSpan.textContent = gameState.scales;
-}
-
-// ------------------- Сохранение/загрузка -------------------
-function saveGame() {
+function saveGameState() {
     try {
-        const saveData = {
-            ...gameState,
-            timestamp: Date.now()
-        };
+        const saveData = { ...gameState, timestamp: Date.now() };
         localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
     } catch (e) {}
 }
 
-function loadGame() {
+function loadGameState() {
     try {
         const saved = localStorage.getItem(SAVE_KEY);
         if (!saved) return null;
@@ -362,87 +85,452 @@ function loadGame() {
             return null;
         }
         return data;
-    } catch (e) {
-        return null;
-    }
+    } catch (e) { return null; }
 }
 
 function clearSavedGame() {
     localStorage.removeItem(SAVE_KEY);
 }
 
-function resetGame() {
-    gameState = {
-        scales: 0,
-        maxScales: 30,
-        balance: 1500000,
-        balanceHistory: [],
-        availableTasks: [],
-        currentTaskId: null,
-        eggs: [
-            { x: 250, y: 350, state: 'idle', hatchProgress: 0, broken: false, scale: 1 },
-            { x: 500, y: 350, state: 'idle', hatchProgress: 0, broken: false, scale: 1 },
-            { x: 750, y: 350, state: 'idle', hatchProgress: 0, broken: false, scale: 1 }
-        ],
-        particles: [],
-        gameOver: false,
-        winAnimation: false
-    };
-    socket.emit('reset', 1500000);
-    log('🔄 Новая игра начата');
-    updateUI();
-    saveGame();
+function generateCardsForLevel() {
+    if (gameState.gameCompleted) return;
+    if (gameState.availableTasks.length === 0 && gameState.penaltyPool.length === 0) {
+        gameState.currentCards = [];
+        return;
+    }
+
+    if (gameState.level === 30) {
+        level30CardsGenerated = true;
+    }
+
+    let message = '';
+    let filteredTasks = gameState.availableTasks;
+
+    if (gameState.level % 10 === 0) {
+        filteredTasks = gameState.availableTasks.filter(t => t.difficulty >= 4);
+        message = `🔥 Остров ${gameState.level}: Штормовые воды (классы B, A, S)`;
+    } else if (gameState.level % 5 === 0) {
+        filteredTasks = gameState.availableTasks.filter(t => t.difficulty === 3 || t.difficulty === 4);
+        message = `⚓ Остров ${gameState.level}: Опасные рифы (классы C и B)`;
+    }
+
+    if (message) showToast(message);
+
+    if (filteredTasks.length < 2) {
+        filteredTasks = gameState.availableTasks;
+    }
+
+    const shuffledTasks = [...filteredTasks].sort(() => 0.5 - Math.random());
+    const tasks = shuffledTasks.slice(0, 2).map(task => ({ ...task, selected: false, completed: false }));
+
+    let penaltyCard = null;
+    if (gameState.penaltyPool.length > 0) {
+        const randomPenalty = gameState.penaltyPool[Math.floor(Math.random() * gameState.penaltyPool.length)];
+        penaltyCard = { ...randomPenalty, selected: false, completed: false };
+    }
+
+    let cards = [...tasks];
+    if (penaltyCard) cards.push(penaltyCard);
+    gameState.currentCards = cards.sort(() => 0.5 - Math.random());
 }
 
-// ------------------- Socket -------------------
+function generatePenaltyCard() {
+    if (gameState.penaltyPool.length === 0) {
+        gameState.penaltyMode = false;
+        generateCardsForLevel();
+        return;
+    }
+    const randomPenalty = gameState.penaltyPool[Math.floor(Math.random() * gameState.penaltyPool.length)];
+    const penaltyCard = { ...randomPenalty, selected: false, completed: false };
+    gameState.currentCards = [penaltyCard];
+}
+
 socket.on('connect', () => {
-    const saved = loadGame();
-    if (saved && !saved.gameOver) {
-        if (confirm('Найден сохранённый прогресс. Восстановить?')) {
+    const saved = loadGameState();
+    if (saved && !saved.gameCompleted) {
+        if (confirm('Найден старый судовой журнал. Восстановить плавание?')) {
             gameState = saved;
             updateUI();
+            updatePoolStats();
             return;
         } else {
             clearSavedGame();
         }
     }
-    socket.emit('reset', 1500000);
+    socket.emit('reset', 200000);
 });
 
 socket.on('state', (serverState) => {
-    gameState.balanceHistory = serverState.balanceHistory;
-    gameState.availableTasks = serverState.availableTasks;
-    updateUI();
-    saveGame();
-});
+    if (gameState.gameCompleted) return;
 
-// ------------------- Обработчики -------------------
-completeBtn.addEventListener('click', () => completeTask(true));
-failBtn.addEventListener('click', () => completeTask(false));
-resetBtn.addEventListener('click', () => {
-    if (confirm('Начать новую игру?')) {
-        resetGame();
-        clearSavedGame();
-    }
-});
-applyBalanceBtn.addEventListener('click', () => {
-    const newBal = prompt('Введите новый начальный баланс:', gameState.balance);
-    if (newBal && !isNaN(newBal)) {
-        gameState.balance = parseFloat(newBal);
+    if (isAnimating) {
+        pendingState = serverState;
+    } else {
+        gameState.level = serverState.level;
+        gameState.currentBalance = serverState.currentBalance;
+        gameState.balanceHistory = serverState.balanceHistory;
+        gameState.availableTasks = serverState.availableTasks;
+        gameState.penaltyPool = serverState.penaltyPool;
+        gameState.successCount = serverState.successCount;
+        gameState.failCount = serverState.failCount;
+        gameState.penaltyCount = serverState.penaltyCount;
+
+        if (!gameState.penaltyMode && !gameState.selectedTaskId && gameState.currentCards.length === 0) {
+            if (gameState.level >= 30) {
+                if (level30CardsGenerated) {
+                    endGame();
+                    return;
+                } else {
+                    generateCardsForLevel();
+                }
+            } else {
+                generateCardsForLevel();
+            }
+        }
+
+        if (gameState.penaltyMode && gameState.currentCards.length === 0) {
+            generatePenaltyCard();
+        }
+
         updateUI();
-        socket.emit('addBalance', 'Изменение баланса', 0);
+        updatePoolStats();
+        saveGameState();
     }
 });
-newGameBtn.addEventListener('click', () => {
-    winModal.classList.add('hidden');
-    resetGame();
-});
 
-// ------------------- Анимация -------------------
-function animate() {
-    updateParticles();
-    draw();
-    requestAnimationFrame(animate);
+function updateUI() {
+    levelSpan.textContent = gameState.level;
+    balanceSpan.textContent = gameState.currentBalance;
+    renderCards();
+    renderHistory();
+    resetBtn.classList.toggle('hidden', gameState.level < 30);
 }
 
-animate();
+function updatePoolStats() {
+    const counts = { F:0, D:0, C:0, B:0, A:0, S:0 };
+    gameState.availableTasks.forEach(task => {
+        const cls = getReagentClass(task.difficulty);
+        counts[cls]++;
+    });
+    let html = Object.entries(counts).map(([cls, num]) => `
+        <div class="stat-item">
+            <span class="reagent-class ${cls.toLowerCase()}">${cls}</span>
+            <span>${num}</span>
+        </div>
+    `).join('');
+
+    html += `
+        <div class="stat-item">
+            <span class="reagent-class penalty">⚠️</span>
+            <span>${gameState.penaltyPool.length}</span>
+        </div>
+    `;
+    poolStatsDiv.innerHTML = html;
+}
+
+function renderCards() {
+    cardsContainer.innerHTML = '';
+    if (gameState.selectedTaskId) {
+        const task = gameState.currentCards.find(t => t.id === gameState.selectedTaskId);
+        if (task) cardsContainer.appendChild(createCardElement(task, true));
+    } else {
+        gameState.currentCards.forEach(task => {
+            cardsContainer.appendChild(createCardElement(task, false));
+        });
+    }
+}
+
+function createCardElement(task, isSelected) {
+    const card = document.createElement('div');
+    card.className = `card ${task.selected ? 'selected' : ''} ${task.completed ? 'completed' : ''}`;
+    card.dataset.id = task.id;
+
+    let reagentClass, classColor;
+    if (task.isPenalty) {
+        reagentClass = '⚠️';
+        classColor = 'penalty';
+    } else {
+        reagentClass = getReagentClass(task.difficulty);
+        classColor = getClassColor(task.difficulty);
+    }
+
+    const reagentHTML = `<div class="reagent-class ${classColor}">${reagentClass}</div>`;
+    const taskText = `<div class="task-text">${task.description}</div>`;
+
+    let buttons = '';
+    if (!task.selected && !task.completed && !gameState.selectedTaskId) {
+        buttons = `<button class="select-btn">🏴‍☠️ Выбрать</button>`;
+    } else if (task.selected && !task.completed) {
+        if (task.isPenalty) {
+            buttons = `<button class="penalty-apply-btn">⚓ Выполнить</button>`;
+        } else {
+            buttons = `
+                <button class="complete-btn">✅ Успех</button>
+                <button class="penalty-btn">❌ Провал</button>
+            `;
+        }
+    } else if (task.completed) {
+        buttons = `<button disabled>✔ Сделано</button>`;
+    }
+
+    card.innerHTML = reagentHTML + taskText + `<div class="card-actions">${buttons}</div>`;
+
+    if (!task.selected && !task.completed && !gameState.selectedTaskId) {
+        card.querySelector('.select-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            selectTask(task.id);
+        });
+    } else if (task.selected && !task.completed) {
+        if (task.isPenalty) {
+            card.querySelector('.penalty-apply-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                openTaskModal(task.id);
+            });
+        } else {
+            card.querySelector('.complete-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                openTaskModal(task.id);
+            });
+            card.querySelector('.penalty-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                openTaskModal(task.id);
+            });
+        }
+    }
+    return card;
+}
+
+function selectTask(taskId) {
+    const task = gameState.currentCards.find(t => t.id === taskId);
+    if (!task) return;
+
+    gameState.currentCards.forEach(t => {
+        if (t.id !== taskId) t.completed = true;
+    });
+    renderCards();
+
+    document.querySelectorAll('.card').forEach(c => {
+        if (c.dataset.id !== taskId) c.classList.add('burn');
+    });
+
+    isAnimating = true;
+    setTimeout(() => {
+        gameState.currentCards = [task];
+        task.selected = true;
+        gameState.selectedTaskId = taskId;
+        renderCards();
+        isAnimating = false;
+        if (pendingState) {
+            gameState.level = pendingState.level;
+            gameState.currentBalance = pendingState.currentBalance;
+            gameState.balanceHistory = pendingState.balanceHistory;
+            gameState.availableTasks = pendingState.availableTasks;
+            gameState.penaltyPool = pendingState.penaltyPool;
+            updateUI();
+            updatePoolStats();
+            pendingState = null;
+        }
+    }, 500);
+}
+
+function openTaskModal(taskId) {
+    const task = gameState.currentCards.find(t => t.id === taskId);
+    if (!task) return;
+    gameState.currentTaskId = taskId;
+    taskDesc.textContent = task.description;
+    newBalanceInput.value = gameState.currentBalance;
+
+    if (task.isPenalty) {
+        completeBtn.classList.add('hidden');
+        failBtn.textContent = '⚓ Выполнить';
+    } else {
+        completeBtn.classList.remove('hidden');
+        failBtn.textContent = '❌ Провал';
+    }
+
+    taskModal.classList.remove('hidden');
+}
+
+function completeTask(success) {
+    const newBalance = parseFloat(newBalanceInput.value);
+    if (isNaN(newBalance)) return;
+
+    const change = newBalance - gameState.currentBalance;
+    const taskId = gameState.currentTaskId;
+    const task = gameState.currentCards.find(t => t.id === taskId);
+
+    if (success) {
+        socket.emit('completeTask', taskId, change);
+        addHistoryEntry(`✅ Вылазка удалась: ${change>0?'+'+change:change} 🍓`);
+        gameState.penaltyMode = false;
+    } else {
+        if (task && task.isPenalty) {
+            socket.emit('applyPenaltyTask', taskId, newBalance);
+            addHistoryEntry(`⚠️ Наказание отбыто: ${change>0?'+'+change:change} 🍓`);
+            gameState.penaltyMode = false;
+        } else {
+            socket.emit('penaltyWithBalance', taskId, newBalance);
+            addHistoryEntry(`❌ Вылазка провалена: ${change>0?'+'+change:change} 🍓`);
+            gameState.penaltyMode = true;
+        }
+    }
+
+    gameState.currentCards = gameState.currentCards.filter(t => t.id !== taskId);
+    gameState.selectedTaskId = null;
+    gameState.currentTaskId = null;
+
+    if (gameState.level >= 30 && gameState.currentCards.length === 0 && !gameState.penaltyMode) {
+        endGame();
+    }
+
+    taskModal.classList.add('hidden');
+    updateUI();
+}
+
+function addHistoryEntry(text) {
+    const entry = document.createElement('div');
+    entry.className = 'history-item';
+    entry.textContent = text;
+    historyDiv.appendChild(entry);
+    historyDiv.scrollTop = historyDiv.scrollHeight;
+}
+
+function renderHistory() {
+    historyDiv.innerHTML = '';
+    gameState.balanceHistory.slice().reverse().forEach(entry => {
+        const date = new Date(entry.timestamp);
+        const time = date.toLocaleTimeString();
+        const div = document.createElement('div');
+        div.className = 'history-item';
+        div.innerHTML = `<strong>${time}</strong> ${entry.desc} (${entry.change>0?'+'+entry.change:entry.change})`;
+        historyDiv.appendChild(div);
+    });
+}
+
+function endGame() {
+    if (gameState.gameCompleted) return;
+    gameState.gameCompleted = true;
+    finalMessage.innerHTML = '🏴‍☠️ Поздравляем! Вы нашли легендарный клад и стали королём пиратов!<br>' +
+        'Но в бутылке плещется что-то странное…';
+    finalBalanceSpan.textContent = gameState.currentBalance;
+    finalSuccess.textContent = gameState.successCount;
+    finalFail.textContent = gameState.failCount;
+    finalPenalty.textContent = gameState.penaltyCount;
+    completionModal.classList.remove('hidden');
+    clearSavedGame();
+}
+
+function resetGame() {
+    gameState = {
+        level: 1,
+        currentBalance: 200000,
+        balanceHistory: [],
+        availableTasks: [],
+        penaltyPool: [],
+        currentCards: [],
+        selectedTaskId: null,
+        gameCompleted: false,
+        successCount: 0,
+        failCount: 0,
+        penaltyCount: 0,
+        penaltyMode: false
+    };
+    level30CardsGenerated = false;
+    socket.emit('reset', 200000);
+    clearSavedGame();
+    updateUI();
+    updatePoolStats();
+}
+
+// ------------------- Обработчики -------------------
+applyBalanceBtn.addEventListener('click', () => {
+    const newBal = prompt('Введите новый запас дублонов:', gameState.currentBalance);
+    if (newBal && !isNaN(newBal)) {
+        const newBalance = parseFloat(newBal);
+        socket.emit('setBalance', newBalance);
+        gameState.currentBalance = newBalance;
+        balanceSpan.textContent = newBalance;
+    }
+});
+
+resetBtn.addEventListener('click', () => {
+    if (confirm('Начать новое плавание?')) resetGame();
+});
+
+completeBtn.addEventListener('click', () => completeTask(true));
+failBtn.addEventListener('click', () => completeTask(false));
+
+if (flaskGagBtn) {
+    flaskGagBtn.addEventListener('click', () => {
+        showToast('В бутылке оказался накид для Клубнички!');
+    });
+}
+
+if (completionResetBtn) {
+    completionResetBtn.addEventListener('click', () => {
+        completionModal.classList.add('hidden');
+        resetGame();
+    });
+}
+
+if (!localStorage.getItem('quest_rules_hidden')) {
+    setTimeout(() => rulesModal.classList.remove('hidden'), 500);
+}
+startQuestBtn.addEventListener('click', () => {
+    if (dontShowCheckbox.checked) localStorage.setItem('quest_rules_hidden', 'true');
+    rulesModal.classList.add('hidden');
+});
+
+window.addEventListener('click', (e) => {
+    if (e.target.classList.contains('modal')) e.target.classList.add('hidden');
+});
+
+// Анимация пузырьков (теперь морских)
+(function initBubbles() {
+    const canvas = document.getElementById('bubbles-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    const bubbles = [];
+    const BUBBLE_COUNT = 50;
+
+    function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    for (let i = 0; i < BUBBLE_COUNT; i++) {
+        bubbles.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            radius: Math.random() * 10 + 5,
+            speed: Math.random() * 0.5 + 0.2,
+            opacity: Math.random() * 0.5 + 0.3,
+            color: `rgba(100, 200, 255, ${Math.random()*0.3+0.2})`
+        });
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, width, height);
+        bubbles.forEach(b => {
+            b.y -= b.speed;
+            if (b.y + b.radius < 0) {
+                b.y = height + b.radius;
+                b.x = Math.random() * width;
+            }
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+            ctx.fillStyle = b.color;
+            ctx.shadowColor = '#FFD700';
+            ctx.shadowBlur = 15;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        });
+        requestAnimationFrame(animate);
+    }
+    animate();
+})();

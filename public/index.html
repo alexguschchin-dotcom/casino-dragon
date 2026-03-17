@@ -3,51 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Драконья сокровищница</title>
+    <title>Каюта капитана Клубнички</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-    <div class="game-wrapper">
-        <canvas id="gameCanvas" width="1000" height="700"></canvas>
+    <canvas id="bubbles-canvas"></canvas>
+    <div class="sea-bg"></div>
+    <div id="toast" class="toast hidden"></div>
 
-        <div class="ui-panel">
-            <div class="balance">
-                <span class="label">💰 Баланс</span>
-                <span class="value" id="balanceValue">1500000</span>
-                <button id="applyBalance" class="btn-small">✎</button>
+    <div class="game-container">
+        <header class="header">
+            <h1 class="pirate-title">
+                <i class="fas fa-skull-crossbones"></i> 
+                Каюта капитана <span>Клубнички</span>
+                <i class="fas fa-anchor"></i>
+            </h1>
+            <div class="level-indicator">Остров <span id="current-level">1</span>/30</div>
+            <div class="balance-panel">
+                <span class="label">🍓 Дублоны</span>
+                <span class="value" id="current-balance">0</span>
+                <button id="apply-start-balance" class="btn-neon"><i class="fas fa-pen"></i></button>
             </div>
-            <div class="scales">
-                <span class="label">✨ Чешуйки</span>
-                <span class="value" id="scalesValue">0</span>
-            </div>
-            <button id="resetBtn" class="btn-reset">🔄 Новая игра</button>
+        </header>
+
+        <div class="cards-container" id="cards-container"></div>
+
+        <div class="stats-panel" id="pool-stats"></div>
+
+        <div class="history-panel">
+            <h2><i class="fas fa-scroll"></i> Судовой журнал</h2>
+            <div id="history-list" class="history-list"></div>
         </div>
 
-        <div id="log" class="log"></div>
+        <div class="control-panel">
+            <button id="reset-btn" class="btn-danger hidden">🔄 Новое плавание</button>
+        </div>
     </div>
 
-    <div id="taskModal" class="modal hidden">
+    <!-- Модалка задания -->
+    <div id="task-modal" class="modal hidden">
         <div class="modal-content">
-            <h2>Задание</h2>
-            <p id="taskDesc"></p>
-            <div class="input-group">
-                <label>Новый баланс:</label>
-                <input type="number" id="newBalance" step="100">
+            <h2><i class="fas fa-map"></i> Капитанский приказ <i class="fas fa-strawberry strawberry-icon-small"></i></h2>
+            <p id="task-description"></p>
+            <div class="balance-input">
+                <label>Новый запас дублонов:</label>
+                <input type="number" id="new-balance" step="100">
             </div>
-            <div class="button-group">
-                <button id="completeBtn" class="btn-success">✅ Выполнено</button>
-                <button id="failBtn" class="btn-fail">💔 Провал</button>
+            <div class="modal-buttons">
+                <button id="complete-task" class="btn-success">✅ Выполнено</button>
+                <button id="fail-task" class="btn-danger">❌ Провал</button>
             </div>
         </div>
     </div>
 
-    <div id="winModal" class="modal hidden">
+    <!-- Модалка завершения -->
+    <div id="completion-modal" class="modal hidden">
+        <div class="modal-content completion-content">
+            <h2>🏆 Сокровище найдено! <i class="fas fa-strawberry strawberry-icon-small"></i></h2>
+            <p id="final-message"></p>
+            <div class="completion-stats">
+                <p>✅ Успешных вылазок: <span id="final-success">0</span></p>
+                <p>❌ Провалов: <span id="final-fail">0</span></p>
+                <p>⚠️ Наказаний: <span id="final-penalty">0</span></p>
+            </div>
+            <p>Итоговые дублоны: <span id="final-balance"></span> 🍓</p>
+            <div class="completion-buttons">
+                <button id="flask-gag-btn" class="btn-neon">🧪 Странная бутылка</button>
+                <button id="completion-reset-btn" class="btn-neon">🔄 Новое плавание</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка правил -->
+    <div id="rules-modal" class="modal hidden">
         <div class="modal-content">
-            <h2>🏆 Дракон пробуждён</h2>
-            <p>Вы собрали 30 чешуек!</p>
-            <p>Итоговый баланс: <span id="finalBalance"></span></p>
-            <button id="newGameBtn" class="btn-gold">🔄 Новая игра</button>
+            <h2>📜 Кодекс пирата <i class="fas fa-strawberry strawberry-icon-small"></i></h2>
+            <p>Вы — капитан пиратского корабля. Каждый остров (уровень) предлагает две вылазки и одно наказание. Выберите, выполните задание в казино или наказание, введите новый запас дублонов. При успехе вы получаете дублоны. При провале отправляетесь на исправительные работы (штрафной уровень). 30 островов — и клад ваш!</p>
+            <label><input type="checkbox" id="dont-show-rules"> Больше не показывать</label>
+            <button id="start-quest-btn" class="btn-neon">Понятно</button>
         </div>
     </div>
 
