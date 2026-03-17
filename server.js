@@ -7,183 +7,210 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// ================== НАСТРОЙКИ ==================
-const MAX_LEVEL = 30;               // не используется в турнире, но оставим для совместимости
-const DEFAULT_BALANCE = 1500000;
-const PENALTY_BURN_RANGE = [15, 20]; // штраф сжигает 15-20 лёгких заданий
+const MAX_LEVEL = 30;
+const DEFAULT_BALANCE = 200000;
 
-// ================== ПУЛ ЗАДАНИЙ (РАСШИРЕННЫЙ) ==================
+// ================== ПУЛ ЗАДАНИЙ (ПИРАТСКАЯ ТЕМА) ==================
 const taskTemplates = [
-  // ⭐ 1 звезда (100 заданий)
+  // ⭐ 1 звезда (класс F) — 42 задания
   { difficulty: 1, texts: [
-    'Сделать 20 спинов в Sweet Bonanza по 1000₽',
-    'Купить бонус в Pirate‘s Pub за 20 000₽',
-    'Купить бонус в Gates of Olympus за 30 000₽',
-    'Два зрителя получают по 2000₽',
-    'Сделать 10 спинов в любом «Рыбаке» (ставка от 1000₽)',
-    'Сделать 20 спинов в Coin Up (ставка от 1000₽)',
-    'Купить две «радуги» в Le King по 10 000₽',
-    'Сделать 30 спинов в Wild West Gold (ставка 1000₽)',
-    'Купить бонус в RIP City за 50 000₽',
-    'Купить топовый бонус в Coin Volcano за 30 000₽',
-    'Сделать 20 спинов в Cleocatra (ставка 1000₽)',
-    'Сделать 10 спинов в Hot Fiesta (ставка 2000₽)',
-    'Купить бонус в Hot Fiesta за 20 000₽',
-    'Купить бонус в Money Train 4 за 50 000₽',
-    'Купить бонус в Money Train 3 за 50 000₽',
-    'Поставить 50 000₽ на красное в баккару',
-    'Поставить 30 000₽ на 5 и 20 000₽ на 10 в Crazy Time',
-    'Три зрителя получают по 3000₽',
-    'Сделать 30 спинов в RIP City по 2000₽',
-    'Купить топовый бонус в «Мумии» за 50 000₽',
-    'Сделать 30 спинов в Dog House Multihold по 1000₽',
-    'Купить топовый бонус в Big Bass Secrets of the Golden Lake за 40 000₽',
-    'Купить бонус в Release the Kraken за 50 000₽',
-    'Сделать 30 спинов в In Jazz по 1000₽',
-    'Выбить обычный бонус в Le Fisherman (ставка 1000₽)',
-    'Купить бонус в Wild West Gold Megaways за 40 000₽',
-    'Сделать 30 спинов в Wild West Gold Megaways по 1000₽',
-    'Сделать 20 спинов в 3 Buzzing Wilds по 2000₽',
-    'Купить бонус в 3 Buzzing Wilds за 30 000₽',
-    'Сделать 20 спинов в Dog House Royale Hunt по 2000₽',
-    'Выбить бонус в любом «Рыбаке» (ставка от 500₽)',
-    'Купить топовый бонус в Dog House Muttley Crew за 30 000₽',
-    'Купить две «радуги» в Ze Zeus за 20 000₽',
-    'Сделать бездепозитное колесо на 10 000₽ на 5 минут',
-    'Сделать депозитное колесо на 5 000₽ на 3 минуты',
-    'Сделать бездепозитное колесо на 10 000₽ на 10 минут',
-    'Поставить 20 000₽ на 5 в Crazy Time',
-    'Выдать 5 000₽ одному зрителю',
-    'Купить бонус в Gates of Olympus за 40 000₽',
-    'Пройти до лягушки 4x4 в Wild Hop Drop в бонуске (ставка от 20 000₽, две попытки)',
-    'Поймать ретригер в Fonzo‘s Feline Fortune в бонуске (ставка 20 000₽)'
+    'Приключение F1: Сделать 20 спинов в Sweet Bonanza по 400🍓. Отметить на карте.',
+    'Приключение F2: Купить бонус в Pirate‘s Pub за 5 000🍓. Напиться рома.',
+    'Приключение F3: Купить бонус в Gates of Olympus за 30 000🍓. Разгневать Зевса.',
+    'Приключение F4: Выдать двум юнгам по 500🍓. Записать в судовой журнал.',
+    'Приключение F5: Узнать, водятся ли минотавры на острове (спины по 200🍓).',
+    'Приключение F6: 30 спинов в Coin Up (ставка 500🍓). Набить трюмы монетами.',
+    'Приключение F7: Протестировать две подзорные трубы в Le King по 6 000🍓.',
+    'Приключение F8: Узнать, можно ли найти клад в Wild West Gold за 4800🍓.',
+    'Приключение F9: Купить бонус в RIP City за 8 000🍓, увидеть трёх котов-пиратов.',
+    'Приключение F10: Купить топ-бонус в Coin Volcano за 7500🍓, извержение золота.',
+    'Приключение F11: Исследовать пирамиду Клеопатры (бонус за 8000🍓).',
+    'Приключение F12: Увидеть х64 в wild skullz (черепа и кости).',
+    'Приключение F13: Удивите старого пирата! Купите бонус в gates of olympus и окупитесь!',
+    'Приключение F14: Узнать мощность поезда Money Train 4 (бонус за 5к).',
+    'Приключение F15: Купить бонус в Money Train 3 за 5 000🍓, записать результаты.',
+    'Приключение F16: Проверка на смелость! Поставьте 10000🍓 в любой live игре.',
+    'Приключение F17: Узнать вероятность встретить 10-ку в Crazy Time (5 ставок по 1к).',
+    'Приключение F18: Проверка на жадность! Выдать трём зрителям по 1000🍓.',
+    'Приключение F19: Узнать шанс бонуса в RIP City, 30 спинов по 300🍓.',
+    'Приключение F20: Купить топ-бонус в «Мумии» за 10 000🍓, не попасться в ловушку.',
+    'Приключение F21: Узнать шанс бонуса в Dog House Multihold, 30 спинов по 500🍓.',
+    'Приключение F22: Купить топ-бонус в Big Bass Secrets и поймать 4 скаттеров.',
+    'Приключение F23: Проверить бонус в Release the Kraken за 8 000🍓 — выпустить кракена.',
+    'Приключение F24: Отдых в порту! Послушать музыку в in jazz (любой бонус).',
+    'Приключение F25: Выбить обычный бонус в Le Fisherman (ставка 300🍓).',
+    'Приключение F26: Поймать wild на 5-й барабан в Wild West Gold Megaways (бонус 6 000🍓).',
+    'Приключение F27: 30 спинов в Wild West Gold Megaways по 400🍓.',
+    'Приключение F28: Купить все 3 бонуски 3 Buzzing Wilds — какая лучше?',
+    'Приключение F29: Ограбить вампиров! Окупить бонус в Vampy party.',
+    'Приключение F30: Узнать правду о Dog House Royale Hunt — королевский ли там куш?',
+    'Приключение F31: Учебная рыбалка! Выбить бонус в любом Рыбаке по 500🍓.',
+    'Приключение F32: Нападение пиратов! Окупить бонус в Dog House Muttley Crew.',
+    'Приключение F33: Протестировать два компаса в Ze Zeus за 6 000🍓.',
+    'Приключение F34: Атака наблюдателей! Сделать бездепозитное колесо на 5 000🍓.',
+    'Приключение F35: Атака наблюдателей! Сделать депозитное колесо на 5 000🍓.',
+    'Приключение F36: Атака наблюдателей! Сделать депозитное колесо на 5 000🍓 (один победитель).',
+    'Приключение F37: Узнать шанс выпадения 5 в Crazy Time (три ставки по 5 000).',
+    'Приключение F38: Удача для юнги! выдать 3 000🍓.',
+    'Приключение F39: Попробовать сахар в sugar rush (бонус за 8 000🍓).',
+    'Приключение F40: Узнать мудрость богов! Купить бонус в Wisdom of Athena за 8000🍓.',
+    'Приключение F41: Изучение кошачьих! поймать ретригер в Fonzo‘s Feline Fortune (бонус 4800🍓).'
   ]},
-  
-  // ⭐⭐ 2 звезды (60 заданий)
+
+  // ⭐⭐ 2 звезды (класс D) — 27 заданий
   { difficulty: 2, texts: [
-    'Поставить 30 000₽ в Crazy Time и выйти в плюс',
-    'Поставить 40 000₽ на 2 в Crazy Time',
-    'Купить бонус в Dead or Alive 2 за 50 000₽',
-    'Сделать 10 спинов в Hot Fiesta по 4000₽',
-    'Сделать 30 спинов в Sweet Bonanza по 3000₽',
-    'Купить бонус в Gates of Olympus за 75 000₽',
-    'Поставить 50 000₽ на любое число в рулетке',
-    'Сыграть 20 спинов в Dead or Alive 2 по 2000₽',
-    'Выдать 10 000₽ одному зрителю',
-    'Купить бонус в Big Bass Bonanza за 40 000₽',
-    'Сделать 40 спинов в Book of Dead по 1500₽',
-    'Поставить 25 000₽ на 5 и 25 000₽ на 10 в Crazy Time',
-    'Купить бонус в Money Train 3 за 75 000₽',
-    'Сделать 15 спинов в Le Bandit по 5000₽',
-    'Купить топовый бонус в «Мумии» за 50 000₽ и выбить больше 10 спинов (макс. 3 попытки)',
-    'Купить бонус в Sugar Rush за 60 000₽',
-    'Купить бонус в Sugar Rush за 30 000₽ и выбить больше 3-х скаттеров (макс. 3 попытки)',
-    'Купить бонус в Six Six Six и пробить больше 10 спинов в бонуске (ставка от 30 000₽)',
-    'Окупить бонус в Le Santa в бонуске (ставка от 20 000₽, макс. 3 попытки)',
-    'Сделать бездепозитное колесо на 20 000₽ на 10 минут',
-    'Сделать депозитное колесо на 15 000₽ на 3 минуты',
-    'Сделать депозитное колесо для больших депёров 5 000₽ для одного человека на 1 минуту',
-    'Купить бонус в Densho за 30 000₽ и окупиться',
-    'Купить бонуску в Cloud Princess за 30 000₽ и окупиться',
-    'Купить бонус в любом «Рыбаке» и дойти до x2 в бонуске (ставка от 30 000₽, 2 попытки)',
-    'Поймать линию вилдов в Hand of Midas 2 в бонуске (ставка от 20 000₽)',
-    'Пройти до лягушки 4x4 в Wild Hop Drop в бонуске (ставка от 50 000₽) с первой попытки'
+    'Вылазка D1: Поставить 5 000🍓 в Crazy Time и выйти в плюс (или за борт).',
+    'Вылазка D2: 20 спинов в Hot Fiesta по 625🍓 — сосчитать пиньяты.',
+    'Вылазка D3: Купить бонус в wanted Dead or a wild 2 за 8 000🍓 — не умереть от скуки.',
+    'Вылазка D4: Исследование сладких фруктов! Купить бонус в sweet bonanza — найти x10.',
+    'Вылазка D5: Купить бонус в Gates of Olympus за 9600🍓 — задобрить Зевса.',
+    'Вылазка D6: Поставить 7 000🍓 на любое число в рулетке — проверить интуицию.',
+    'Вылазка D7: 20 спинов в Le Cowboy по 600🍓 — почувствовать себя ковбоем.',
+    'Вылазка D8: Выдать 3 000🍓 одному зрителю — сделать его счастливым.',
+    'Вылазка D9: Наблюдение за боем! Узнать кто круче в big bass boxing (бонус за 9600).',
+    'Вылазка D10: Купить бонус в Yeti quest за 8000 — понаблюдать за йети.',
+    'Вылазка D11: Поставить 5 000🍓 на 5 и 5 000🍓 на 10 в Crazy Time — и окупиться.',
+    'Вылазка D12: Покупать бонуски в Money Train 3 за 10 000🍓 — доехать до станции "Прибыль".',
+    'Вылазка D13: Ограбить банк! Получить x2 от суммы покупки бонуски в iron bank.',
+    'Вылазка D14: Испытать удачу! Выбить топ-бонус в Мумии за 7200🍓 (2 попытки).',
+    'Вылазка D15: Испытание от призрака! Выбить 2 шторы в angel vs sinner (2 попытки).',
+    'Вылазка D16: Бонус Sugar Rush за 6 400🍓, выбить >3 скаттеров (3 попытки).',
+    'Вылазка D17: Бонус Six Six Six за 10 000🍓 — пробить больше 10 спинов (3 попытки).',
+    'Вылазка D18: Окупить бонус в Le Santa за 5 000🍓.',
+    'Вылазка D19: Бездепозитное колесо на 7 000🍓 (5 минут).',
+    'Вылазка D20: Депозитное колесо на 5 000🍓 (3 минуты).',
+    'Вылазка D21: Депозитное колесо для зрителей 3 000🍓 (1 минута).',
+    'Вылазка D22: Наблюдение за древними. Купить бонус в Densho за 10 000🍓.',
+    'Вылазка D23: Купить бонус в Cloud Princess за 10 000🍓.',
+    'Вылазка D24: Пройти до x2 в любом «Рыбаке» с первой попытки.',
+    'Вылазка D25: Поймать линию вилдов в Hand of Midas 2 (бонус 4 800🍓).',
+    'Вылазка D26: Пройти до лягушки 4x4 в Wild Hop Drop (ставка 4 800🍓).',
+    'Вылазка D27: Устроить конкурс для зрителей на 5 000🍓 — первые 5 "мяу" получают накид.'
   ]},
-  
-  // ⭐⭐⭐ 3 звезды (30 заданий)
+
+  // ⭐⭐⭐ 3 звезды (класс C) — 28 заданий
   { difficulty: 3, texts: [
-    'Сделать 50 спинов в Gates of Olympus по 2000₽ и выбить бонус',
-    'Купить два бонуса в Hot Fiesta за 50 000₽ — один должен окупиться',
-    'Сделать 50 спинов в Fortune of Giza (ставка 2000₽)',
-    'Купить две «радуги» в Le Bandit (ставка от 5000₽) — хотя бы одна должна окупиться',
-    'Сделать 30 спинов в Minotauros по 4000₽ и выбить бонус',
-    'Сделать 100 спинов в Gates of Olympus по 3000₽',
-    'Купить бонус в Sweet Bonanza за 100 000₽ и окупиться',
-    'Выиграть 150 000₽ в любом слоте за одну бонуску',
-    'Поставить 100 000₽ на чёрное и победить',
-    'Сделать 50 спинов в Dead or Alive 2 по 5000₽',
-    'Выдать 5 000₽ пяти зрителям',
-    'Купить бонус в Money Train 4 за 150 000₽',
-    'Поймать множитель x25 в Sweet Bonanza в бонуске (ставка от 40 000₽)',
-    'Поставить 100 000₽ в рулетке',
-    'Выбить бонус в Le King за 40 спинов (ставка от 2 000₽)',
-    'Дойти до метки 4x4 в Sky Bounty в бонуске (ставка от 50 000₽)',
-    'Выбить Super Scatter в Sweet Bonanza Super Scatter в бонуске (ставка от 30 000₽)',
-    'Купить бонус в Six Six Six и пробить больше 10 спинов в бонуске (ставка от 30 000₽)',
-    'Окупить бонус в Frkn Bananas в бонуске (ставка 50 000₽, макс. 2 попытки)',
-    'Выбить топовый бонус в San Quentin в рандомке (ставка от 40 000₽, макс. 3 попытки)',
-    'Получить минимум 8x в Madame Destiny Megaways в бонуске (ставка 50 000₽, 2 попытки)',
-    'Купить бонус в любом «Рыбаке» и дойти до x3 в бонуске (ставка 50 000₽, 2 попытки)',
-    'Окупить бонус за 80 000₽ во Fruit Party с первой попытки',
-    'Выбить x1000 в Big Bass Bonanza 1000 в бонуске (ставка 45 000₽, 3 попытки)',
-    'Поймать x200 в Wild West Gold в бонуске (ставка 60 000₽, 2 попытки)',
-    'Поймать бонус в Big Bass Splash (ставка 2000₽) за 50 спинов',
-    'Поймать 2 шторы в Angel vs Sinner в бонуске (ставка 50 000₽) с первой попытки',
-    'Купить топовый бонус в Sugar Rush 1000 за 100 000₽'
+    'Плавание C1: 30 спинов в Gates of Olympus по 1 000🍓.',
+    'Плавание C2: Два бонуса в Hot Fiesta за 10 000🍓 каждый — устроить фиесту (хотя бы 1 окупной).',
+    'Плавание C3: 30 спинов в Fortune of Giza (ставка 800🍓).',
+    'Плавание C4: Две «радуги» в Le Bandit по 10000 (одна окупается).',
+    'Плавание C5: 30 спинов в Minotauros по 800🍓.',
+    'Плавание C6: 100 спинов в Gates of Olympus по 500🍓 — битва с богами.',
+    'Плавание C7: Окупить бонус в Sweet Bonanza за 16 000🍓.',
+    'Плавание C8: Выиграть 20 000🍓 в любом слоте за одну бонуску.',
+    'Плавание C9: Поставить 20 000🍓 на чёрное и победить.',
+    'Плавание C10: 30 спинов в Undead fortune по 9 000🍓 — избежать смерти.',
+    'Плавание C11: Выдать 2 000🍓 пяти зрителям — щедрость.',
+    'Плавание C12: Бонус в Money Train 4 за 20 000🍓 — экспресс до богатства.',
+    'Плавание C13: Поймать множитель x25 в Sweet Bonanza (бонус от 8 000🍓).',
+    'Плавание C14: Поставить 30 000🍓 в рулетке.',
+    'Плавание C15: Выбить бонус в Le King за 50 спинов (ставка от 900🍓).',
+    'Плавание C16: Дойти до метки 4x4 в Sky Bounty (бонус от 10 000🍓).',
+    'Плавание C17: Выбить Super Scatter в Sweet Bonanza Super Scatter (бонус от 8 000🍓).',
+    'Плавание C18: Бонус Six Six Six, пробить >10 спинов (ставка от 10 000🍓).',
+    'Плавание C19: Окупить бонус в Frkn Bananas (ставка 12 000🍓, макс.2 попытки).',
+    'Плавание C20: Исследование вероятности топ-бонуса в San Quentin с рандомки (2 попытки).',
+    'Плавание C21: Получить минимум 8x в Madame Destiny Megaways (бонус 9600, 2 попытки).',
+    'Плавание C22: Бонус в любом «Рыбаке», дойти до x3 (ставка от 10 000🍓).',
+    'Плавание C23: Окупить бонус за 16 000🍓 во Fruit Party.',
+    'Плавание C24: Выбить x1000 в Big Bass Bonanza 1000 (бонус 8 000🍓).',
+    'Плавание C25: Поймать x200 в Wild West Gold (бонус 12 000🍓).',
+    'Плавание C26: Поймать бонус в Big Bass Splash (ставка 1 000🍓) за 40 спинов.',
+    'Плавание C27: Поймать 2 шторы в Angel vs Sinner (бонус 10 000🍓).',
+    'Плавание C28: Топовый бонус в Sugar Rush 1000 за 24 000🍓.'
   ]},
-  
-  // ⭐⭐⭐⭐ 4 звезды (20 заданий)
+
+  // ⭐⭐⭐⭐ 4 звезды (класс B) — 20 заданий
   { difficulty: 4, texts: [
-    'Поймать бонус в Sweet Bonanza (ставка от 4000₽)',
-    'Выбить множитель x50 в Sweet Bonanza',
-    'Выбить три бонуса в Le Bandit (ставка от 1000₽)',
-    'Три зрителя получают по 7500₽',
-    'Специальный пропуск: можно пропустить одно задание',
-    'Разыграть в Telegram бонус за 100 000₽',
-    'Выбить топовый бонус в «Мумии» с рандомки (ставка 50 000₽) за три попытки',
-    'Взять рандомку в Duck Hunters за 200 000₽',
-    'Поймать «под иксом» любую ставку в Crazy Time',
-    'Поймать множитель x20-25 в Gates of Olympus',
-    'Выбить три бонуса в любом «Рыбаке»',
-    'Сделать 100 спинов в Le Fisherman по 4000₽ и выбить топовый бонус',
-    '5 зрителей получают по 7500₽',
-    'Купить бонус в Dead or Alive 2 за 200 000₽ — он должен дать минимум половину',
-    'Сделать ставку 200 000₽ в лайв-игре',
-    'Купить бонус в Dog House Multihold за 200 000₽ и окупиться',
-    'Выиграть x200 в любом слоте с первой попытки',
-    'Купить бонуску в слоте от No Limit за 200 000₽ — она должна дать минимум половину',
-    'Сыграть 50 спинов в Le Bandit по 5 000₽ и выбить любой бонус',
-    'Выбить снайпера в Money Train 4 (ставка от 75 000₽, макс. 3 попытки)'
+    'Шторм B1: Поймать бонус в Sweet Bonanza.',
+    'Шторм B2: Выбить множитель x50 в Sweet Bonanza.',
+    'Шторм B3: Выбить три бонуса в Le Bunny (ставка от 500🍓) — исследование енотов.',
+    'Шторм B4: Трём зрителям выдать по 2 500🍓 — благотворительность.',
+    'Шторм B5: Особый приказ — пропуск одного задания.',
+    'Шторм B6: Разыграть в Telegram бонус за 20 000🍓.',
+    'Шторм B7: Топовый бонус в «Мумии» (ставка 20 000🍓) — больше 10 спинов (3 попытки).',
+    'Шторм B8: Исследование динамита. Окупить бонус в fire in the hole 2 (2 попытки).',
+    'Шторм B9: Поймать «под иксом» любую ставку в Crazy Time.',
+    'Шторм B10: Познать милость Зевса! Поймать x20 в Gates of Olympus (бонус 9600).',
+    'Шторм B11: Найти самое рыбное место! Выбить три бонуса в одном Рыбаке.',
+    'Шторм B12: 80 спинов в Le Fisherman по 900🍓 или выбить топ-бонус.',
+    'Шторм B13: Проверка на жадность! 5 зрителей получают по 2 500🍓.',
+    'Шторм B14: Прогулка с вампирами. Выбить бонус в The Vampires 2 по 500.',
+    'Шторм B15: Ставка 50 000🍓 в лайв-игре.',
+    'Шторм B16: Купить бонус в Dog House Megaways за 20 000🍓 и окупиться.',
+    'Шторм B17: Проверка удачи! Выиграть x200 в любом слоте с первой попытки.',
+    'Шторм B18: Поймать ретригер в dig dig digger (бонус от 10000).',
+    'Шторм B19: 50 спинов в Le Bandit по 1 000🍓 и выбить любой бонус.',
+    'Шторм B20: На корабль напал убийца! Выбить снайпера в Money Train 4 (ставка от 10 000🍓).'
   ]},
-  
-  // ⭐⭐⭐⭐⭐ 5 звезд (10 заданий)
+
+  // ⭐⭐⭐⭐⭐ 5 звезд (класс A) — 10 заданий
   { difficulty: 5, texts: [
-    'Выбить множитель x100 в Sweet Bonanza',
-    'All-in в Le Bandit',
-    'All-in в Hot Fiesta',
-    'Выиграть 500x в Sweet Bonanza (ставка 50 000₽)',
-    'Выбить Crazy Time',
-    'Выбить 2 топ-бонуса в Le Pharaon (ставка 500₽)',
-    'Поймать линию вилдов в Pirate‘s Pub',
-    'Поймать x100 в Sweet Bonanza',
-    'Купить бонус в Money Train 4 за 400 000₽',
-    'Создатель получает накид'
+    'Капитанское A1: Выбить множитель x100 в Sweet Bonanza.',
+    'Капитанское A2: Вы — капитан! All-in в Le Bandit.',
+    'Капитанское A3: All-in в Hot Fiesta.',
+    'Капитанское A4: Исследование! Выбить 14 спинов в dog house royal hunt (бонус 8000).',
+    'Капитанское A5: Невозможное! Выбить Crazy Time и узнать его мощь.',
+    'Капитанское A6: Выбить 2 топ-бонуса в Jelly Slice (ставка 1 000🍓).',
+    'Капитанское A7: Поймать x100 в Sweet bonanza.',
+    'Капитанское A8: Поймать ретригер в sugar rush 1000 (топ-бонус).',
+    'Капитанское A9: Купить бонус в Money Train 4 за 60 000🍓 — поезд в никуда.',
+    'Капитанское A10: Создатель получает накид (личное сообщение).'
   ]},
-  
-  // ⭐⭐⭐⭐⭐⭐ 6 звезд (2 задания)
+
+  // ⭐⭐⭐⭐⭐⭐ 6 звезд (класс S) — 2 задания
   { difficulty: 6, texts: [
-    'Выбить Hot Mode в Le Bandit (любая ставка)',
-    'Поймать три десятки подряд в Crazy Time'
+    'Проклятие S1: Пробить Hot Mode в Le cowboy (любая ставка).',
+    'Проклятие S2: Выбить красную луну в The vampires 2.'
   ]}
 ];
 
-// ================== Функции работы с пулом ==================
+// ================== ПУЛ ШТРАФОВ ==================
+const penaltyTemplates = [
+  'Наказание: сделать 5 приседаний',
+  'Наказание: отжаться 10 раз',
+  'Наказание: спеть пиратскую песню',
+  'Наказание: прочитать скороговорку про корабль',
+  'Наказание: показать морское животное',
+  'Наказание: рассказать пиратский анекдот',
+  'Наказание: написать комплимент каждому зрителю в чате',
+  'Наказание: станцевать джигу',
+  'Наказание: сделать 10 прыжков с криком "Йо-хо-хо!"',
+  'Наказание: простоять в позе "смотровая бочка" 1 минуту',
+  'Наказание: издать звук попугая',
+  'Наказание: надеть пиратскую треуголку',
+  'Наказание: показать пантомиму "поиск клада"',
+  'Наказание: приседать, считая дублоны (30 секунд)',
+  'Наказание: сделать комплимент своему кораблю',
+  'Наказание: рассказать стих о море',
+  'Наказание: нарисовать череп на камеру',
+  'Наказание: показать 5 эмоций капитана',
+  'Наказание: сделать массаж лицу (после шторма)',
+  'Наказание: поморгать 30 раз подряд маяком'
+];
+
 function createInitialPool() {
-  const pool = [];
+  const tasks = [];
   const counts = [100, 60, 30, 20, 10, 2];
   for (let star = 1; star <= 6; star++) {
     const template = taskTemplates.find(t => t.difficulty === star);
     if (!template) continue;
     for (let i = 0; i < counts[star-1]; i++) {
       const text = template.texts[i % template.texts.length];
-      pool.push({
+      tasks.push({
         id: `task_${Date.now()}_${Math.random()}`,
         description: text,
         difficulty: star
       });
     }
   }
-  return shuffle(pool);
+  const penalties = penaltyTemplates.map((text, index) => ({
+    id: `penalty_${Date.now()}_${Math.random()}_${index}`,
+    description: text,
+    difficulty: 0,
+    isPenalty: true
+  }));
+  return { tasks: shuffle(tasks), penalties: shuffle(penalties) };
 }
 
 function shuffle(array) {
@@ -194,195 +221,110 @@ function shuffle(array) {
   return array;
 }
 
-function applyPenalty(pool) {
-  const lightTasks = pool.filter(t => t.difficulty >= 1 && t.difficulty <= 3);
-  if (lightTasks.length === 0) return 0;
-
-  const burnCount = Math.floor(Math.random() * (PENALTY_BURN_RANGE[1] - PENALTY_BURN_RANGE[0] + 1)) + PENALTY_BURN_RANGE[0];
-  const actualBurn = Math.min(burnCount, lightTasks.length);
-
-  // Вероятности: 50% 1★, 30% 2★, 20% 3★
-  const weights = { 1: 5, 2: 3, 3: 2 };
-  const totalWeight = 10;
-
-  let remainingLight = [...lightTasks];
-
-  for (let i = 0; i < actualBurn; i++) {
-    if (remainingLight.length === 0) break;
-
-    const rand = Math.random() * totalWeight;
-    let chosenStar = 1;
-    if (rand < 5) chosenStar = 1;
-    else if (rand < 8) chosenStar = 2;
-    else chosenStar = 3;
-
-    const candidates = remainingLight.filter(t => t.difficulty === chosenStar);
-    if (candidates.length > 0) {
-      const idx = Math.floor(Math.random() * candidates.length);
-      const taskToBurn = candidates[idx];
-      
-      const poolIndex = pool.findIndex(t => t.id === taskToBurn.id);
-      if (poolIndex !== -1) pool.splice(poolIndex, 1);
-      
-      const lightIndex = remainingLight.findIndex(t => t.id === taskToBurn.id);
-      if (lightIndex !== -1) remainingLight.splice(lightIndex, 1);
-    } else {
-      const anyTask = remainingLight[Math.floor(Math.random() * remainingLight.length)];
-      const poolIndex = pool.findIndex(t => t.id === anyTask.id);
-      if (poolIndex !== -1) pool.splice(poolIndex, 1);
-      const lightIndex = remainingLight.findIndex(t => t.id === anyTask.id);
-      if (lightIndex !== -1) remainingLight.splice(lightIndex, 1);
-    }
-  }
-
-  return actualBurn;
-}
-
-// ================== Состояние ==================
 let questState = {
   level: 1,
-  availableTasks: createInitialPool(),
-  currentCards: [],         // не используется, но оставим
-  selectedTaskId: null,
+  availableTasks: [],
+  penaltyPool: [],
   currentBalance: DEFAULT_BALANCE,
-  balanceHistory: [],
-  penaltiesLog: []
+  balanceHistory: [{ timestamp: Date.now(), desc: 'Стартовый баланс', change: DEFAULT_BALANCE, balance: DEFAULT_BALANCE }],
+  successCount: 0,
+  failCount: 0,
+  penaltyCount: 0
 };
 
-questState.balanceHistory.push({
-  timestamp: Date.now(),
-  desc: 'Стартовый баланс',
-  change: DEFAULT_BALANCE,
-  balance: DEFAULT_BALANCE
-});
+const initial = createInitialPool();
+questState.availableTasks = initial.tasks;
+questState.penaltyPool = initial.penalties;
 
-// ================== Сервер ==================
 app.use(express.static(path.join(__dirname, 'public')));
 
 io.on('connection', (socket) => {
-  console.log('Клиент подключён');
+  console.log('Пират подключён');
   socket.emit('state', questState);
 
-  // Обработчик выбора карты (не используется в турнире, но оставлен для совместимости)
-  socket.on('selectTask', (taskId) => {
-    if (questState.selectedTaskId) return;
-    const task = questState.currentCards.find(t => t.id === taskId);
-    if (task && !task.selected && !task.completed) {
-      const otherCards = questState.currentCards.filter(t => t.id !== taskId);
-      for (let other of otherCards) {
-        if (other.difficulty >= 4) {
-          questState.availableTasks.push(other);
-        }
-      }
-      questState.currentCards = [task];
-      task.selected = true;
-      questState.selectedTaskId = taskId;
-      io.emit('state', questState);
-    }
-  });
-
   socket.on('completeTask', (taskId, change) => {
-    // В турнире мы не удаляем задание из пула (клиент сам это делает), но можем удалить для синхронизации
-    const taskIndex = questState.availableTasks.findIndex(t => t.id === taskId);
-    if (taskIndex !== -1) {
-      questState.availableTasks.splice(taskIndex, 1);
-    }
+    const idx = questState.availableTasks.findIndex(t => t.id === taskId);
+    if (idx !== -1) questState.availableTasks.splice(idx, 1);
 
     questState.currentBalance += change;
-    questState.balanceHistory.push({
-      timestamp: Date.now(),
-      desc: `Задание выполнено`,
-      change: change,
-      balance: questState.currentBalance
-    });
+    questState.balanceHistory.push({ timestamp: Date.now(), desc: 'Задание выполнено', change, balance: questState.currentBalance });
+    questState.successCount++;
 
+    if (questState.level < MAX_LEVEL) questState.level++;
     io.emit('state', questState);
   });
 
   socket.on('penaltyWithBalance', (taskId, newBalance) => {
+    const idx = questState.availableTasks.findIndex(t => t.id === taskId);
+    if (idx !== -1) questState.availableTasks.splice(idx, 1);
+
     const change = newBalance - questState.currentBalance;
     questState.currentBalance = newBalance;
-    questState.balanceHistory.push({
-      timestamp: Date.now(),
-      desc: `Штраф (не выполнено)`,
-      change: change,
-      balance: questState.currentBalance
-    });
-
-    // При штрафе сжигаем лёгкие задания
-    const burned = applyPenalty(questState.availableTasks);
-    questState.balanceHistory.push({
-      timestamp: Date.now(),
-      desc: `Штраф: сгорело ${burned} лёгких заданий`,
-      change: 0,
-      balance: questState.currentBalance
-    });
+    questState.balanceHistory.push({ timestamp: Date.now(), desc: 'Задание провалено', change, balance: questState.currentBalance });
+    questState.failCount++;
 
     io.emit('state', questState);
   });
 
-  socket.on('prizeDraw', (data) => {
-    const { amount, winners } = data;
-    const total = amount * winners.length;
-    questState.currentBalance -= total;
-    questState.balanceHistory.push({
-      timestamp: Date.now(),
-      desc: `Розыгрыш: ${amount}₽ x ${winners.length} (${winners.join(', ')})`,
-      change: -total,
-      balance: questState.currentBalance
-    });
+  socket.on('applyPenaltyTask', (taskId, newBalance) => {
+    const idx = questState.penaltyPool.findIndex(p => p.id === taskId);
+    if (idx !== -1) questState.penaltyPool.splice(idx, 1);
+
+    const change = newBalance - questState.currentBalance;
+    questState.currentBalance = newBalance;
+    questState.balanceHistory.push({ timestamp: Date.now(), desc: 'Наказание выполнено', change, balance: questState.currentBalance });
+    questState.penaltyCount++;
+
+    if (questState.level < MAX_LEVEL) questState.level++;
     io.emit('state', questState);
   });
 
   socket.on('addBalance', (description, amount) => {
     questState.currentBalance += amount;
-    questState.balanceHistory.push({
-      timestamp: Date.now(),
-      desc: description,
-      change: amount,
-      balance: questState.currentBalance
-    });
+    questState.balanceHistory.push({ timestamp: Date.now(), desc: description, change: amount, balance: questState.currentBalance });
     io.emit('state', questState);
+  });
+
+  socket.on('setBalance', (newBalance) => {
+    if (!isNaN(newBalance) && newBalance >= 0) {
+      questState.currentBalance = newBalance;
+      questState.balanceHistory.push({ timestamp: Date.now(), desc: 'Дублоны изменены вручную', change: 0, balance: newBalance });
+      io.emit('state', questState);
+    }
   });
 
   socket.on('reset', (newBalance) => {
-    const startBalance = (newBalance !== undefined && !isNaN(newBalance)) ? newBalance : DEFAULT_BALANCE;
+    const start = (newBalance !== undefined && !isNaN(newBalance)) ? newBalance : DEFAULT_BALANCE;
+    const initial = createInitialPool();
     questState = {
       level: 1,
-      availableTasks: createInitialPool(),
-      currentCards: [],
-      selectedTaskId: null,
-      currentBalance: startBalance,
-      balanceHistory: [{
-        timestamp: Date.now(),
-        desc: 'Стартовый баланс',
-        change: startBalance,
-        balance: startBalance
-      }],
-      penaltiesLog: []
+      availableTasks: initial.tasks,
+      penaltyPool: initial.penalties,
+      currentBalance: start,
+      balanceHistory: [{ timestamp: Date.now(), desc: 'Стартовый баланс', change: start, balance: start }],
+      successCount: 0,
+      failCount: 0,
+      penaltyCount: 0
     };
     io.emit('state', questState);
   });
 
-  // Загрузка сохранённой игры (клиент присылает состояние)
   socket.on('loadSavedGame', (savedState) => {
     questState = {
       level: savedState.level || 1,
-      availableTasks: savedState.availableTasks || createInitialPool(),
-      currentCards: savedState.currentCards || [],
-      selectedTaskId: savedState.selectedTaskId || null,
+      availableTasks: savedState.availableTasks || createInitialPool().tasks,
+      penaltyPool: savedState.penaltyPool || createInitialPool().penalties,
       currentBalance: savedState.currentBalance,
-      balanceHistory: savedState.balanceHistory,
-      penaltiesLog: savedState.penaltiesLog || []
+      balanceHistory: savedState.balanceHistory || [],
+      successCount: savedState.successCount || 0,
+      failCount: savedState.failCount || 0,
+      penaltyCount: savedState.penaltyCount || 0
     };
     io.emit('state', questState);
-    console.log('Загружено сохранение с уровня', questState.level);
   });
 
-  socket.on('disconnect', () => console.log('Клиент отключён'));
+  socket.on('disconnect', () => console.log('Пират отплыл'));
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Сервер запущен на http://localhost:${PORT}`);
-});
+server.listen(PORT, () => console.log(`Пиратский сервер на порту ${PORT}`));
