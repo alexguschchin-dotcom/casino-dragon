@@ -8,7 +8,7 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const MAX_LEVEL = 30;
-const DEFAULT_BALANCE = 200000;
+const DEFAULT_BALANCE = 1500000;
 
 // ================== ПУЛ ЗАДАНИЙ (ПИРАТСКАЯ ТЕМА) ==================
 const taskTemplates = [
