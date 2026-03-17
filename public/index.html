@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Каюта капитана Клубнички</title>
+    <title>Каюта капитана</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -17,12 +17,12 @@
         <header class="header">
             <h1 class="pirate-title">
                 <i class="fas fa-skull-crossbones"></i> 
-                Каюта капитана <span>Клубнички</span>
+                Каюта капитана
                 <i class="fas fa-anchor"></i>
             </h1>
             <div class="level-indicator">Остров <span id="current-level">1</span>/30</div>
             <div class="balance-panel">
-                <span class="label">🍓 Дублоны</span>
+                <span class="label">💰 Дублоны</span>
                 <span class="value" id="current-balance">0</span>
                 <button id="apply-start-balance" class="btn-neon"><i class="fas fa-pen"></i></button>
             </div>
@@ -45,7 +45,7 @@
     <!-- Модалка задания -->
     <div id="task-modal" class="modal hidden">
         <div class="modal-content">
-            <h2><i class="fas fa-map"></i> Капитанский приказ <i class="fas fa-strawberry strawberry-icon-small"></i></h2>
+            <h2><i class="fas fa-map"></i> Капитанский приказ</h2>
             <p id="task-description"></p>
             <div class="balance-input">
                 <label>Новый запас дублонов:</label>
@@ -61,16 +61,16 @@
     <!-- Модалка завершения -->
     <div id="completion-modal" class="modal hidden">
         <div class="modal-content completion-content">
-            <h2>🏆 Сокровище найдено! <i class="fas fa-strawberry strawberry-icon-small"></i></h2>
+            <h2>🏆 Сокровище найдено!</h2>
             <p id="final-message"></p>
             <div class="completion-stats">
                 <p>✅ Успешных вылазок: <span id="final-success">0</span></p>
                 <p>❌ Провалов: <span id="final-fail">0</span></p>
                 <p>⚠️ Наказаний: <span id="final-penalty">0</span></p>
             </div>
-            <p>Итоговые дублоны: <span id="final-balance"></span> 🍓</p>
+            <p>Итоговые дублоны: <span id="final-balance"></span> 💰</p>
             <div class="completion-buttons">
-                <button id="flask-gag-btn" class="btn-neon">🧪 Странная бутылка</button>
+                <button id="flask-gag-btn" class="btn-neon">Странная бутылка с письмом</button>
                 <button id="completion-reset-btn" class="btn-neon">🔄 Новое плавание</button>
             </div>
         </div>
@@ -79,7 +79,7 @@
     <!-- Модалка правил -->
     <div id="rules-modal" class="modal hidden">
         <div class="modal-content">
-            <h2>📜 Кодекс пирата <i class="fas fa-strawberry strawberry-icon-small"></i></h2>
+            <h2>📜 Кодекс пирата</h2>
             <p>Вы — капитан пиратского корабля. Каждый остров (уровень) предлагает две вылазки и одно наказание. Выберите, выполните задание в казино или наказание, введите новый запас дублонов. При успехе вы получаете дублоны. При провале отправляетесь на исправительные работы (штрафной уровень). 30 островов — и клад ваш!</p>
             <label><input type="checkbox" id="dont-show-rules"> Больше не показывать</label>
             <button id="start-quest-btn" class="btn-neon">Понятно</button>

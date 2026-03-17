@@ -4,7 +4,7 @@ const SAVE_KEY = 'lab_save';
 
 let gameState = {
     level: 1,
-    currentBalance: 1500000,
+    currentBalance: 200000,
     balanceHistory: [],
     availableTasks: [],
     penaltyPool: [],
@@ -361,16 +361,16 @@ function completeTask(success) {
 
     if (success) {
         socket.emit('completeTask', taskId, change);
-        addHistoryEntry(`✅ Вылазка удалась: ${change>0?'+'+change:change} 🍓`);
+        addHistoryEntry(`✅ Вылазка удалась: ${change>0?'+'+change:change} 💰`);
         gameState.penaltyMode = false;
     } else {
         if (task && task.isPenalty) {
             socket.emit('applyPenaltyTask', taskId, newBalance);
-            addHistoryEntry(`⚠️ Наказание отбыто: ${change>0?'+'+change:change} 🍓`);
+            addHistoryEntry(`⚠️ Наказание отбыто: ${change>0?'+'+change:change} 💰`);
             gameState.penaltyMode = false;
         } else {
             socket.emit('penaltyWithBalance', taskId, newBalance);
-            addHistoryEntry(`❌ Вылазка провалена: ${change>0?'+'+change:change} 🍓`);
+            addHistoryEntry(`❌ Вылазка провалена: ${change>0?'+'+change:change} 💰`);
             gameState.penaltyMode = true;
         }
     }
@@ -462,7 +462,7 @@ failBtn.addEventListener('click', () => completeTask(false));
 
 if (flaskGagBtn) {
     flaskGagBtn.addEventListener('click', () => {
-        showToast('В бутылке оказался накид для Клубнички!');
+        showToast('В бутылке оказалось послание от старого пирата!');
     });
 }
 
@@ -485,7 +485,7 @@ window.addEventListener('click', (e) => {
     if (e.target.classList.contains('modal')) e.target.classList.add('hidden');
 });
 
-// Анимация пузырьков (теперь морских)
+// Анимация морских пузырьков
 (function initBubbles() {
     const canvas = document.getElementById('bubbles-canvas');
     if (!canvas) return;
