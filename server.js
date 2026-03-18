@@ -1,7 +1,3 @@
-
-
-
-
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -12,7 +8,7 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 // ================== НАСТРОЙКИ ==================
-const MAX_LEVEL = 30;               // не используется в турнире, но оставим для совместимости
+const MAX_LEVEL = 30;
 const DEFAULT_BALANCE = 1500000;
 const PENALTY_BURN_RANGE = [15, 20]; // штраф сжигает 15-20 лёгких заданий
 
@@ -204,8 +200,6 @@ const trophyTypes = [
   { name: 'Попугай', emoji: '🦜', bonus: 'extraChat' }
 ];
 
-
-// ================== Функции работы с пулом ==================
 function createInitialPool() {
   const pool = [];
   const counts = [100, 60, 30, 20, 10, 2];
@@ -239,7 +233,6 @@ function applyPenalty(pool) {
   const burnCount = Math.floor(Math.random() * (PENALTY_BURN_RANGE[1] - PENALTY_BURN_RANGE[0] + 1)) + PENALTY_BURN_RANGE[0];
   const actualBurn = Math.min(burnCount, lightTasks.length);
 
-  // Вероятности: 50% 1★, 30% 2★, 20% 3★
   const weights = { 1: 5, 2: 3, 3: 2 };
   const totalWeight = 10;
 
@@ -280,7 +273,8 @@ function applyPenalty(pool) {
 let questState = {
   level: 1,
   availableTasks: createInitialPool(),
-  currentCards: [],         // не используется, но оставим
+  penaltyPool: [],           // пул штрафных заданий
+  currentCards: [],
   selectedTaskId: null,
   currentBalance: DEFAULT_BALANCE,
   balanceHistory: [],
@@ -301,26 +295,8 @@ io.on('connection', (socket) => {
   console.log('Клиент подключён');
   socket.emit('state', questState);
 
-  // Обработчик выбора карты (не используется в турнире, но оставлен для совместимости)
-  socket.on('selectTask', (taskId) => {
-    if (questState.selectedTaskId) return;
-    const task = questState.currentCards.find(t => t.id === taskId);
-    if (task && !task.selected && !task.completed) {
-      const otherCards = questState.currentCards.filter(t => t.id !== taskId);
-      for (let other of otherCards) {
-        if (other.difficulty >= 4) {
-          questState.availableTasks.push(other);
-        }
-      }
-      questState.currentCards = [task];
-      task.selected = true;
-      questState.selectedTaskId = taskId;
-      io.emit('state', questState);
-    }
-  });
-
+  // Успешное выполнение обычного задания
   socket.on('completeTask', (taskId, change) => {
-    // В турнире мы не удаляем задание из пула (клиент сам это делает), но можем удалить для синхронизации
     const taskIndex = questState.availableTasks.findIndex(t => t.id === taskId);
     if (taskIndex !== -1) {
       questState.availableTasks.splice(taskIndex, 1);
@@ -334,9 +310,12 @@ io.on('connection', (socket) => {
       balance: questState.currentBalance
     });
 
+    // Увеличиваем уровень
+    questState.level = Math.min(questState.level + 1, MAX_LEVEL);
     io.emit('state', questState);
   });
 
+  // Провал обычного задания (штраф)
   socket.on('penaltyWithBalance', (taskId, newBalance) => {
     const change = newBalance - questState.currentBalance;
     questState.currentBalance = newBalance;
@@ -347,7 +326,15 @@ io.on('connection', (socket) => {
       balance: questState.currentBalance
     });
 
-    // При штрафе сжигаем лёгкие задания
+    // Перемещаем задание в penaltyPool
+    const taskIndex = questState.availableTasks.findIndex(t => t.id === taskId);
+    if (taskIndex !== -1) {
+      const failedTask = questState.availableTasks[taskIndex];
+      questState.penaltyPool.push(failedTask);
+      questState.availableTasks.splice(taskIndex, 1);
+    }
+
+    // Применяем штраф: сжигаем лёгкие задания
     const burned = applyPenalty(questState.availableTasks);
     questState.balanceHistory.push({
       timestamp: Date.now(),
@@ -356,9 +343,34 @@ io.on('connection', (socket) => {
       balance: questState.currentBalance
     });
 
+    // Увеличиваем уровень
+    questState.level = Math.min(questState.level + 1, MAX_LEVEL);
     io.emit('state', questState);
   });
 
+  // Успешное выполнение штрафного задания
+  socket.on('applyPenaltyTask', (taskId, newBalance) => {
+    const change = newBalance - questState.currentBalance;
+    questState.currentBalance = newBalance;
+    questState.balanceHistory.push({
+      timestamp: Date.now(),
+      desc: `Наказание выполнено`,
+      change: change,
+      balance: questState.currentBalance
+    });
+
+    // Удаляем задание из penaltyPool
+    const taskIndex = questState.penaltyPool.findIndex(t => t.id === taskId);
+    if (taskIndex !== -1) {
+      questState.penaltyPool.splice(taskIndex, 1);
+    }
+
+    // Увеличиваем уровень
+    questState.level = Math.min(questState.level + 1, MAX_LEVEL);
+    io.emit('state', questState);
+  });
+
+  // Остальные обработчики (prizeDraw, addBalance, reset, loadSavedGame) без изменений
   socket.on('prizeDraw', (data) => {
     const { amount, winners } = data;
     const total = amount * winners.length;
@@ -388,6 +400,7 @@ io.on('connection', (socket) => {
     questState = {
       level: 1,
       availableTasks: createInitialPool(),
+      penaltyPool: [],
       currentCards: [],
       selectedTaskId: null,
       currentBalance: startBalance,
@@ -402,11 +415,11 @@ io.on('connection', (socket) => {
     io.emit('state', questState);
   });
 
-  // Загрузка сохранённой игры (клиент присылает состояние)
   socket.on('loadSavedGame', (savedState) => {
     questState = {
       level: savedState.level || 1,
       availableTasks: savedState.availableTasks || createInitialPool(),
+      penaltyPool: savedState.penaltyPool || [],
       currentCards: savedState.currentCards || [],
       selectedTaskId: savedState.selectedTaskId || null,
       currentBalance: savedState.currentBalance,
