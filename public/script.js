@@ -4,7 +4,7 @@ const SAVE_KEY = 'lab_save';
 
 let gameState = {
     level: 1,
-    currentBalance: 200000,
+    currentBalance: 1500000, // изменено
     balanceHistory: [],
     availableTasks: [],
     penaltyPool: [],
@@ -257,7 +257,7 @@ socket.on('connect', () => {
             clearSavedGame();
         }
     }
-    socket.emit('reset', 200000);
+    socket.emit('reset', 1500000); // изменено
 });
 
 socket.on('state', (serverState) => {
@@ -268,7 +268,6 @@ socket.on('state', (serverState) => {
     } else {
         Object.assign(gameState, serverState);
 
-        // Показываем модалку выбора пути, если уровень 10/20/30 и ещё не выбран для этого периода
         if ((gameState.level === 10 || gameState.level === 20 || gameState.level === 30) &&
             !gameState.pathChoice &&
             gameState.pathLevel !== gameState.level &&
@@ -589,8 +588,10 @@ function renderHistory() {
 function endGame() {
     if (gameState.gameCompleted) return;
     gameState.gameCompleted = true;
-    finalMessage.innerHTML = '🏴‍☠️ Поздравляем! Вы нашли легендарный клад и стали королём пиратов!<br>' +
-        'Но в бутылке плещется что-то странное…';
+    const rankName = RANKS[gameState.rank];
+    finalMessage.innerHTML = `🏴‍☠️ Поздравляем! Вы нашли легендарный клад и стали королём пиратов!<br>` +
+        `Ваш ранг: ${rankName}<br>` +
+        `Но в бутылке плещется что-то странное…`;
     finalBalanceSpan.textContent = gameState.currentBalance;
     finalSuccess.textContent = gameState.successCount;
     finalFail.textContent = gameState.failCount;
@@ -602,7 +603,7 @@ function endGame() {
 function resetGame() {
     gameState = {
         level: 1,
-        currentBalance: 200000,
+        currentBalance: 1500000, // изменено
         balanceHistory: [],
         availableTasks: [],
         penaltyPool: [],
@@ -628,7 +629,7 @@ function resetGame() {
         needReroll: false
     };
     level30CardsGenerated = false;
-    socket.emit('reset', 200000);
+    socket.emit('reset', 1500000); // изменено
     clearSavedGame();
     updateUI();
     updatePoolStats();
