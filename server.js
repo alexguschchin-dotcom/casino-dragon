@@ -199,6 +199,7 @@ const trophyTypes = [
   { name: 'Половина', emoji: '½', bonus: 'half' },
   { name: 'Треть', emoji: '⅓', bonus: 'third' }
 ];
+
 function createInitialPools() {
   const tasks = [];
   const counts = [100, 60, 30, 20, 10, 2];
@@ -231,7 +232,6 @@ function shuffle(array) {
   return array;
 }
 
-// ================== НАЧАЛЬНОЕ СОСТОЯНИЕ ==================
 const initial = createInitialPools();
 let questState = {
   level: 1,
@@ -248,8 +248,9 @@ let questState = {
   inventory: [],
   pathChoice: null,
   pathLevel: 0,
+  riskMode: { active: false, untilLevel: 0 },
   currentMultiplier: 1,
-  currentDivider: 1, // добавляем делитель (2 или 3 при использовании трофея)
+  currentDivider: 1,
   nextIsRaid: false,
   isCursedIsland: false,
   skipNextPenalty: false,
@@ -257,7 +258,6 @@ let questState = {
   penaltyMode: false
 };
 
-// ================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==================
 function addRandomTrophy(state) {
   const type = trophyTypes[Math.floor(Math.random() * trophyTypes.length)].name;
   const existing = state.inventory.find(t => t.type === type);
@@ -276,26 +276,21 @@ function checkRankUp(state) {
   }
 }
 
-// Выдаём трофей, если уровень кратен 5 (кроме 0)
 function giveTrophyIfMilestone(state) {
   if (state.level % 5 === 0 && state.level <= MAX_LEVEL) {
     addRandomTrophy(state);
   }
 }
 
-// ================== СЕРВЕР ==================
 app.use(express.static(path.join(__dirname, 'public')));
 
 io.on('connection', (socket) => {
   console.log('Пират подключён');
   socket.emit('state', questState);
 
-  // Успешное выполнение обычного задания
   socket.on('completeTask', (taskId, change, multiplier) => {
     const taskIndex = questState.availableTasks.findIndex(t => t.id === taskId);
-    if (taskIndex !== -1) {
-      questState.availableTasks.splice(taskIndex, 1);
-    }
+    if (taskIndex !== -1) questState.availableTasks.splice(taskIndex, 1);
 
     questState.currentBalance += change;
     questState.balanceHistory.push({
@@ -312,13 +307,9 @@ io.on('connection', (socket) => {
 
     questState.reputation += 1;
     checkRankUp(questState);
-
-    // Даём трофей, если уровень кратен 5 (до повышения)
     giveTrophyIfMilestone(questState);
 
-    // Выходим из штрафного режима
     questState.penaltyMode = false;
-    // Сбрасываем делитель после использования
     questState.currentDivider = 1;
 
     if (questState.level < MAX_LEVEL) {
@@ -330,12 +321,9 @@ io.on('connection', (socket) => {
     io.emit('state', questState);
   });
 
-  // Провал обычного задания (переход в штрафной режим)
   socket.on('penaltyWithBalance', (taskId, newBalance) => {
     const taskIndex = questState.availableTasks.findIndex(t => t.id === taskId);
-    if (taskIndex !== -1) {
-      questState.availableTasks.splice(taskIndex, 1);
-    }
+    if (taskIndex !== -1) questState.availableTasks.splice(taskIndex, 1);
 
     const change = newBalance - questState.currentBalance;
     questState.currentBalance = newBalance;
@@ -352,12 +340,9 @@ io.on('connection', (socket) => {
     io.emit('state', questState);
   });
 
-  // Выполнение штрафа (после провала или прямой штраф)
   socket.on('applyPenaltyTask', (taskId, newBalance) => {
     const penaltyIndex = questState.penaltyPool.findIndex(p => p.id === taskId);
-    if (penaltyIndex !== -1) {
-      questState.penaltyPool.splice(penaltyIndex, 1);
-    }
+    if (penaltyIndex !== -1) questState.penaltyPool.splice(penaltyIndex, 1);
 
     const change = newBalance - questState.currentBalance;
     questState.currentBalance = newBalance;
@@ -380,8 +365,6 @@ io.on('connection', (socket) => {
 
     questState.reputation += 1;
     checkRankUp(questState);
-
-    // Даём трофей, если уровень кратен 5
     giveTrophyIfMilestone(questState);
 
     questState.penaltyMode = false;
@@ -396,34 +379,20 @@ io.on('connection', (socket) => {
     io.emit('state', questState);
   });
 
-  // Рейд
   socket.on('raidComplete', (success) => {
     if (success) {
-      const bonus = 5000;
-      questState.currentBalance += bonus;
-      questState.balanceHistory.push({
-        timestamp: Date.now(),
-        desc: 'Рейд успешен',
-        change: bonus,
-        balance: questState.currentBalance
-      });
+      questState.currentBalance += 5000;
+      questState.balanceHistory.push({ timestamp: Date.now(), desc: 'Рейд успешен', change: 5000, balance: questState.currentBalance });
       questState.successCount++;
       questState.reputation += 2;
+      if (Math.random() < 0.3) addRandomTrophy(questState);
     } else {
-      const penalty = -1000;
-      questState.currentBalance += penalty;
-      questState.balanceHistory.push({
-        timestamp: Date.now(),
-        desc: 'Рейд провален',
-        change: penalty,
-        balance: questState.currentBalance
-      });
+      questState.currentBalance -= 1000;
+      questState.balanceHistory.push({ timestamp: Date.now(), desc: 'Рейд провален', change: -1000, balance: questState.currentBalance });
       questState.failCount++;
       questState.reputation += 0.5;
     }
     checkRankUp(questState);
-
-    // Даём трофей за рейд, если уровень кратен 5
     giveTrophyIfMilestone(questState);
 
     questState.penaltyMode = false;
@@ -438,7 +407,6 @@ io.on('connection', (socket) => {
     io.emit('state', questState);
   });
 
-  // Использование трофея
   socket.on('useTrophy', (trophyType) => {
     const trophyIndex = questState.inventory.findIndex(t => t.type === trophyType);
     if (trophyIndex === -1) return;
@@ -446,43 +414,32 @@ io.on('connection', (socket) => {
     if (trophy.count <= 0) return;
 
     trophy.count--;
-    if (trophy.count === 0) {
-      questState.inventory.splice(trophyIndex, 1);
-    }
+    if (trophy.count === 0) questState.inventory.splice(trophyIndex, 1);
 
-    // Применяем эффект в зависимости от типа
     const trophyDef = trophyTypes.find(t => t.name === trophyType);
     if (trophyDef) {
       switch (trophyDef.bonus) {
-        case 'half':
-          questState.currentDivider = 2;
-          break;
-        case 'third':
-          questState.currentDivider = 3;
-          break;
-        case 'multiplier+1':
-          // увеличиваем множитель на 1 для следующего задания? Пока просто игнорируем
-          break;
-        case 'skipPenalty':
-          questState.skipNextPenalty = true;
-          break;
-        case 'reroll':
-          questState.needReroll = true;
-          break;
+        case 'half': questState.currentDivider = 2; break;
+        case 'third': questState.currentDivider = 3; break;
+        case 'skipPenalty': questState.skipNextPenalty = true; break;
+        case 'reroll': questState.needReroll = true; break;
       }
     }
 
     io.emit('state', questState);
   });
 
-  // Выбор пути
   socket.on('choosePath', (choice) => {
     questState.pathChoice = choice;
     questState.pathLevel = questState.level;
+    if (choice === 'risk') {
+      questState.riskMode = { active: true, untilLevel: questState.level + 9 };
+    } else {
+      questState.riskMode = { active: false, untilLevel: 0 };
+    }
     io.emit('state', questState);
   });
 
-  // Ручное изменение баланса
   socket.on('setBalance', (newBalance) => {
     if (!isNaN(newBalance) && newBalance >= 0) {
       questState.currentBalance = newBalance;
@@ -496,7 +453,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Розыгрыш (prizeDraw) — для совместимости
   socket.on('prizeDraw', (data) => {
     const { amount, winners } = data;
     const total = amount * winners.length;
@@ -510,19 +466,12 @@ io.on('connection', (socket) => {
     io.emit('state', questState);
   });
 
-  // Добавление баланса (для отладки)
   socket.on('addBalance', (description, amount) => {
     questState.currentBalance += amount;
-    questState.balanceHistory.push({
-      timestamp: Date.now(),
-      desc: description,
-      change: amount,
-      balance: questState.currentBalance
-    });
+    questState.balanceHistory.push({ timestamp: Date.now(), desc: description, change: amount, balance: questState.currentBalance });
     io.emit('state', questState);
   });
 
-  // Сброс игры
   socket.on('reset', (newBalance) => {
     const start = (newBalance !== undefined && !isNaN(newBalance)) ? newBalance : DEFAULT_BALANCE;
     const initial = createInitialPools();
@@ -541,6 +490,7 @@ io.on('connection', (socket) => {
       inventory: [],
       pathChoice: null,
       pathLevel: 0,
+      riskMode: { active: false, untilLevel: 0 },
       currentMultiplier: 1,
       currentDivider: 1,
       nextIsRaid: false,
@@ -552,7 +502,6 @@ io.on('connection', (socket) => {
     io.emit('state', questState);
   });
 
-  // Загрузка сохранения
   socket.on('loadSavedGame', (savedState) => {
     questState = savedState;
     io.emit('state', questState);
