@@ -14,7 +14,18 @@ let gameState = {
     successCount: 0,
     failCount: 0,
     penaltyCount: 0,
-    penaltyMode: false
+    penaltyMode: false,
+    mapCells: Array(30).fill('locked'),
+    rank: 0,
+    reputation: 0,
+    inventory: [],
+    pathChoice: null,
+    pathLevel: 0,
+    currentMultiplier: 1,
+    nextIsRaid: false,
+    isCursedIsland: false,
+    skipNextPenalty: false,
+    needReroll: false
 };
 
 let level30CardsGenerated = false;
@@ -44,6 +55,17 @@ const rulesModal = document.getElementById('rules-modal');
 const dontShowCheckbox = document.getElementById('dont-show-rules');
 const startQuestBtn = document.getElementById('start-quest-btn');
 const toast = document.getElementById('toast');
+const mapGrid = document.getElementById('map-grid');
+const rankNameSpan = document.getElementById('rank-name');
+const rankLevelSpan = document.getElementById('rank-level');
+const rankNextSpan = document.getElementById('rank-next');
+const inventoryList = document.getElementById('inventory-list');
+const pathModal = document.getElementById('path-modal');
+const pathRiskBtn = document.getElementById('path-risk');
+const pathLuckBtn = document.getElementById('path-luck');
+
+const RANKS = ['Юнга', 'Матрос', 'Боцман', 'Капитан', 'Адмирал'];
+const REPUTATION_PER_RANK = 10;
 
 let isAnimating = false;
 let pendingState = null;
@@ -103,9 +125,33 @@ function generateCardsForLevel() {
         level30CardsGenerated = true;
     }
 
-    let message = '';
-    let filteredTasks = gameState.availableTasks;
+    // Если нужен реролл (от трофея)
+    if (gameState.needReroll) {
+        gameState.needReroll = false;
+        // просто генерируем заново для текущего уровня
+    }
 
+    let message = '';
+
+    // Проверка на рейд
+    if (gameState.nextIsRaid) {
+        message = `🔥 Остров ${gameState.level}: Рейд! Задание для всего экипажа!`;
+        showToast(message);
+        gameState.currentCards = [createRaidCard()];
+        return;
+    }
+
+    // Проверка на проклятый остров
+    if (gameState.isCursedIsland) {
+        message = `💀 Остров ${gameState.level}: Проклятый! Все карточки — испытания!`;
+        showToast(message);
+        const penalties = generatePenaltyCards(3);
+        gameState.currentCards = penalties.map(p => ({ ...p, selected: false, completed: false }));
+        return;
+    }
+
+    // Обычный уровень
+    let filteredTasks = gameState.availableTasks;
     if (gameState.level % 10 === 0) {
         filteredTasks = gameState.availableTasks.filter(t => t.difficulty >= 4);
         message = `🔥 Остров ${gameState.level}: Штормовые воды (классы B, A, S)`;
@@ -121,7 +167,20 @@ function generateCardsForLevel() {
     }
 
     const shuffledTasks = [...filteredTasks].sort(() => 0.5 - Math.random());
-    const tasks = shuffledTasks.slice(0, 2).map(task => ({ ...task, selected: false, completed: false }));
+    const tasks = shuffledTasks.slice(0, 2).map(task => {
+        // Добавляем множитель в зависимости от выбранного пути и ранга
+        let multiplier = 1;
+        if (gameState.pathChoice === 'risk') {
+            multiplier = Math.random() < 0.5 ? 2 : 3; // чаще высокие
+        } else if (gameState.pathChoice === 'luck') {
+            multiplier = Math.random() < 0.7 ? 1 : 2; // чаще низкие
+        } else {
+            multiplier = Math.floor(Math.random() * 3) + 1; // 1-3 равновероятно
+        }
+        // Ранг может увеличивать множитель
+        multiplier += Math.floor(gameState.rank / 2); // например, +1 за каждые 2 ранга
+        return { ...task, selected: false, completed: false, multiplier };
+    });
 
     let penaltyCard = null;
     if (gameState.penaltyPool.length > 0) {
@@ -134,15 +193,23 @@ function generateCardsForLevel() {
     gameState.currentCards = cards.sort(() => 0.5 - Math.random());
 }
 
-function generatePenaltyCard() {
-    if (gameState.penaltyPool.length === 0) {
-        gameState.penaltyMode = false;
-        generateCardsForLevel();
-        return;
+function createRaidCard() {
+    return {
+        id: 'raid_' + Date.now() + '_' + Math.random(),
+        description: '⚔️ Рейд: чат должен написать "Йо-хо-хо" 30 раз за 2 минуты!',
+        isRaid: true,
+        selected: false,
+        completed: false
+    };
+}
+
+function generatePenaltyCards(count) {
+    const cards = [];
+    const shuffled = [...gameState.penaltyPool].sort(() => 0.5 - Math.random());
+    for (let i = 0; i < Math.min(count, shuffled.length); i++) {
+        cards.push({ ...shuffled[i], selected: false, completed: false });
     }
-    const randomPenalty = gameState.penaltyPool[Math.floor(Math.random() * gameState.penaltyPool.length)];
-    const penaltyCard = { ...randomPenalty, selected: false, completed: false };
-    gameState.currentCards = [penaltyCard];
+    return cards;
 }
 
 socket.on('connect', () => {
@@ -152,6 +219,8 @@ socket.on('connect', () => {
             gameState = saved;
             updateUI();
             updatePoolStats();
+            renderMap();
+            renderInventory();
             return;
         } else {
             clearSavedGame();
@@ -166,14 +235,12 @@ socket.on('state', (serverState) => {
     if (isAnimating) {
         pendingState = serverState;
     } else {
-        gameState.level = serverState.level;
-        gameState.currentBalance = serverState.currentBalance;
-        gameState.balanceHistory = serverState.balanceHistory;
-        gameState.availableTasks = serverState.availableTasks;
-        gameState.penaltyPool = serverState.penaltyPool;
-        gameState.successCount = serverState.successCount;
-        gameState.failCount = serverState.failCount;
-        gameState.penaltyCount = serverState.penaltyCount;
+        Object.assign(gameState, serverState);
+
+        // Проверка, нужно ли показать модалку выбора пути
+        if ((gameState.level === 10 || gameState.level === 20 || gameState.level === 30) && !gameState.pathChoice && gameState.pathLevel !== gameState.level) {
+            pathModal.classList.remove('hidden');
+        }
 
         if (!gameState.penaltyMode && !gameState.selectedTaskId && gameState.currentCards.length === 0) {
             if (gameState.level >= 30) {
@@ -194,6 +261,8 @@ socket.on('state', (serverState) => {
 
         updateUI();
         updatePoolStats();
+        renderMap();
+        renderInventory();
         saveGameState();
     }
 });
@@ -204,6 +273,40 @@ function updateUI() {
     renderCards();
     renderHistory();
     resetBtn.classList.toggle('hidden', gameState.level < 30);
+    // Ранг
+    rankNameSpan.textContent = RANKS[gameState.rank];
+    const nextRep = (gameState.rank + 1) * REPUTATION_PER_RANK;
+    rankLevelSpan.textContent = gameState.reputation;
+    rankNextSpan.textContent = nextRep;
+}
+
+function renderMap() {
+    if (!mapGrid) return;
+    mapGrid.innerHTML = '';
+    for (let i = 0; i < gameState.mapCells.length; i++) {
+        const cell = document.createElement('div');
+        cell.className = `map-cell ${gameState.mapCells[i]}`;
+        cell.textContent = i + 1;
+        mapGrid.appendChild(cell);
+    }
+}
+
+function renderInventory() {
+    if (!inventoryList) return;
+    inventoryList.innerHTML = '';
+    gameState.inventory.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'inventory-item';
+        div.innerHTML = `<span>${item.type} ${item.count}</span> <button class="use-trophy" data-type="${item.type}">Использовать</button>`;
+        inventoryList.appendChild(div);
+    });
+    // Добавляем обработчики на кнопки использования
+    document.querySelectorAll('.use-trophy').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const type = e.target.dataset.type;
+            socket.emit('useTrophy', type);
+        });
+    });
 }
 
 function updatePoolStats() {
@@ -249,13 +352,20 @@ function createCardElement(task, isSelected) {
     if (task.isPenalty) {
         reagentClass = '⚠️';
         classColor = 'penalty';
+    } else if (task.isRaid) {
+        reagentClass = '⚔️';
+        classColor = 'raid';
     } else {
         reagentClass = getReagentClass(task.difficulty);
         classColor = getClassColor(task.difficulty);
     }
 
     const reagentHTML = `<div class="reagent-class ${classColor}">${reagentClass}</div>`;
-    const taskText = `<div class="task-text">${task.description}</div>`;
+    let taskText = task.description;
+    if (task.multiplier && task.multiplier > 1) {
+        taskText += ` (x${task.multiplier})`;
+    }
+    const taskTextDiv = `<div class="task-text">${taskText}</div>`;
 
     let buttons = '';
     if (!task.selected && !task.completed && !gameState.selectedTaskId) {
@@ -263,6 +373,11 @@ function createCardElement(task, isSelected) {
     } else if (task.selected && !task.completed) {
         if (task.isPenalty) {
             buttons = `<button class="penalty-apply-btn">⚓ Выполнить</button>`;
+        } else if (task.isRaid) {
+            buttons = `
+                <button class="raid-success-btn">✅ Рейд успешен</button>
+                <button class="raid-fail-btn">❌ Рейд провален</button>
+            `;
         } else {
             buttons = `
                 <button class="complete-btn">✅ Успех</button>
@@ -273,7 +388,7 @@ function createCardElement(task, isSelected) {
         buttons = `<button disabled>✔ Сделано</button>`;
     }
 
-    card.innerHTML = reagentHTML + taskText + `<div class="card-actions">${buttons}</div>`;
+    card.innerHTML = reagentHTML + taskTextDiv + `<div class="card-actions">${buttons}</div>`;
 
     if (!task.selected && !task.completed && !gameState.selectedTaskId) {
         card.querySelector('.select-btn').addEventListener('click', (e) => {
@@ -285,6 +400,21 @@ function createCardElement(task, isSelected) {
             card.querySelector('.penalty-apply-btn').addEventListener('click', (e) => {
                 e.stopPropagation();
                 openTaskModal(task.id);
+            });
+        } else if (task.isRaid) {
+            card.querySelector('.raid-success-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                socket.emit('raidComplete', true);
+                gameState.currentCards = [];
+                gameState.selectedTaskId = null;
+                updateUI();
+            });
+            card.querySelector('.raid-fail-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                socket.emit('raidComplete', false);
+                gameState.currentCards = [];
+                gameState.selectedTaskId = null;
+                updateUI();
             });
         } else {
             card.querySelector('.complete-btn').addEventListener('click', (e) => {
@@ -321,11 +451,7 @@ function selectTask(taskId) {
         renderCards();
         isAnimating = false;
         if (pendingState) {
-            gameState.level = pendingState.level;
-            gameState.currentBalance = pendingState.currentBalance;
-            gameState.balanceHistory = pendingState.balanceHistory;
-            gameState.availableTasks = pendingState.availableTasks;
-            gameState.penaltyPool = pendingState.penaltyPool;
+            Object.assign(gameState, pendingState);
             updateUI();
             updatePoolStats();
             pendingState = null;
@@ -358,10 +484,11 @@ function completeTask(success) {
     const change = newBalance - gameState.currentBalance;
     const taskId = gameState.currentTaskId;
     const task = gameState.currentCards.find(t => t.id === taskId);
+    const multiplier = task.multiplier || 1;
 
     if (success) {
-        socket.emit('completeTask', taskId, change);
-        addHistoryEntry(`✅ Вылазка удалась: ${change>0?'+'+change:change} 💰`);
+        socket.emit('completeTask', taskId, change, multiplier * gameState.currentMultiplier);
+        addHistoryEntry(`✅ Вылазка удалась: ${change>0?'+'+change:change} 💰 (x${multiplier * gameState.currentMultiplier})`);
         gameState.penaltyMode = false;
     } else {
         if (task && task.isPenalty) {
@@ -433,13 +560,26 @@ function resetGame() {
         successCount: 0,
         failCount: 0,
         penaltyCount: 0,
-        penaltyMode: false
+        penaltyMode: false,
+        mapCells: Array(30).fill('locked'),
+        rank: 0,
+        reputation: 0,
+        inventory: [],
+        pathChoice: null,
+        pathLevel: 0,
+        currentMultiplier: 1,
+        nextIsRaid: false,
+        isCursedIsland: false,
+        skipNextPenalty: false,
+        needReroll: false
     };
     level30CardsGenerated = false;
     socket.emit('reset', 200000);
     clearSavedGame();
     updateUI();
     updatePoolStats();
+    renderMap();
+    renderInventory();
 }
 
 // ------------------- Обработчики -------------------
@@ -472,6 +612,16 @@ if (completionResetBtn) {
         resetGame();
     });
 }
+
+// Пути
+pathRiskBtn.addEventListener('click', () => {
+    socket.emit('choosePath', 'risk');
+    pathModal.classList.add('hidden');
+});
+pathLuckBtn.addEventListener('click', () => {
+    socket.emit('choosePath', 'luck');
+    pathModal.classList.add('hidden');
+});
 
 if (!localStorage.getItem('quest_rules_hidden')) {
     setTimeout(() => rulesModal.classList.remove('hidden'), 500);

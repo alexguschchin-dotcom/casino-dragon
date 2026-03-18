@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Каюта капитана</title>
+    <title>Пиратский квест</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -27,6 +27,23 @@
                 <button id="apply-start-balance" class="btn-neon"><i class="fas fa-pen"></i></button>
             </div>
         </header>
+
+        <!-- Карта сокровищ -->
+        <div class="map-container">
+            <h2><i class="fas fa-map"></i> Карта сокровищ</h2>
+            <div id="map-grid" class="map-grid"></div>
+        </div>
+
+        <!-- Ранг и репутация -->
+        <div class="rank-panel">
+            <span>Ранг: <span id="rank-name">Юнга</span> (⚓ <span id="rank-level">0</span>/<span id="rank-next">10</span>)</span>
+        </div>
+
+        <!-- Инвентарь (трофеи) -->
+        <div class="inventory-panel">
+            <h3><i class="fas fa-box"></i> Трофеи</h3>
+            <div id="inventory-list" class="inventory-list"></div>
+        </div>
 
         <div class="cards-container" id="cards-container"></div>
 
@@ -70,8 +87,20 @@
             </div>
             <p>Итоговые дублоны: <span id="final-balance"></span> 💰</p>
             <div class="completion-buttons">
-                <button id="flask-gag-btn" class="btn-neon">Странная бутылка с письмом</button>
+                <button id="flask-gag-btn" class="btn-neon">🧪 Странная бутылка</button>
                 <button id="completion-reset-btn" class="btn-neon">🔄 Новое плавание</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка выбора пути -->
+    <div id="path-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>🧭 Выберите путь</h2>
+            <p>На какую дорогу ступить?</p>
+            <div class="path-buttons">
+                <button id="path-risk" class="btn-neon">⚡ Путь риска (больше множители, но чаще штрафы)</button>
+                <button id="path-luck" class="btn-neon">🍀 Путь удачи (чаще лёгкие задания)</button>
             </div>
         </div>
     </div>
