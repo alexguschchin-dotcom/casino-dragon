@@ -7,7 +7,6 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// ================== НАСТРОЙКИ ==================
 const MAX_LEVEL = 30;
 const DEFAULT_BALANCE = 200000;
 const RANKS = ['Юнга', 'Матрос', 'Боцман', 'Капитан', 'Адмирал'];
@@ -201,7 +200,6 @@ const trophyTypes = [
   { name: 'Попугай', emoji: '🦜', bonus: 'extraChat' }
 ];
 
-// ================== ФУНКЦИИ СОЗДАНИЯ ПУЛОВ ==================
 function createInitialPools() {
   const tasks = [];
   const counts = [100, 60, 30, 20, 10, 2];
@@ -284,7 +282,6 @@ io.on('connection', (socket) => {
   console.log('Пират подключён');
   socket.emit('state', questState);
 
-  // Успешное выполнение обычного задания
   socket.on('completeTask', (taskId, change, multiplier) => {
     const taskIndex = questState.availableTasks.findIndex(t => t.id === taskId);
     if (taskIndex !== -1) {
@@ -300,20 +297,16 @@ io.on('connection', (socket) => {
     });
     questState.successCount++;
 
-    // Обновляем карту (открываем клетку)
     if (questState.level <= MAX_LEVEL) {
       questState.mapCells[questState.level - 1] = 'open';
     }
 
-    // Репутация и трофей
     questState.reputation += 1;
     if (Math.random() < 0.2) addRandomTrophy(questState);
     checkRankUp(questState);
 
-    // Повышение уровня (если не проклятый остров — но проклятый остров обрабатывается на клиенте)
     if (questState.level < MAX_LEVEL) {
       questState.level++;
-      // Определяем следующие флаги
       questState.nextIsRaid = (questState.level % 5 === 0);
       questState.isCursedIsland = [7, 13, 21].includes(questState.level);
     }
@@ -321,7 +314,6 @@ io.on('connection', (socket) => {
     io.emit('state', questState);
   });
 
-  // Провал обычного задания (штрафной режим)
   socket.on('penaltyWithBalance', (taskId, newBalance) => {
     const taskIndex = questState.availableTasks.findIndex(t => t.id === taskId);
     if (taskIndex !== -1) {
@@ -338,13 +330,9 @@ io.on('connection', (socket) => {
     });
     questState.failCount++;
 
-    // НЕ сжигаем лёгкие задания, просто ждём выполнения штрафа
-    // Уровень не повышаем до выполнения штрафа
-
     io.emit('state', questState);
   });
 
-  // Выполнение штрафа (после провала или прямой штраф)
   socket.on('applyPenaltyTask', (taskId, newBalance) => {
     const penaltyIndex = questState.penaltyPool.findIndex(p => p.id === taskId);
     if (penaltyIndex !== -1) {
@@ -361,23 +349,19 @@ io.on('connection', (socket) => {
     });
     questState.penaltyCount++;
 
-    // Обновляем карту (если это проклятый остров — ставим skull)
     if (questState.isCursedIsland) {
       questState.mapCells[questState.level - 1] = 'skull';
       questState.isCursedIsland = false;
     } else {
-      // Если штраф после провала, клетка уже была открыта? Нет, она ещё locked, ставим skull
       if (questState.mapCells[questState.level - 1] === 'locked') {
         questState.mapCells[questState.level - 1] = 'skull';
       }
     }
 
-    // Репутация и трофей
     questState.reputation += 1;
     if (Math.random() < 0.2) addRandomTrophy(questState);
     checkRankUp(questState);
 
-    // Повышение уровня
     if (questState.level < MAX_LEVEL) {
       questState.level++;
       questState.nextIsRaid = (questState.level % 5 === 0);
@@ -387,7 +371,6 @@ io.on('connection', (socket) => {
     io.emit('state', questState);
   });
 
-  // Рейд
   socket.on('raidComplete', (success) => {
     if (success) {
       const bonus = 5000;
@@ -415,7 +398,6 @@ io.on('connection', (socket) => {
     }
     checkRankUp(questState);
 
-    // После рейда уровень повышается
     if (questState.level < MAX_LEVEL) {
       questState.level++;
       questState.nextIsRaid = (questState.level % 5 === 0);
@@ -425,7 +407,6 @@ io.on('connection', (socket) => {
     io.emit('state', questState);
   });
 
-  // Использование трофея
   socket.on('useTrophy', (trophyType) => {
     const trophyIndex = questState.inventory.findIndex(t => t.type === trophyType);
     if (trophyIndex === -1) return;
@@ -437,18 +418,15 @@ io.on('connection', (socket) => {
       questState.inventory.splice(trophyIndex, 1);
     }
 
-    // Эффекты трофеев обрабатываются на клиенте, серверу достаточно обновить инвентарь
     io.emit('state', questState);
   });
 
-  // Выбор пути
   socket.on('choosePath', (choice) => {
     questState.pathChoice = choice;
     questState.pathLevel = questState.level;
     io.emit('state', questState);
   });
 
-  // Изменение баланса вручную
   socket.on('setBalance', (newBalance) => {
     if (!isNaN(newBalance) && newBalance >= 0) {
       questState.currentBalance = newBalance;
@@ -462,7 +440,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Розыгрыш (prizeDraw) — оставлено для совместимости
   socket.on('prizeDraw', (data) => {
     const { amount, winners } = data;
     const total = amount * winners.length;
@@ -476,7 +453,6 @@ io.on('connection', (socket) => {
     io.emit('state', questState);
   });
 
-  // Добавление баланса (для отладки)
   socket.on('addBalance', (description, amount) => {
     questState.currentBalance += amount;
     questState.balanceHistory.push({
@@ -488,7 +464,6 @@ io.on('connection', (socket) => {
     io.emit('state', questState);
   });
 
-  // Сброс игры
   socket.on('reset', (newBalance) => {
     const start = (newBalance !== undefined && !isNaN(newBalance)) ? newBalance : DEFAULT_BALANCE;
     const initial = createInitialPools();
@@ -516,9 +491,8 @@ io.on('connection', (socket) => {
     io.emit('state', questState);
   });
 
-  // Загрузка сохранения
   socket.on('loadSavedGame', (savedState) => {
-    questState = savedState; // в реальном проекте нужна валидация
+    questState = savedState;
     io.emit('state', questState);
   });
 
