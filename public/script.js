@@ -191,13 +191,29 @@ function generateCardsForLevel() {
     const shuffledTasks = [...filteredTasks].sort(() => 0.5 - Math.random());
     const tasks = shuffledTasks.slice(0, 2).map(task => {
         let multiplier = 1;
-        if (gameState.pathChoice === 'risk') {
+        // Базовый шанс множителя: 20% (из них 10% x2, 10% x3)
+        const rand = Math.random();
+        if (rand < 0.2) {
             multiplier = Math.random() < 0.5 ? 2 : 3;
-        } else if (gameState.pathChoice === 'luck') {
-            multiplier = Math.random() < 0.7 ? 1 : 2;
-        } else {
-            multiplier = Math.floor(Math.random() * 3) + 1;
         }
+        // Влияние пути
+        if (gameState.pathChoice === 'risk') {
+            // Если множитель уже >1, увеличиваем его на 1 (но не более 4)
+            if (multiplier > 1) {
+                multiplier = Math.min(multiplier + 1, 4);
+            } else {
+                // Дополнительный шанс получить множитель
+                if (Math.random() < 0.3) {
+                    multiplier = Math.random() < 0.5 ? 2 : 3;
+                }
+            }
+        } else if (gameState.pathChoice === 'luck') {
+            // Если множитель >1, с вероятностью 50% сбрасываем на 1
+            if (multiplier > 1 && Math.random() < 0.5) {
+                multiplier = 1;
+            }
+        }
+        // Бонус от ранга
         multiplier += Math.floor(gameState.rank / 2);
         return { ...task, selected: false, completed: false, multiplier };
     });
@@ -212,7 +228,7 @@ function generateCardsForLevel() {
     let penaltyCard = null;
     if (gameState.penaltyPool.length > 0) {
         const randomPenalty = gameState.penaltyPool[Math.floor(Math.random() * gameState.penaltyPool.length)];
-        penaltyCard = { ...randomPenalty, selected: false, completed: false };
+        penaltyCard = { ...randomPenalty, selected: false, completed: false, isPenalty: true };
     }
 
     let cards = [...tasks];
@@ -224,7 +240,7 @@ function generatePenaltyCards(count) {
     const cards = [];
     const shuffled = [...gameState.penaltyPool].sort(() => 0.5 - Math.random());
     for (let i = 0; i < Math.min(count, shuffled.length); i++) {
-        cards.push({ ...shuffled[i], selected: false, completed: false });
+        cards.push({ ...shuffled[i], selected: false, completed: false, isPenalty: true });
     }
     return cards;
 }
@@ -292,7 +308,7 @@ function generatePenaltyCard() {
         return;
     }
     const randomPenalty = gameState.penaltyPool[Math.floor(Math.random() * gameState.penaltyPool.length)];
-    const penaltyCard = { ...randomPenalty, selected: false, completed: false };
+    const penaltyCard = { ...randomPenalty, selected: false, completed: false, isPenalty: true };
     gameState.currentCards = [penaltyCard];
 }
 
@@ -550,7 +566,9 @@ function completeTask(success) {
     gameState.currentTaskId = null;
 
     taskModal.classList.add('hidden');
-    updateUI();
+    // Уровень увеличивается на сервере, но мы можем сразу обновить UI после ответа от сервера
+    // Ждём socket.on('state') который обновит gameState
+    // updateUI(); // не вызываем, чтобы дождаться синхронизации
 }
 
 function addHistoryEntry(text) {
