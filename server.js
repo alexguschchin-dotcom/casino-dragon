@@ -8,7 +8,7 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const MAX_LEVEL = 30;
-const DEFAULT_BALANCE = 200000;
+const DEFAULT_BALANCE = 1500000; // изменено
 const RANKS = ['Юнга', 'Матрос', 'Боцман', 'Капитан', 'Адмирал'];
 const REPUTATION_PER_RANK = 10;
 
@@ -191,11 +191,8 @@ const penaltyTemplates = [
   'Наказание: поморгать 30 раз подряд маяком'
 ];
 
-// ================== ТРОФЕИ ==================
+// ================== ТРОФЕИ (только половина и треть) ==================
 const trophyTypes = [
-  { name: 'Золотая монета', emoji: '💰', bonus: 'multiplier+1' },
-  { name: 'Череп', emoji: '💀', bonus: 'skipPenalty' },
-  { name: 'Компас', emoji: '🧭', bonus: 'reroll' },
   { name: 'Половина', emoji: '½', bonus: 'half' },
   { name: 'Треть', emoji: '⅓', bonus: 'third' }
 ];
@@ -421,8 +418,6 @@ io.on('connection', (socket) => {
       switch (trophyDef.bonus) {
         case 'half': questState.currentDivider = 2; break;
         case 'third': questState.currentDivider = 3; break;
-        case 'skipPenalty': questState.skipNextPenalty = true; break;
-        case 'reroll': questState.needReroll = true; break;
       }
     }
 
