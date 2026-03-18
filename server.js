@@ -1,3 +1,7 @@
+
+
+
+
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -7,11 +11,10 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const MAX_LEVEL = 30;
-const DEFAULT_BALANCE = 200000;
-
-const RANKS = ['Юнга', 'Матрос', 'Боцман', 'Капитан', 'Адмирал'];
-const REPUTATION_PER_RANK = 10;
+// ================== НАСТРОЙКИ ==================
+const MAX_LEVEL = 30;               // не используется в турнире, но оставим для совместимости
+const DEFAULT_BALANCE = 1500000;
+const PENALTY_BURN_RANGE = [15, 20]; // штраф сжигает 15-20 лёгких заданий
 
 // ================== ПУЛ ЗАДАНИЙ (ПИРАТСКАЯ ТЕМА) ==================
 const taskTemplates = [
@@ -202,28 +205,23 @@ const trophyTypes = [
 ];
 
 
+// ================== Функции работы с пулом ==================
 function createInitialPool() {
-  const tasks = [];
+  const pool = [];
   const counts = [100, 60, 30, 20, 10, 2];
   for (let star = 1; star <= 6; star++) {
     const template = taskTemplates.find(t => t.difficulty === star);
     if (!template) continue;
     for (let i = 0; i < counts[star-1]; i++) {
       const text = template.texts[i % template.texts.length];
-      tasks.push({
+      pool.push({
         id: `task_${Date.now()}_${Math.random()}`,
         description: text,
         difficulty: star
       });
     }
   }
-  const penalties = penaltyTemplates.map((text, index) => ({
-    id: `penalty_${Date.now()}_${Math.random()}_${index}`,
-    description: text,
-    difficulty: 0,
-    isPenalty: true
-  }));
-  return { tasks: shuffle(tasks), penalties: shuffle(penalties) };
+  return shuffle(pool);
 }
 
 function shuffle(array) {
@@ -234,262 +232,195 @@ function shuffle(array) {
   return array;
 }
 
+function applyPenalty(pool) {
+  const lightTasks = pool.filter(t => t.difficulty >= 1 && t.difficulty <= 3);
+  if (lightTasks.length === 0) return 0;
+
+  const burnCount = Math.floor(Math.random() * (PENALTY_BURN_RANGE[1] - PENALTY_BURN_RANGE[0] + 1)) + PENALTY_BURN_RANGE[0];
+  const actualBurn = Math.min(burnCount, lightTasks.length);
+
+  // Вероятности: 50% 1★, 30% 2★, 20% 3★
+  const weights = { 1: 5, 2: 3, 3: 2 };
+  const totalWeight = 10;
+
+  let remainingLight = [...lightTasks];
+
+  for (let i = 0; i < actualBurn; i++) {
+    if (remainingLight.length === 0) break;
+
+    const rand = Math.random() * totalWeight;
+    let chosenStar = 1;
+    if (rand < 5) chosenStar = 1;
+    else if (rand < 8) chosenStar = 2;
+    else chosenStar = 3;
+
+    const candidates = remainingLight.filter(t => t.difficulty === chosenStar);
+    if (candidates.length > 0) {
+      const idx = Math.floor(Math.random() * candidates.length);
+      const taskToBurn = candidates[idx];
+      
+      const poolIndex = pool.findIndex(t => t.id === taskToBurn.id);
+      if (poolIndex !== -1) pool.splice(poolIndex, 1);
+      
+      const lightIndex = remainingLight.findIndex(t => t.id === taskToBurn.id);
+      if (lightIndex !== -1) remainingLight.splice(lightIndex, 1);
+    } else {
+      const anyTask = remainingLight[Math.floor(Math.random() * remainingLight.length)];
+      const poolIndex = pool.findIndex(t => t.id === anyTask.id);
+      if (poolIndex !== -1) pool.splice(poolIndex, 1);
+      const lightIndex = remainingLight.findIndex(t => t.id === anyTask.id);
+      if (lightIndex !== -1) remainingLight.splice(lightIndex, 1);
+    }
+  }
+
+  return actualBurn;
+}
+
+// ================== Состояние ==================
 let questState = {
   level: 1,
-  availableTasks: [],
-  penaltyPool: [],
+  availableTasks: createInitialPool(),
+  currentCards: [],         // не используется, но оставим
+  selectedTaskId: null,
   currentBalance: DEFAULT_BALANCE,
-  balanceHistory: [{ timestamp: Date.now(), desc: 'Стартовый баланс', change: DEFAULT_BALANCE, balance: DEFAULT_BALANCE }],
-  successCount: 0,
-  failCount: 0,
-  penaltyCount: 0,
-  mapCells: Array(MAX_LEVEL).fill('locked'),
-  rank: 0,
-  reputation: 0,
-  inventory: [],
-  pathChoice: null,
-  pathLevel: 0,
-  currentMultiplier: 1,
-  nextIsRaid: false,
-  isCursedIsland: false,
-  penaltyMode: false,
-  skipNextPenalty: false,
-  needReroll: false
+  balanceHistory: [],
+  penaltiesLog: []
 };
 
-const initial = createInitialPool();
-questState.availableTasks = initial.tasks;
-questState.penaltyPool = initial.penalties;
+questState.balanceHistory.push({
+  timestamp: Date.now(),
+  desc: 'Стартовый баланс',
+  change: DEFAULT_BALANCE,
+  balance: DEFAULT_BALANCE
+});
 
+// ================== Сервер ==================
 app.use(express.static(path.join(__dirname, 'public')));
 
 io.on('connection', (socket) => {
-  console.log('Пират подключён');
+  console.log('Клиент подключён');
   socket.emit('state', questState);
 
-  socket.on('completeTask', (taskId, change, multiplier = 1) => {
-    const idx = questState.availableTasks.findIndex(t => t.id === taskId);
-    if (idx !== -1) questState.availableTasks.splice(idx, 1);
+  // Обработчик выбора карты (не используется в турнире, но оставлен для совместимости)
+  socket.on('selectTask', (taskId) => {
+    if (questState.selectedTaskId) return;
+    const task = questState.currentCards.find(t => t.id === taskId);
+    if (task && !task.selected && !task.completed) {
+      const otherCards = questState.currentCards.filter(t => t.id !== taskId);
+      for (let other of otherCards) {
+        if (other.difficulty >= 4) {
+          questState.availableTasks.push(other);
+        }
+      }
+      questState.currentCards = [task];
+      task.selected = true;
+      questState.selectedTaskId = taskId;
+      io.emit('state', questState);
+    }
+  });
 
-    const finalChange = change * multiplier;
-    questState.currentBalance += finalChange;
-    questState.balanceHistory.push({ timestamp: Date.now(), desc: `Задание выполнено (x${multiplier})`, change: finalChange, balance: questState.currentBalance });
-    questState.successCount++;
-
-    if (questState.level <= MAX_LEVEL) {
-      questState.mapCells[questState.level - 1] = 'open';
+  socket.on('completeTask', (taskId, change) => {
+    // В турнире мы не удаляем задание из пула (клиент сам это делает), но можем удалить для синхронизации
+    const taskIndex = questState.availableTasks.findIndex(t => t.id === taskId);
+    if (taskIndex !== -1) {
+      questState.availableTasks.splice(taskIndex, 1);
     }
 
-    questState.reputation++;
-    addRandomTrophy();
-
-    checkRankUp();
-
-    if (!questState.isCursedIsland && questState.level < MAX_LEVEL) {
-      questState.level++;
-      questState.nextIsRaid = (questState.level % 5 === 0);
-      questState.isCursedIsland = [7, 13, 21].includes(questState.level);
-    }
-
-    questState.penaltyMode = false;
-    questState.currentMultiplier = 1;
+    questState.currentBalance += change;
+    questState.balanceHistory.push({
+      timestamp: Date.now(),
+      desc: `Задание выполнено`,
+      change: change,
+      balance: questState.currentBalance
+    });
 
     io.emit('state', questState);
   });
 
   socket.on('penaltyWithBalance', (taskId, newBalance) => {
-    const idx = questState.availableTasks.findIndex(t => t.id === taskId);
-    if (idx !== -1) questState.availableTasks.splice(idx, 1);
-
     const change = newBalance - questState.currentBalance;
     questState.currentBalance = newBalance;
-    questState.balanceHistory.push({ timestamp: Date.now(), desc: 'Задание провалено', change, balance: questState.currentBalance });
-    questState.failCount++;
+    questState.balanceHistory.push({
+      timestamp: Date.now(),
+      desc: `Штраф (не выполнено)`,
+      change: change,
+      balance: questState.currentBalance
+    });
 
-    if (questState.skipNextPenalty) {
-      // Пропускаем штраф: сразу открываем клетку и повышаем уровень
-      questState.mapCells[questState.level - 1] = 'open';
-      questState.reputation += 0.5;
-      addRandomTrophy();
-      checkRankUp();
-      if (questState.level < MAX_LEVEL) {
-        questState.level++;
-        questState.nextIsRaid = (questState.level % 5 === 0);
-        questState.isCursedIsland = [7, 13, 21].includes(questState.level);
-      }
-      questState.skipNextPenalty = false;
-      questState.penaltyMode = false;
-    } else {
-      // Обычный провал: включаем штрафной режим
-      questState.penaltyMode = true;
-    }
+    // При штрафе сжигаем лёгкие задания
+    const burned = applyPenalty(questState.availableTasks);
+    questState.balanceHistory.push({
+      timestamp: Date.now(),
+      desc: `Штраф: сгорело ${burned} лёгких заданий`,
+      change: 0,
+      balance: questState.currentBalance
+    });
 
     io.emit('state', questState);
   });
 
-  socket.on('applyPenaltyTask', (taskId, newBalance) => {
-    const idx = questState.penaltyPool.findIndex(p => p.id === taskId);
-    if (idx !== -1) questState.penaltyPool.splice(idx, 1);
-
-    const change = newBalance - questState.currentBalance;
-    questState.currentBalance = newBalance;
-    questState.balanceHistory.push({ timestamp: Date.now(), desc: 'Наказание выполнено', change, balance: questState.currentBalance });
-    questState.penaltyCount++;
-
-    if (questState.isCursedIsland) {
-      questState.mapCells[questState.level - 1] = 'skull';
-      questState.isCursedIsland = false;
-    } else {
-      if (questState.mapCells[questState.level - 1] === 'locked') {
-        questState.mapCells[questState.level - 1] = 'skull';
-      }
-    }
-
-    questState.reputation += 0.5;
-    addRandomTrophy();
-    checkRankUp();
-
-    if (!questState.isCursedIsland && questState.level < MAX_LEVEL) {
-      questState.level++;
-      questState.nextIsRaid = (questState.level % 5 === 0);
-      questState.isCursedIsland = [7, 13, 21].includes(questState.level);
-    }
-
-    questState.penaltyMode = false;
-    questState.currentMultiplier = 1;
-
-    io.emit('state', questState);
-  });
-
-  socket.on('raidComplete', (success) => {
-    if (success) {
-      const bonus = 5000;
-      questState.currentBalance += bonus;
-      questState.balanceHistory.push({ timestamp: Date.now(), desc: 'Рейд успешен', change: bonus, balance: questState.currentBalance });
-      questState.successCount++;
-      questState.reputation += 2;
-      addRandomTrophy();
-      questState.mapCells[questState.level - 1] = 'open';
-    } else {
-      questState.currentBalance -= 1000;
-      questState.balanceHistory.push({ timestamp: Date.now(), desc: 'Рейд провален', change: -1000, balance: questState.currentBalance });
-      questState.failCount++;
-      questState.reputation += 0.5;
-      questState.mapCells[questState.level - 1] = 'skull';
-    }
-    checkRankUp();
-    if (questState.level < MAX_LEVEL) {
-      questState.level++;
-      questState.nextIsRaid = (questState.level % 5 === 0);
-      questState.isCursedIsland = [7, 13, 21].includes(questState.level);
-    }
-    io.emit('state', questState);
-  });
-
-  socket.on('useTrophy', (trophyType) => {
-    const trophyIndex = questState.inventory.findIndex(t => t.type === trophyType);
-    if (trophyIndex === -1) return;
-    const trophy = questState.inventory[trophyIndex];
-    if (trophy.count <= 0) return;
-
-    const bonus = trophyTypes.find(t => t.name === trophyType).bonus;
-    switch (bonus) {
-      case 'multiplier+1':
-        questState.currentMultiplier = (questState.currentMultiplier || 1) + 1;
-        break;
-      case 'skipPenalty':
-        questState.skipNextPenalty = true;
-        break;
-      case 'reroll':
-        questState.needReroll = true;
-        break;
-      case 'peek':
-        // просто уведомление, обрабатывается на клиенте
-        break;
-      case 'extraChat':
-        // тоже уведомление
-        break;
-    }
-    trophy.count--;
-    if (trophy.count === 0) {
-      questState.inventory.splice(trophyIndex, 1);
-    }
-    io.emit('state', questState);
-  });
-
-  socket.on('choosePath', (choice) => {
-    questState.pathChoice = choice;
-    questState.pathLevel = questState.level;
+  socket.on('prizeDraw', (data) => {
+    const { amount, winners } = data;
+    const total = amount * winners.length;
+    questState.currentBalance -= total;
+    questState.balanceHistory.push({
+      timestamp: Date.now(),
+      desc: `Розыгрыш: ${amount}₽ x ${winners.length} (${winners.join(', ')})`,
+      change: -total,
+      balance: questState.currentBalance
+    });
     io.emit('state', questState);
   });
 
   socket.on('addBalance', (description, amount) => {
     questState.currentBalance += amount;
-    questState.balanceHistory.push({ timestamp: Date.now(), desc: description, change: amount, balance: questState.currentBalance });
+    questState.balanceHistory.push({
+      timestamp: Date.now(),
+      desc: description,
+      change: amount,
+      balance: questState.currentBalance
+    });
     io.emit('state', questState);
   });
 
-  socket.on('setBalance', (newBalance) => {
-    if (!isNaN(newBalance) && newBalance >= 0) {
-      questState.currentBalance = newBalance;
-      questState.balanceHistory.push({ timestamp: Date.now(), desc: 'Дублоны изменены вручную', change: 0, balance: newBalance });
-      io.emit('state', questState);
-    }
-  });
-
   socket.on('reset', (newBalance) => {
-    const start = (newBalance !== undefined && !isNaN(newBalance)) ? newBalance : DEFAULT_BALANCE;
-    const initial = createInitialPool();
+    const startBalance = (newBalance !== undefined && !isNaN(newBalance)) ? newBalance : DEFAULT_BALANCE;
     questState = {
       level: 1,
-      availableTasks: initial.tasks,
-      penaltyPool: initial.penalties,
-      currentBalance: start,
-      balanceHistory: [{ timestamp: Date.now(), desc: 'Стартовый баланс', change: start, balance: start }],
-      successCount: 0,
-      failCount: 0,
-      penaltyCount: 0,
-      mapCells: Array(MAX_LEVEL).fill('locked'),
-      rank: 0,
-      reputation: 0,
-      inventory: [],
-      pathChoice: null,
-      pathLevel: 0,
-      currentMultiplier: 1,
-      nextIsRaid: false,
-      isCursedIsland: false,
-      penaltyMode: false,
-      skipNextPenalty: false,
-      needReroll: false
+      availableTasks: createInitialPool(),
+      currentCards: [],
+      selectedTaskId: null,
+      currentBalance: startBalance,
+      balanceHistory: [{
+        timestamp: Date.now(),
+        desc: 'Стартовый баланс',
+        change: startBalance,
+        balance: startBalance
+      }],
+      penaltiesLog: []
     };
     io.emit('state', questState);
   });
 
+  // Загрузка сохранённой игры (клиент присылает состояние)
   socket.on('loadSavedGame', (savedState) => {
-    questState = savedState;
+    questState = {
+      level: savedState.level || 1,
+      availableTasks: savedState.availableTasks || createInitialPool(),
+      currentCards: savedState.currentCards || [],
+      selectedTaskId: savedState.selectedTaskId || null,
+      currentBalance: savedState.currentBalance,
+      balanceHistory: savedState.balanceHistory,
+      penaltiesLog: savedState.penaltiesLog || []
+    };
     io.emit('state', questState);
+    console.log('Загружено сохранение с уровня', questState.level);
   });
 
-  socket.on('disconnect', () => console.log('Пират отплыл'));
+  socket.on('disconnect', () => console.log('Клиент отключён'));
 });
 
-function addRandomTrophy() {
-  const type = trophyTypes[Math.floor(Math.random() * trophyTypes.length)].name;
-  const existing = questState.inventory.find(t => t.type === type);
-  if (existing) {
-    existing.count++;
-  } else {
-    questState.inventory.push({ type, count: 1 });
-  }
-}
-
-function checkRankUp() {
-  const needed = (questState.rank + 1) * REPUTATION_PER_RANK;
-  while (questState.reputation >= needed && questState.rank < RANKS.length - 1) {
-    questState.rank++;
-    questState.reputation -= needed;
-  }
-}
-
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Пиратский сервер на порту ${PORT}`));
+server.listen(PORT, () => {
+  console.log(`Сервер запущен на http://localhost:${PORT}`);
+});
