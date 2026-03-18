@@ -8,7 +8,7 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const MAX_LEVEL = 30;
-const DEFAULT_BALANCE = 1500000; // изменено
+const DEFAULT_BALANCE = 1500000;
 const RANKS = ['Юнга', 'Матрос', 'Боцман', 'Капитан', 'Адмирал'];
 const REPUTATION_PER_RANK = 10;
 
