@@ -273,12 +273,15 @@ function applyPenalty(pool) {
 let questState = {
   level: 1,
   availableTasks: createInitialPool(),
-  penaltyPool: [],           // пул штрафных заданий
+  penaltyPool: [],
   currentCards: [],
   selectedTaskId: null,
   currentBalance: DEFAULT_BALANCE,
   balanceHistory: [],
-  penaltiesLog: []
+  penaltiesLog: [],
+  rank: 0,
+  reputation: 0,
+  inventory: []
 };
 
 questState.balanceHistory.push({
@@ -296,7 +299,7 @@ io.on('connection', (socket) => {
   socket.emit('state', questState);
 
   // Успешное выполнение обычного задания
-  socket.on('completeTask', (taskId, change) => {
+  socket.on('completeTask', (taskId, change, multiplier) => {
     const taskIndex = questState.availableTasks.findIndex(t => t.id === taskId);
     if (taskIndex !== -1) {
       questState.availableTasks.splice(taskIndex, 1);
@@ -305,10 +308,22 @@ io.on('connection', (socket) => {
     questState.currentBalance += change;
     questState.balanceHistory.push({
       timestamp: Date.now(),
-      desc: `Задание выполнено`,
+      desc: `Задание выполнено (x${multiplier})`,
       change: change,
       balance: questState.currentBalance
     });
+
+    // Повышение репутации и ранга
+    questState.reputation += 1;
+    if (questState.reputation >= (questState.rank + 1) * 10) {
+      questState.rank = Math.min(questState.rank + 1, 4);
+    }
+
+    // Шанс на трофей 20%
+    if (Math.random() < 0.2) {
+      const trophy = { type: 'Сундук', count: 1 }; // Простой трофей
+      questState.inventory.push(trophy);
+    }
 
     // Увеличиваем уровень
     questState.level = Math.min(questState.level + 1, MAX_LEVEL);
@@ -365,12 +380,23 @@ io.on('connection', (socket) => {
       questState.penaltyPool.splice(taskIndex, 1);
     }
 
+    // Повышение репутации и ранга (штраф тоже даёт репутацию)
+    questState.reputation += 1;
+    if (questState.reputation >= (questState.rank + 1) * 10) {
+      questState.rank = Math.min(questState.rank + 1, 4);
+    }
+
+    // Шанс на трофей 20%
+    if (Math.random() < 0.2) {
+      const trophy = { type: 'Сундук', count: 1 };
+      questState.inventory.push(trophy);
+    }
+
     // Увеличиваем уровень
     questState.level = Math.min(questState.level + 1, MAX_LEVEL);
     io.emit('state', questState);
   });
 
-  // Остальные обработчики (prizeDraw, addBalance, reset, loadSavedGame) без изменений
   socket.on('prizeDraw', (data) => {
     const { amount, winners } = data;
     const total = amount * winners.length;
@@ -410,7 +436,10 @@ io.on('connection', (socket) => {
         change: startBalance,
         balance: startBalance
       }],
-      penaltiesLog: []
+      penaltiesLog: [],
+      rank: 0,
+      reputation: 0,
+      inventory: []
     };
     io.emit('state', questState);
   });
@@ -424,7 +453,10 @@ io.on('connection', (socket) => {
       selectedTaskId: savedState.selectedTaskId || null,
       currentBalance: savedState.currentBalance,
       balanceHistory: savedState.balanceHistory,
-      penaltiesLog: savedState.penaltiesLog || []
+      penaltiesLog: savedState.penaltiesLog || [],
+      rank: savedState.rank || 0,
+      reputation: savedState.reputation || 0,
+      inventory: savedState.inventory || []
     };
     io.emit('state', questState);
     console.log('Загружено сохранение с уровня', questState.level);
