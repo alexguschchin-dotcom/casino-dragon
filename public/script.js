@@ -21,6 +21,7 @@ let gameState = {
     inventory: [],
     pathChoice: null,
     pathLevel: 0,
+    riskMode: { active: false, untilLevel: 0 },
     currentMultiplier: 1,
     currentDivider: 1,
     nextIsRaid: false,
@@ -67,6 +68,7 @@ const pathLuckBtn = document.getElementById('path-luck');
 const mapModal = document.getElementById('map-modal');
 const fullMapGrid = document.getElementById('full-map-grid');
 const closeMapBtn = document.getElementById('close-map-modal');
+const pathIndicator = document.getElementById('path-indicator');
 
 const RANKS = ['Юнга', 'Матрос', 'Боцман', 'Капитан', 'Адмирал'];
 const REPUTATION_PER_RANK = 10;
@@ -118,7 +120,6 @@ function clearSavedGame() {
     localStorage.removeItem(SAVE_KEY);
 }
 
-// Массив рейдовых заданий
 const raidTemplates = [
     '⚔️ Рейд: чат должен написать "Йо-хо-хо" 30 раз за 2 минуты!',
     '⚔️ Рейд: чат должен написать "Пираты рулят" 20 раз за 1 минуту!',
@@ -169,12 +170,20 @@ function generateCardsForLevel() {
         return;
     }
 
+    // Фильтрация по пути риска
     let filteredTasks = gameState.availableTasks;
+    if (gameState.riskMode && gameState.riskMode.active && gameState.level <= gameState.riskMode.untilLevel) {
+        filteredTasks = filteredTasks.filter(t => t.difficulty > 1);
+        if (filteredTasks.length < 2) {
+            filteredTasks = gameState.availableTasks;
+        }
+    }
+
     if (gameState.level % 10 === 0) {
-        filteredTasks = gameState.availableTasks.filter(t => t.difficulty >= 4);
+        filteredTasks = filteredTasks.filter(t => t.difficulty >= 4);
         message = `🔥 Остров ${gameState.level}: Штормовые воды (классы B, A, S)`;
     } else if (gameState.level % 5 === 0) {
-        filteredTasks = gameState.availableTasks.filter(t => t.difficulty === 3 || t.difficulty === 4);
+        filteredTasks = filteredTasks.filter(t => t.difficulty === 3 || t.difficulty === 4);
         message = `⚓ Остров ${gameState.level}: Опасные рифы (классы C и B)`;
     }
 
@@ -187,11 +196,9 @@ function generateCardsForLevel() {
     const shuffledTasks = [...filteredTasks].sort(() => 0.5 - Math.random());
     const tasks = shuffledTasks.slice(0, 2).map(task => {
         let multiplier = 1;
-        // 20% шанс на множитель 2 или 3
         if (Math.random() < 0.2) {
             multiplier = Math.random() < 0.5 ? 2 : 3;
         }
-        // Влияние пути
         if (gameState.pathChoice === 'risk') {
             if (multiplier > 1) {
                 multiplier = Math.min(multiplier + 1, 4);
@@ -205,7 +212,6 @@ function generateCardsForLevel() {
         }
         multiplier += Math.floor(gameState.rank / 2);
 
-        // Применяем делитель от трофея
         if (gameState.currentDivider > 1) {
             multiplier = Math.max(1, Math.floor(multiplier / gameState.currentDivider));
         }
@@ -213,7 +219,6 @@ function generateCardsForLevel() {
         return { ...task, selected: false, completed: false, multiplier };
     });
 
-    // Показываем тост, если активен делитель
     if (gameState.currentDivider > 1) {
         showToast(`⚖️ Делитель x1/${gameState.currentDivider} активен!`);
     }
@@ -263,7 +268,11 @@ socket.on('state', (serverState) => {
     } else {
         Object.assign(gameState, serverState);
 
-        if ((gameState.level === 10 || gameState.level === 20 || gameState.level === 30) && !gameState.pathChoice && gameState.pathLevel !== gameState.level) {
+        // Показываем модалку выбора пути, если уровень 10/20/30 и ещё не выбран для этого периода
+        if ((gameState.level === 10 || gameState.level === 20 || gameState.level === 30) &&
+            !gameState.pathChoice &&
+            gameState.pathLevel !== gameState.level &&
+            (!gameState.riskMode || !gameState.riskMode.active || gameState.level > gameState.riskMode.untilLevel)) {
             pathModal.classList.remove('hidden');
         }
 
@@ -313,6 +322,14 @@ function updateUI() {
     const nextRep = (gameState.rank + 1) * REPUTATION_PER_RANK;
     rankLevelSpan.textContent = gameState.reputation;
     rankNextSpan.textContent = nextRep;
+
+    if (pathIndicator) {
+        if (gameState.riskMode && gameState.riskMode.active && gameState.level <= gameState.riskMode.untilLevel) {
+            pathIndicator.textContent = `⚡ Путь риска (до ${gameState.riskMode.untilLevel} уровня)`;
+        } else {
+            pathIndicator.textContent = '';
+        }
+    }
 }
 
 function renderMap() {
@@ -547,7 +564,6 @@ function completeTask(success) {
     gameState.currentTaskId = null;
 
     taskModal.classList.add('hidden');
-    // updateUI будет после получения state от сервера
 }
 
 function addHistoryEntry(text) {
@@ -603,6 +619,7 @@ function resetGame() {
         inventory: [],
         pathChoice: null,
         pathLevel: 0,
+        riskMode: { active: false, untilLevel: 0 },
         currentMultiplier: 1,
         currentDivider: 1,
         nextIsRaid: false,

@@ -399,6 +399,20 @@ body::after {
     border: 1px solid #ffd700;
 }
 
+/* Бейдж делителя */
+.divider-badge {
+    display: inline-block;
+    background: #4682b4;
+    color: white;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    margin-left: 5px;
+    vertical-align: middle;
+    border: 1px solid #ffd700;
+}
+
 .multiplier-2 .multiplier-badge { background: #ffd700; color: #000; }
 .multiplier-3 .multiplier-badge { background: #ff8c00; color: #000; }
 .multiplier-4 .multiplier-badge,
@@ -739,45 +753,9 @@ body::after {
     margin-top: 15px;
     padding: 10px 30px;
 }
-/* Добавить в конец файла style.css */
-
-.multiplier-badge {
-    display: inline-block;
-    background: #b8860b;
-    color: #000;
-    font-weight: bold;
-    padding: 2px 6px;
-    border-radius: 20px;
-    font-size: 0.7rem;
-    margin-left: 5px;
-    vertical-align: middle;
-    border: 1px solid #ffd700;
-}
-
-.multiplier-2 .multiplier-badge { background: #ffd700; color: #000; }
-.multiplier-3 .multiplier-badge { background: #ff8c00; color: #000; }
-.multiplier-4 .multiplier-badge,
-.multiplier-5 .multiplier-badge,
-.multiplier-6 .multiplier-badge { background: #dc143c; color: #fff; }
-
-/* Модалка карты */
-.map-modal-content {
-    max-width: 600px;
-}
-
-.large-map {
-    grid-template-columns: repeat(6, 1fr);
-    gap: 8px;
-    margin: 20px 0;
-    font-size: 1.2rem;
-}
-
-.large-map .map-cell {
-    padding: 10px 5px;
-    font-size: 1.2rem;
-}
-
-#close-map-modal {
-    margin-top: 15px;
-    padding: 10px 30px;
+.path-indicator {
+    font-size: 0.9rem;
+    margin-top: 5px;
+    color: #ffd700;
+    text-align: center;
 }
