@@ -4,7 +4,7 @@ const SAVE_KEY = 'lab_save';
 
 let gameState = {
     level: 1,
-    currentBalance: 1500000, // изменено
+    currentBalance: 1500000,
     balanceHistory: [],
     availableTasks: [],
     penaltyPool: [],
@@ -257,7 +257,7 @@ socket.on('connect', () => {
             clearSavedGame();
         }
     }
-    socket.emit('reset', 1500000); // изменено
+    socket.emit('reset', 1500000);
 });
 
 socket.on('state', (serverState) => {
@@ -268,10 +268,9 @@ socket.on('state', (serverState) => {
     } else {
         Object.assign(gameState, serverState);
 
-        if ((gameState.level === 10 || gameState.level === 20 || gameState.level === 30) &&
-            !gameState.pathChoice &&
-            gameState.pathLevel !== gameState.level &&
-            (!gameState.riskMode || !gameState.riskMode.active || gameState.level > gameState.riskMode.untilLevel)) {
+        // Показываем модалку выбора пути на уровнях 10 и 20 (на 30 не показываем)
+        if ((gameState.level === 10 || gameState.level === 20) &&
+            gameState.pathLevel !== gameState.level) {
             pathModal.classList.remove('hidden');
         }
 
@@ -603,7 +602,7 @@ function endGame() {
 function resetGame() {
     gameState = {
         level: 1,
-        currentBalance: 1500000, // изменено
+        currentBalance: 1500000,
         balanceHistory: [],
         availableTasks: [],
         penaltyPool: [],
@@ -629,7 +628,7 @@ function resetGame() {
         needReroll: false
     };
     level30CardsGenerated = false;
-    socket.emit('reset', 1500000); // изменено
+    socket.emit('reset', 1500000);
     clearSavedGame();
     updateUI();
     updatePoolStats();
