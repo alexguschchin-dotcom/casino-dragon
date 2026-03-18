@@ -123,11 +123,11 @@ function clearSavedGame() {
 }
 
 const raidTemplates = [
-    '⚔️ Рейд: чат должен написать "Йо-хо-хо" 30 раз, награда 5-о получают по 1000!',
-    '⚔️ Рейд: чат должен написать "Пираты рулят" первые 3 получают по 2000!',
-    '⚔️ Рейд: чат должен отправить 50 смайликов черепа, 5-о случайно получают по 3000!',
-    '⚔️ Рейд: чат должен написать комплименты капитану, те что понравились больше других капитану получают по 5000 (2 человека)!',
-    '⚔️ Рейд: чат должен придумать кличку для капитана, создатель лучшей клички получает 10000!'
+    '⚔️ Рейд: чат должен написать "Йо-хо-хо" 30 раз за 2 минуты!',
+    '⚔️ Рейд: чат должен написать "Пираты рулят" 20 раз за 1 минуту!',
+    '⚔️ Рейд: чат должен отправить 50 смайликов за 3 минуты!',
+    '⚔️ Рейд: чат должен написать 10 комплиментов капитану!',
+    '⚔️ Рейд: чат должен придумать название для корабля (голосование в чате)!'
 ];
 
 function getRandomRaidDescription() {
@@ -206,25 +206,45 @@ function generateCardsForLevel() {
     const shuffledTasks = [...filteredTasks].sort(() => 0.5 - Math.random());
     const tasks = shuffledTasks.slice(0, 2).map(task => {
         let multiplier = 1;
-        if (Math.random() < 0.2) {
-            multiplier = Math.random() < 0.5 ? 2 : 3;
-        }
+
+        // Устанавливаем базовые вероятности для пути риска (уменьшенные)
+        let baseChance = 0.2;
+        let extraChance = 0.3;
+
         if (gameState.pathChoice === 'risk') {
-            if (multiplier > 1) {
-                multiplier = Math.min(multiplier + 1, 4);
-            } else if (Math.random() < 0.3) {
-                multiplier = Math.random() < 0.5 ? 2 : 3;
+            baseChance = 0.1;   // базовый шанс множителя 10%
+            extraChance = 0.15;  // дополнительный шанс 15%
+        }
+
+        // Проверяем базовый шанс – теперь даёт только x2
+        if (Math.random() < baseChance) {
+            multiplier = 2;
+        }
+
+        // Применяем эффекты пути
+        if (gameState.pathChoice === 'risk') {
+            // На пути риска не увеличиваем множитель, только добавляем extraChance
+            if (multiplier === 1 && Math.random() < extraChance) {
+                multiplier = 2;
             }
         } else if (gameState.pathChoice === 'luck') {
+            // На лёгком пути уменьшаем шанс множителя
             if (multiplier > 1 && Math.random() < 0.5) {
                 multiplier = 1;
             }
         }
-        multiplier += Math.floor(gameState.rank / 2);
 
+        // Добавляем влияние ранга (но ограничиваем до 2)
+        const rankBonus = Math.floor(gameState.rank / 2);
+        multiplier = Math.min(2, multiplier + rankBonus);
+
+        // Применяем делитель от трофея
         if (gameState.currentDivider > 1) {
             multiplier = Math.max(1, Math.floor(multiplier / gameState.currentDivider));
         }
+
+        // Финальное ограничение: множитель не может быть больше 2
+        if (multiplier > 2) multiplier = 2;
 
         return { ...task, selected: false, completed: false, multiplier };
     });
