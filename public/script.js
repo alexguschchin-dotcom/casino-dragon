@@ -2,6 +2,18 @@ const socket = io();
 
 const SAVE_KEY = 'lab_save';
 
+// Функция для получения строки из звёзд по сложности
+function getStars(diff) {
+    if (diff === 0) return '💀'; // штраф
+    return '⭐'.repeat(diff);
+}
+
+function getClassColor(diff) {
+    const colors = ['f', 'd', 'c', 'b', 'a', 's'];
+    if (diff === 0) return 'penalty';
+    return colors[diff-1] || 'f';
+}
+
 let gameState = {
     level: 1,
     currentBalance: 1500000,
@@ -77,16 +89,6 @@ let isAnimating = false;
 let pendingState = null;
 let toastTimeout = null;
 
-function getReagentClass(diff) {
-    const classes = ['F', 'D', 'C', 'B', 'A', 'S'];
-    return classes[diff-1] || '?';
-}
-
-function getClassColor(diff) {
-    const colors = ['f', 'd', 'c', 'b', 'a', 's'];
-    return colors[diff-1] || 'f';
-}
-
 function showToast(message) {
     if (toastTimeout) clearTimeout(toastTimeout);
     toast.textContent = message;
@@ -121,11 +123,11 @@ function clearSavedGame() {
 }
 
 const raidTemplates = [
-    '⚔️ Рейд: чат должен написать "Йо-хо-хо" 30 раз за 2 минуты!',
-    '⚔️ Рейд: чат должен написать "Пираты рулят" 20 раз за 1 минуту!',
-    '⚔️ Рейд: чат должен отправить 50 смайликов за 3 минуты!',
-    '⚔️ Рейд: чат должен написать 10 комплиментов капитану!',
-    '⚔️ Рейд: чат должен придумать название для корабля (голосование в чате)!'
+    '⚔️ Рейд: чат должен написать "Йо-хо-хо" 30 раз, награда 5-о получают по 1000!',
+    '⚔️ Рейд: чат должен написать "Пираты рулят" первые 3 получают по 2000!',
+    '⚔️ Рейд: чат должен отправить 50 смайликов черепа, 5-о случайно получают по 3000!',
+    '⚔️ Рейд: чат должен написать комплименты капитану, те что понравились больше других капитану получают по 5000 (2 человека)!',
+    '⚔️ Рейд: чат должен придумать кличку для капитана, создатель лучшей клички получает 10000!'
 ];
 
 function getRandomRaidDescription() {
@@ -173,18 +175,26 @@ function generateCardsForLevel() {
     // Фильтрация по пути риска
     let filteredTasks = gameState.availableTasks;
     if (gameState.riskMode && gameState.riskMode.active && gameState.level <= gameState.riskMode.untilLevel) {
-        filteredTasks = filteredTasks.filter(t => t.difficulty > 1);
+        // В зависимости от untilLevel определяем, какие сложности исключать
+        if (gameState.riskMode.untilLevel <= 19) {
+            // Путь риска на 10 уровне: исключаем задания с difficulty 1
+            filteredTasks = filteredTasks.filter(t => t.difficulty > 1);
+        } else if (gameState.riskMode.untilLevel <= 29) {
+            // Путь риска на 20 уровне: исключаем задания с difficulty 1 и 2
+            filteredTasks = filteredTasks.filter(t => t.difficulty > 2);
+        }
         if (filteredTasks.length < 2) {
+            // Если после фильтрации осталось меньше двух заданий, берём из общего пула (чтобы не сломать игру)
             filteredTasks = gameState.availableTasks;
         }
     }
 
     if (gameState.level % 10 === 0) {
         filteredTasks = filteredTasks.filter(t => t.difficulty >= 4);
-        message = `🔥 Остров ${gameState.level}: Штормовые воды (классы B, A, S)`;
+        message = `🔥 Остров ${gameState.level}: Штормовые воды (4⭐, 5⭐, 6⭐)`;
     } else if (gameState.level % 5 === 0) {
         filteredTasks = filteredTasks.filter(t => t.difficulty === 3 || t.difficulty === 4);
-        message = `⚓ Остров ${gameState.level}: Опасные рифы (классы C и B)`;
+        message = `⚓ Остров ${gameState.level}: Опасные рифы (3⭐ и 4⭐)`;
     }
 
     if (message) showToast(message);
@@ -360,21 +370,23 @@ function renderInventory() {
 }
 
 function updatePoolStats() {
-    const counts = { F:0, D:0, C:0, B:0, A:0, S:0 };
+    const counts = { 1:0, 2:0, 3:0, 4:0, 5:0, 6:0 };
     gameState.availableTasks.forEach(task => {
-        const cls = getReagentClass(task.difficulty);
-        counts[cls]++;
+        const diff = task.difficulty;
+        counts[diff]++;
     });
-    let html = Object.entries(counts).map(([cls, num]) => `
-        <div class="stat-item">
-            <span class="reagent-class ${cls.toLowerCase()}">${cls}</span>
-            <span>${num}</span>
-        </div>
-    `).join('');
-
+    let html = '';
+    for (let i = 1; i <= 6; i++) {
+        html += `
+            <div class="stat-item">
+                <span class="reagent-class ${getClassColor(i)}">${getStars(i)}</span>
+                <span>${counts[i]}</span>
+            </div>
+        `;
+    }
     html += `
         <div class="stat-item">
-            <span class="reagent-class penalty">⚠️</span>
+            <span class="reagent-class penalty">💀</span>
             <span>${gameState.penaltyPool.length}</span>
         </div>
     `;
@@ -401,19 +413,19 @@ function createCardElement(task, isSelected) {
     }
     card.dataset.id = task.id;
 
-    let reagentClass, classColor;
+    let stars, classColor;
     if (task.isPenalty) {
-        reagentClass = '⚠️';
+        stars = '💀';
         classColor = 'penalty';
     } else if (task.isRaid) {
-        reagentClass = '⚔️';
+        stars = '⚔️ Рейд';
         classColor = 'raid';
     } else {
-        reagentClass = getReagentClass(task.difficulty);
+        stars = getStars(task.difficulty);
         classColor = getClassColor(task.difficulty);
     }
 
-    const reagentHTML = `<div class="reagent-class ${classColor}">${reagentClass}</div>`;
+    const reagentHTML = `<div class="reagent-class ${classColor}">${stars}</div>`;
     let taskText = task.description;
     let multiplierBadge = '';
     if (task.multiplier && task.multiplier > 1) {
