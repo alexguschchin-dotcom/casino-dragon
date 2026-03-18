@@ -1,15 +1,13 @@
 {
-  "name": "casino-stream-quest",
+  "name": "pirate-quest",
   "version": "1.0.0",
-  "description": "Интерактивная игра для стримера с заданиями казино",
+  "description": "Пиратский квест для стримера",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
-  "author": "Твое имя",
-  "license": "MIT",
   "dependencies": {
     "express": "^4.18.2",
-    "socket.io": "^4.7.1"
+    "socket.io": "^4.5.4"
   }
 }
