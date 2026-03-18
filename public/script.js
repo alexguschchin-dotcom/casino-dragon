@@ -114,6 +114,19 @@ function clearSavedGame() {
     localStorage.removeItem(SAVE_KEY);
 }
 
+// Массив рейдовых заданий
+const raidTemplates = [
+    '⚔️ Рейд: чат должен написать "Йо-хо-хо" 30 раз за 2 минуты!',
+    '⚔️ Рейд: чат должен написать "Пираты рулят" 20 раз за 1 минуту!',
+    '⚔️ Рейд: чат должен отправить 50 смайликов за 3 минуты!',
+    '⚔️ Рейд: чат должен написать 10 комплиментов капитану!',
+    '⚔️ Рейд: чат должен придумать название для корабля (голосование в чате)!'
+];
+
+function getRandomRaidDescription() {
+    return raidTemplates[Math.floor(Math.random() * raidTemplates.length)];
+}
+
 function generateCardsForLevel() {
     if (gameState.gameCompleted) return;
     if (gameState.availableTasks.length === 0 && gameState.penaltyPool.length === 0) {
@@ -128,7 +141,7 @@ function generateCardsForLevel() {
     // Если нужен реролл (от трофея)
     if (gameState.needReroll) {
         gameState.needReroll = false;
-        // просто генерируем заново для текущего уровня
+        // Просто генерируем заново
     }
 
     let message = '';
@@ -137,7 +150,13 @@ function generateCardsForLevel() {
     if (gameState.nextIsRaid) {
         message = `🔥 Остров ${gameState.level}: Рейд! Задание для всего экипажа!`;
         showToast(message);
-        gameState.currentCards = [createRaidCard()];
+        gameState.currentCards = [{
+            id: 'raid_' + Date.now() + '_' + Math.random(),
+            description: getRandomRaidDescription(),
+            isRaid: true,
+            selected: false,
+            completed: false
+        }];
         return;
     }
 
@@ -168,17 +187,15 @@ function generateCardsForLevel() {
 
     const shuffledTasks = [...filteredTasks].sort(() => 0.5 - Math.random());
     const tasks = shuffledTasks.slice(0, 2).map(task => {
-        // Добавляем множитель в зависимости от выбранного пути и ранга
         let multiplier = 1;
         if (gameState.pathChoice === 'risk') {
-            multiplier = Math.random() < 0.5 ? 2 : 3; // чаще высокие
+            multiplier = Math.random() < 0.5 ? 2 : 3;
         } else if (gameState.pathChoice === 'luck') {
-            multiplier = Math.random() < 0.7 ? 1 : 2; // чаще низкие
+            multiplier = Math.random() < 0.7 ? 1 : 2;
         } else {
-            multiplier = Math.floor(Math.random() * 3) + 1; // 1-3 равновероятно
+            multiplier = Math.floor(Math.random() * 3) + 1;
         }
-        // Ранг может увеличивать множитель
-        multiplier += Math.floor(gameState.rank / 2); // например, +1 за каждые 2 ранга
+        multiplier += Math.floor(gameState.rank / 2);
         return { ...task, selected: false, completed: false, multiplier };
     });
 
@@ -191,16 +208,6 @@ function generateCardsForLevel() {
     let cards = [...tasks];
     if (penaltyCard) cards.push(penaltyCard);
     gameState.currentCards = cards.sort(() => 0.5 - Math.random());
-}
-
-function createRaidCard() {
-    return {
-        id: 'raid_' + Date.now() + '_' + Math.random(),
-        description: '⚔️ Рейд: чат должен написать "Йо-хо-хо" 30 раз за 2 минуты!',
-        isRaid: true,
-        selected: false,
-        completed: false
-    };
 }
 
 function generatePenaltyCards(count) {
@@ -255,6 +262,7 @@ socket.on('state', (serverState) => {
             }
         }
 
+        // Если штрафной режим и нет карточек, генерируем штрафную
         if (gameState.penaltyMode && gameState.currentCards.length === 0) {
             generatePenaltyCard();
         }
@@ -267,16 +275,26 @@ socket.on('state', (serverState) => {
     }
 });
 
+function generatePenaltyCard() {
+    if (gameState.penaltyPool.length === 0) {
+        gameState.penaltyMode = false;
+        generateCardsForLevel();
+        return;
+    }
+    const randomPenalty = gameState.penaltyPool[Math.floor(Math.random() * gameState.penaltyPool.length)];
+    const penaltyCard = { ...randomPenalty, selected: false, completed: false };
+    gameState.currentCards = [penaltyCard];
+}
+
 function updateUI() {
     levelSpan.textContent = gameState.level;
     balanceSpan.textContent = gameState.currentBalance;
     renderCards();
     renderHistory();
     resetBtn.classList.toggle('hidden', gameState.level < 30);
-    // Ранг
     rankNameSpan.textContent = RANKS[gameState.rank];
     const nextRep = (gameState.rank + 1) * REPUTATION_PER_RANK;
-    rankLevelSpan.textContent = gameState.reputation;
+    rankLevelSpan.textContent = gameState.reputation.toFixed(1);
     rankNextSpan.textContent = nextRep;
 }
 
@@ -305,6 +323,20 @@ function renderInventory() {
         btn.addEventListener('click', (e) => {
             const type = e.target.dataset.type;
             socket.emit('useTrophy', type);
+            // Показываем тост с эффектом
+            const trophy = gameState.inventory.find(t => t.type === type);
+            if (trophy) {
+                const bonus = trophyTypes.find(t => t.name === type).bonus;
+                let message = '';
+                switch (bonus) {
+                    case 'multiplier+1': message = '⚡ Множитель увеличен!'; break;
+                    case 'skipPenalty': message = '⚓ Следующий штраф будет пропущен!'; break;
+                    case 'reroll': message = '🔄 Карточки перемешаны!'; break;
+                    case 'peek': message = '🔭 Вы заглянули в будущее...'; break;
+                    case 'extraChat': message = '🦜 Попугай призывает чат!'; break;
+                }
+                showToast(message);
+            }
         });
     });
 }
@@ -489,26 +521,19 @@ function completeTask(success) {
     if (success) {
         socket.emit('completeTask', taskId, change, multiplier * gameState.currentMultiplier);
         addHistoryEntry(`✅ Вылазка удалась: ${change>0?'+'+change:change} 💰 (x${multiplier * gameState.currentMultiplier})`);
-        gameState.penaltyMode = false;
     } else {
         if (task && task.isPenalty) {
             socket.emit('applyPenaltyTask', taskId, newBalance);
             addHistoryEntry(`⚠️ Наказание отбыто: ${change>0?'+'+change:change} 💰`);
-            gameState.penaltyMode = false;
         } else {
             socket.emit('penaltyWithBalance', taskId, newBalance);
             addHistoryEntry(`❌ Вылазка провалена: ${change>0?'+'+change:change} 💰`);
-            gameState.penaltyMode = true;
         }
     }
 
     gameState.currentCards = gameState.currentCards.filter(t => t.id !== taskId);
     gameState.selectedTaskId = null;
     gameState.currentTaskId = null;
-
-    if (gameState.level >= 30 && gameState.currentCards.length === 0 && !gameState.penaltyMode) {
-        endGame();
-    }
 
     taskModal.classList.add('hidden');
     updateUI();
@@ -602,7 +627,13 @@ failBtn.addEventListener('click', () => completeTask(false));
 
 if (flaskGagBtn) {
     flaskGagBtn.addEventListener('click', () => {
-        showToast('В бутылке оказалось послание от старого пирата!');
+        // Показываем увеличенную карту сокровищ
+        const mapHtml = gameState.mapCells.map((cell, index) => {
+            return `<div class="map-cell ${cell}">${index+1}</div>`;
+        }).join('');
+        showToast(`🗺️ Карта сокровищ:\n${mapHtml}`); // Простой вариант, но лучше модальное окно
+        // Для красоты можно создать отдельное модальное окно с картой
+        // Но пока оставим тост
     });
 }
 
