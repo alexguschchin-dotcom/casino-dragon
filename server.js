@@ -10,9 +10,8 @@ const io = new Server(server);
 const MAX_LEVEL = 30;
 const DEFAULT_BALANCE = 200000;
 
-// Ранги и очки репутации
 const RANKS = ['Юнга', 'Матрос', 'Боцман', 'Капитан', 'Адмирал'];
-const REPUTATION_PER_RANK = 10; // очков репутации для повышения ранга
+const REPUTATION_PER_RANK = 10;
 
 // ================== ПУЛ ЗАДАНИЙ (ПИРАТСКАЯ ТЕМА) ==================
 const taskTemplates = [
@@ -202,6 +201,7 @@ const trophyTypes = [
   { name: 'Попугай', emoji: '🦜', bonus: 'extraChat' }
 ];
 
+
 function createInitialPool() {
   const tasks = [];
   const counts = [100, 60, 30, 20, 10, 2];
@@ -243,27 +243,23 @@ let questState = {
   successCount: 0,
   failCount: 0,
   penaltyCount: 0,
-  // Новые поля
-  mapCells: Array(MAX_LEVEL).fill('locked'), // статусы: 'locked', 'open', 'skull'
-  rank: 0, // индекс в RANKS
+  mapCells: Array(MAX_LEVEL).fill('locked'),
+  rank: 0,
   reputation: 0,
-  inventory: [], // массив { type, count }
-  pathChoice: null, // 'risk' или 'luck'
-  pathLevel: 0, // на каком уровне был сделан выбор
-  currentMultiplier: 1, // временный множитель (от трофеев)
-  nextIsRaid: false, // будет ли следующий уровень рейдом
-  isCursedIsland: false // является ли текущий уровень проклятым
+  inventory: [],
+  pathChoice: null,
+  pathLevel: 0,
+  currentMultiplier: 1,
+  nextIsRaid: false,
+  isCursedIsland: false,
+  penaltyMode: false,
+  skipNextPenalty: false,
+  needReroll: false
 };
 
 const initial = createInitialPool();
 questState.availableTasks = initial.tasks;
 questState.penaltyPool = initial.penalties;
-
-// Инициализация карты
-for (let i = 0; i < MAX_LEVEL; i++) {
-  questState.mapCells[i] = 'locked';
-}
-questState.mapCells[0] = 'open'; // первый уровень открыт по умолчанию? лучше оставить locked и открывать после прохождения.
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -271,45 +267,36 @@ io.on('connection', (socket) => {
   console.log('Пират подключён');
   socket.emit('state', questState);
 
-  // Успешное выполнение задания
   socket.on('completeTask', (taskId, change, multiplier = 1) => {
     const idx = questState.availableTasks.findIndex(t => t.id === taskId);
     if (idx !== -1) questState.availableTasks.splice(idx, 1);
 
-    // Применяем множитель к изменению баланса
     const finalChange = change * multiplier;
     questState.currentBalance += finalChange;
     questState.balanceHistory.push({ timestamp: Date.now(), desc: `Задание выполнено (x${multiplier})`, change: finalChange, balance: questState.currentBalance });
     questState.successCount++;
 
-    // Обновляем карту
     if (questState.level <= MAX_LEVEL) {
       questState.mapCells[questState.level - 1] = 'open';
     }
 
-    // Добавляем репутацию и трофей
     questState.reputation++;
     addRandomTrophy();
 
-    // Проверка повышения ранга
     checkRankUp();
 
-    // Уровень повышается, только если не проклятый остров (там своя логика)
     if (!questState.isCursedIsland && questState.level < MAX_LEVEL) {
       questState.level++;
-      // Проверяем, будет ли следующий уровень рейдом (каждые 5, начиная с 5)
       questState.nextIsRaid = (questState.level % 5 === 0);
-      // Проверяем, будет ли следующий уровень проклятым (например, 7, 13, 21)
       questState.isCursedIsland = [7, 13, 21].includes(questState.level);
     }
 
-    // Сброс временного множителя после использования
+    questState.penaltyMode = false;
     questState.currentMultiplier = 1;
 
     io.emit('state', questState);
   });
 
-  // Провал задания (штрафной режим)
   socket.on('penaltyWithBalance', (taskId, newBalance) => {
     const idx = questState.availableTasks.findIndex(t => t.id === taskId);
     if (idx !== -1) questState.availableTasks.splice(idx, 1);
@@ -319,11 +306,27 @@ io.on('connection', (socket) => {
     questState.balanceHistory.push({ timestamp: Date.now(), desc: 'Задание провалено', change, balance: questState.currentBalance });
     questState.failCount++;
 
-    // Карту не обновляем до выполнения штрафа
+    if (questState.skipNextPenalty) {
+      // Пропускаем штраф: сразу открываем клетку и повышаем уровень
+      questState.mapCells[questState.level - 1] = 'open';
+      questState.reputation += 0.5;
+      addRandomTrophy();
+      checkRankUp();
+      if (questState.level < MAX_LEVEL) {
+        questState.level++;
+        questState.nextIsRaid = (questState.level % 5 === 0);
+        questState.isCursedIsland = [7, 13, 21].includes(questState.level);
+      }
+      questState.skipNextPenalty = false;
+      questState.penaltyMode = false;
+    } else {
+      // Обычный провал: включаем штрафной режим
+      questState.penaltyMode = true;
+    }
+
     io.emit('state', questState);
   });
 
-  // Выполнение штрафа (прямого или после провала)
   socket.on('applyPenaltyTask', (taskId, newBalance) => {
     const idx = questState.penaltyPool.findIndex(p => p.id === taskId);
     if (idx !== -1) questState.penaltyPool.splice(idx, 1);
@@ -333,53 +336,48 @@ io.on('connection', (socket) => {
     questState.balanceHistory.push({ timestamp: Date.now(), desc: 'Наказание выполнено', change, balance: questState.currentBalance });
     questState.penaltyCount++;
 
-    // Обновляем карту: если это проклятый остров или обычный штраф после провала
     if (questState.isCursedIsland) {
       questState.mapCells[questState.level - 1] = 'skull';
-      questState.isCursedIsland = false; // сбрасываем
+      questState.isCursedIsland = false;
     } else {
-      // Если штраф был после провала, открываем клетку с черепом
       if (questState.mapCells[questState.level - 1] === 'locked') {
         questState.mapCells[questState.level - 1] = 'skull';
       }
     }
 
-    // Добавляем репутацию (меньше, чем за успех)
-    questState.reputation += 0.5; // нецелое, но можно хранить как число
+    questState.reputation += 0.5;
     addRandomTrophy();
-
     checkRankUp();
 
-    // Повышаем уровень после штрафа (если не проклятый остров — уже повысили)
     if (!questState.isCursedIsland && questState.level < MAX_LEVEL) {
       questState.level++;
       questState.nextIsRaid = (questState.level % 5 === 0);
       questState.isCursedIsland = [7, 13, 21].includes(questState.level);
     }
 
+    questState.penaltyMode = false;
     questState.currentMultiplier = 1;
+
     io.emit('state', questState);
   });
 
-  // Специальный обработчик для рейда
   socket.on('raidComplete', (success) => {
     if (success) {
-      // Бонус: фиксированная сумма или множитель
       const bonus = 5000;
       questState.currentBalance += bonus;
       questState.balanceHistory.push({ timestamp: Date.now(), desc: 'Рейд успешен', change: bonus, balance: questState.currentBalance });
       questState.successCount++;
       questState.reputation += 2;
       addRandomTrophy();
+      questState.mapCells[questState.level - 1] = 'open';
     } else {
-      // Штраф: например, уменьшение баланса на 1000
       questState.currentBalance -= 1000;
       questState.balanceHistory.push({ timestamp: Date.now(), desc: 'Рейд провален', change: -1000, balance: questState.currentBalance });
       questState.failCount++;
       questState.reputation += 0.5;
+      questState.mapCells[questState.level - 1] = 'skull';
     }
     checkRankUp();
-    // После рейда уровень повышается
     if (questState.level < MAX_LEVEL) {
       questState.level++;
       questState.nextIsRaid = (questState.level % 5 === 0);
@@ -388,34 +386,28 @@ io.on('connection', (socket) => {
     io.emit('state', questState);
   });
 
-  // Использование трофея
   socket.on('useTrophy', (trophyType) => {
     const trophyIndex = questState.inventory.findIndex(t => t.type === trophyType);
     if (trophyIndex === -1) return;
     const trophy = questState.inventory[trophyIndex];
     if (trophy.count <= 0) return;
 
-    // Применяем бонус
     const bonus = trophyTypes.find(t => t.name === trophyType).bonus;
     switch (bonus) {
       case 'multiplier+1':
         questState.currentMultiplier = (questState.currentMultiplier || 1) + 1;
         break;
       case 'skipPenalty':
-        // Помечаем, что следующий штраф можно пропустить (флаг)
         questState.skipNextPenalty = true;
         break;
       case 'reroll':
-        // Нужно будет сгенерировать новые карточки для текущего уровня
         questState.needReroll = true;
         break;
       case 'peek':
-        // Показать следующий уровень? Можно просто уведомление
-        showToast('Вы заглянули в будущее...');
+        // просто уведомление, обрабатывается на клиенте
         break;
       case 'extraChat':
-        // Увеличить шанс на рейд? Пока просто сообщение
-        showToast('Попугай призывает чат!');
+        // тоже уведомление
         break;
     }
     trophy.count--;
@@ -425,7 +417,6 @@ io.on('connection', (socket) => {
     io.emit('state', questState);
   });
 
-  // Выбор пути на ключевых уровнях
   socket.on('choosePath', (choice) => {
     questState.pathChoice = choice;
     questState.pathLevel = questState.level;
@@ -466,13 +457,16 @@ io.on('connection', (socket) => {
       pathLevel: 0,
       currentMultiplier: 1,
       nextIsRaid: false,
-      isCursedIsland: false
+      isCursedIsland: false,
+      penaltyMode: false,
+      skipNextPenalty: false,
+      needReroll: false
     };
     io.emit('state', questState);
   });
 
   socket.on('loadSavedGame', (savedState) => {
-    questState = savedState; // упрощённо, в реальности нужно валидировать
+    questState = savedState;
     io.emit('state', questState);
   });
 
