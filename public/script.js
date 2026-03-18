@@ -22,6 +22,7 @@ let gameState = {
     pathChoice: null,
     pathLevel: 0,
     currentMultiplier: 1,
+    currentDivider: 1,
     nextIsRaid: false,
     isCursedIsland: false,
     skipNextPenalty: false,
@@ -186,7 +187,7 @@ function generateCardsForLevel() {
     const shuffledTasks = [...filteredTasks].sort(() => 0.5 - Math.random());
     const tasks = shuffledTasks.slice(0, 2).map(task => {
         let multiplier = 1;
-        // Вероятность множителя 20%
+        // 20% шанс на множитель 2 или 3
         if (Math.random() < 0.2) {
             multiplier = Math.random() < 0.5 ? 2 : 3;
         }
@@ -203,14 +204,19 @@ function generateCardsForLevel() {
             }
         }
         multiplier += Math.floor(gameState.rank / 2);
+
+        // Применяем делитель от трофея
+        if (gameState.currentDivider > 1) {
+            multiplier = Math.max(1, Math.floor(multiplier / gameState.currentDivider));
+        }
+
         return { ...task, selected: false, completed: false, multiplier };
     });
 
-    tasks.forEach(t => {
-        if (t.multiplier > 1) {
-            showToast(`⚡ Задание с множителем x${t.multiplier}!`);
-        }
-    });
+    // Показываем тост, если активен делитель
+    if (gameState.currentDivider > 1) {
+        showToast(`⚖️ Делитель x1/${gameState.currentDivider} активен!`);
+    }
 
     let penaltyCard = null;
     if (gameState.penaltyPool.length > 0) {
@@ -332,8 +338,8 @@ function renderInventory() {
     document.querySelectorAll('.use-trophy').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const type = e.target.dataset.type;
-            // TODO: реализовать использование трофеев
-            showToast('Использование трофеев пока не реализовано');
+            socket.emit('useTrophy', type);
+            showToast(`Трофей "${type}" использован!`);
         });
     });
 }
@@ -398,7 +404,11 @@ function createCardElement(task, isSelected) {
     if (task.multiplier && task.multiplier > 1) {
         multiplierBadge = `<span class="multiplier-badge">x${task.multiplier}</span>`;
     }
-    const taskTextDiv = `<div class="task-text">${taskText} ${multiplierBadge}</div>`;
+    let dividerBadge = '';
+    if (gameState.currentDivider > 1) {
+        dividerBadge = `<span class="divider-badge">/ ${gameState.currentDivider}</span>`;
+    }
+    const taskTextDiv = `<div class="task-text">${taskText} ${multiplierBadge} ${dividerBadge}</div>`;
 
     let buttons = '';
     if (!task.selected && !task.completed && !gameState.selectedTaskId) {
@@ -594,6 +604,7 @@ function resetGame() {
         pathChoice: null,
         pathLevel: 0,
         currentMultiplier: 1,
+        currentDivider: 1,
         nextIsRaid: false,
         isCursedIsland: false,
         skipNextPenalty: false,
@@ -667,7 +678,7 @@ window.addEventListener('click', (e) => {
     if (e.target.classList.contains('modal')) e.target.classList.add('hidden');
 });
 
-// Анимация пузырьков (без изменений)
+// Анимация пузырьков
 (function initBubbles() {
     const canvas = document.getElementById('bubbles-canvas');
     if (!canvas) return;
