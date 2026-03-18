@@ -63,6 +63,9 @@ const inventoryList = document.getElementById('inventory-list');
 const pathModal = document.getElementById('path-modal');
 const pathRiskBtn = document.getElementById('path-risk');
 const pathLuckBtn = document.getElementById('path-luck');
+const mapModal = document.getElementById('map-modal');
+const fullMapGrid = document.getElementById('full-map-grid');
+const closeMapBtn = document.getElementById('close-map-modal');
 
 const RANKS = ['Юнга', 'Матрос', 'Боцман', 'Капитан', 'Адмирал'];
 const REPUTATION_PER_RANK = 10;
@@ -197,6 +200,13 @@ function generateCardsForLevel() {
         }
         multiplier += Math.floor(gameState.rank / 2);
         return { ...task, selected: false, completed: false, multiplier };
+    });
+
+    // Показываем тост для заданий с множителем >1
+    tasks.forEach(t => {
+        if (t.multiplier > 1) {
+            showToast(`⚡ Задание с множителем x${t.multiplier}!`);
+        }
     });
 
     let penaltyCard = null;
@@ -378,6 +388,9 @@ function renderCards() {
 function createCardElement(task, isSelected) {
     const card = document.createElement('div');
     card.className = `card ${task.selected ? 'selected' : ''} ${task.completed ? 'completed' : ''}`;
+    if (task.multiplier > 1) {
+        card.classList.add(`multiplier-${task.multiplier}`);
+    }
     card.dataset.id = task.id;
 
     let reagentClass, classColor;
@@ -394,10 +407,11 @@ function createCardElement(task, isSelected) {
 
     const reagentHTML = `<div class="reagent-class ${classColor}">${reagentClass}</div>`;
     let taskText = task.description;
+    let multiplierBadge = '';
     if (task.multiplier && task.multiplier > 1) {
-        taskText += ` (x${task.multiplier})`;
+        multiplierBadge = `<span class="multiplier-badge">x${task.multiplier}</span>`;
     }
-    const taskTextDiv = `<div class="task-text">${taskText}</div>`;
+    const taskTextDiv = `<div class="task-text">${taskText} ${multiplierBadge}</div>`;
 
     let buttons = '';
     if (!task.selected && !task.completed && !gameState.selectedTaskId) {
@@ -625,15 +639,25 @@ resetBtn.addEventListener('click', () => {
 completeBtn.addEventListener('click', () => completeTask(true));
 failBtn.addEventListener('click', () => completeTask(false));
 
+// Странная бутылка — показываем увеличенную карту
 if (flaskGagBtn) {
     flaskGagBtn.addEventListener('click', () => {
-        // Показываем увеличенную карту сокровищ
-        const mapHtml = gameState.mapCells.map((cell, index) => {
-            return `<div class="map-cell ${cell}">${index+1}</div>`;
-        }).join('');
-        showToast(`🗺️ Карта сокровищ:\n${mapHtml}`); // Простой вариант, но лучше модальное окно
-        // Для красоты можно создать отдельное модальное окно с картой
-        // Но пока оставим тост
+        // Заполняем полноразмерную карту
+        fullMapGrid.innerHTML = '';
+        gameState.mapCells.forEach((cell, index) => {
+            const cellDiv = document.createElement('div');
+            cellDiv.className = `map-cell ${cell}`;
+            cellDiv.textContent = index + 1;
+            fullMapGrid.appendChild(cellDiv);
+        });
+        mapModal.classList.remove('hidden');
+    });
+}
+
+// Закрытие модалки карты
+if (closeMapBtn) {
+    closeMapBtn.addEventListener('click', () => {
+        mapModal.classList.add('hidden');
     });
 }
 
