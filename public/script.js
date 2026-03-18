@@ -141,15 +141,12 @@ function generateCardsForLevel() {
         level30CardsGenerated = true;
     }
 
-    // Если нужен реролл (от трофея)
     if (gameState.needReroll) {
         gameState.needReroll = false;
-        // Просто генерируем заново
     }
 
     let message = '';
 
-    // Проверка на рейд
     if (gameState.nextIsRaid) {
         message = `🔥 Остров ${gameState.level}: Рейд! Задание для всего экипажа!`;
         showToast(message);
@@ -163,7 +160,6 @@ function generateCardsForLevel() {
         return;
     }
 
-    // Проверка на проклятый остров
     if (gameState.isCursedIsland) {
         message = `💀 Остров ${gameState.level}: Проклятый! Все карточки — испытания!`;
         showToast(message);
@@ -172,7 +168,6 @@ function generateCardsForLevel() {
         return;
     }
 
-    // Обычный уровень
     let filteredTasks = gameState.availableTasks;
     if (gameState.level % 10 === 0) {
         filteredTasks = gameState.availableTasks.filter(t => t.difficulty >= 4);
@@ -191,34 +186,26 @@ function generateCardsForLevel() {
     const shuffledTasks = [...filteredTasks].sort(() => 0.5 - Math.random());
     const tasks = shuffledTasks.slice(0, 2).map(task => {
         let multiplier = 1;
-        // Базовый шанс множителя: 20% (из них 10% x2, 10% x3)
-        const rand = Math.random();
-        if (rand < 0.2) {
+        // Вероятность множителя 20%
+        if (Math.random() < 0.2) {
             multiplier = Math.random() < 0.5 ? 2 : 3;
         }
         // Влияние пути
         if (gameState.pathChoice === 'risk') {
-            // Если множитель уже >1, увеличиваем его на 1 (но не более 4)
             if (multiplier > 1) {
                 multiplier = Math.min(multiplier + 1, 4);
-            } else {
-                // Дополнительный шанс получить множитель
-                if (Math.random() < 0.3) {
-                    multiplier = Math.random() < 0.5 ? 2 : 3;
-                }
+            } else if (Math.random() < 0.3) {
+                multiplier = Math.random() < 0.5 ? 2 : 3;
             }
         } else if (gameState.pathChoice === 'luck') {
-            // Если множитель >1, с вероятностью 50% сбрасываем на 1
             if (multiplier > 1 && Math.random() < 0.5) {
                 multiplier = 1;
             }
         }
-        // Бонус от ранга
         multiplier += Math.floor(gameState.rank / 2);
         return { ...task, selected: false, completed: false, multiplier };
     });
 
-    // Показываем тост для заданий с множителем >1
     tasks.forEach(t => {
         if (t.multiplier > 1) {
             showToast(`⚡ Задание с множителем x${t.multiplier}!`);
@@ -270,7 +257,6 @@ socket.on('state', (serverState) => {
     } else {
         Object.assign(gameState, serverState);
 
-        // Проверка, нужно ли показать модалку выбора пути
         if ((gameState.level === 10 || gameState.level === 20 || gameState.level === 30) && !gameState.pathChoice && gameState.pathLevel !== gameState.level) {
             pathModal.classList.remove('hidden');
         }
@@ -288,7 +274,6 @@ socket.on('state', (serverState) => {
             }
         }
 
-        // Если штрафной режим и нет карточек, генерируем штрафную
         if (gameState.penaltyMode && gameState.currentCards.length === 0) {
             generatePenaltyCard();
         }
@@ -320,7 +305,7 @@ function updateUI() {
     resetBtn.classList.toggle('hidden', gameState.level < 30);
     rankNameSpan.textContent = RANKS[gameState.rank];
     const nextRep = (gameState.rank + 1) * REPUTATION_PER_RANK;
-    rankLevelSpan.textContent = gameState.reputation.toFixed(1);
+    rankLevelSpan.textContent = gameState.reputation;
     rankNextSpan.textContent = nextRep;
 }
 
@@ -344,25 +329,11 @@ function renderInventory() {
         div.innerHTML = `<span>${item.type} ${item.count}</span> <button class="use-trophy" data-type="${item.type}">Использовать</button>`;
         inventoryList.appendChild(div);
     });
-    // Добавляем обработчики на кнопки использования
     document.querySelectorAll('.use-trophy').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const type = e.target.dataset.type;
-            socket.emit('useTrophy', type);
-            // Показываем тост с эффектом
-            const trophy = gameState.inventory.find(t => t.type === type);
-            if (trophy) {
-                const bonus = trophyTypes.find(t => t.name === type).bonus;
-                let message = '';
-                switch (bonus) {
-                    case 'multiplier+1': message = '⚡ Множитель увеличен!'; break;
-                    case 'skipPenalty': message = '⚓ Следующий штраф будет пропущен!'; break;
-                    case 'reroll': message = '🔄 Карточки перемешаны!'; break;
-                    case 'peek': message = '🔭 Вы заглянули в будущее...'; break;
-                    case 'extraChat': message = '🦜 Попугай призывает чат!'; break;
-                }
-                showToast(message);
-            }
+            // TODO: реализовать использование трофеев
+            showToast('Использование трофеев пока не реализовано');
         });
     });
 }
@@ -566,9 +537,7 @@ function completeTask(success) {
     gameState.currentTaskId = null;
 
     taskModal.classList.add('hidden');
-    // Уровень увеличивается на сервере, но мы можем сразу обновить UI после ответа от сервера
-    // Ждём socket.on('state') который обновит gameState
-    // updateUI(); // не вызываем, чтобы дождаться синхронизации
+    // updateUI будет после получения state от сервера
 }
 
 function addHistoryEntry(text) {
@@ -657,36 +626,26 @@ resetBtn.addEventListener('click', () => {
 completeBtn.addEventListener('click', () => completeTask(true));
 failBtn.addEventListener('click', () => completeTask(false));
 
-// Странная бутылка — показываем увеличенную карту
-if (flaskGagBtn) {
-    flaskGagBtn.addEventListener('click', () => {
-        // Заполняем полноразмерную карту
-        fullMapGrid.innerHTML = '';
-        gameState.mapCells.forEach((cell, index) => {
-            const cellDiv = document.createElement('div');
-            cellDiv.className = `map-cell ${cell}`;
-            cellDiv.textContent = index + 1;
-            fullMapGrid.appendChild(cellDiv);
-        });
-        mapModal.classList.remove('hidden');
+flaskGagBtn.addEventListener('click', () => {
+    fullMapGrid.innerHTML = '';
+    gameState.mapCells.forEach((cell, index) => {
+        const cellDiv = document.createElement('div');
+        cellDiv.className = `map-cell ${cell}`;
+        cellDiv.textContent = index + 1;
+        fullMapGrid.appendChild(cellDiv);
     });
-}
+    mapModal.classList.remove('hidden');
+});
 
-// Закрытие модалки карты
-if (closeMapBtn) {
-    closeMapBtn.addEventListener('click', () => {
-        mapModal.classList.add('hidden');
-    });
-}
+closeMapBtn.addEventListener('click', () => {
+    mapModal.classList.add('hidden');
+});
 
-if (completionResetBtn) {
-    completionResetBtn.addEventListener('click', () => {
-        completionModal.classList.add('hidden');
-        resetGame();
-    });
-}
+completionResetBtn.addEventListener('click', () => {
+    completionModal.classList.add('hidden');
+    resetGame();
+});
 
-// Пути
 pathRiskBtn.addEventListener('click', () => {
     socket.emit('choosePath', 'risk');
     pathModal.classList.add('hidden');
@@ -708,7 +667,7 @@ window.addEventListener('click', (e) => {
     if (e.target.classList.contains('modal')) e.target.classList.add('hidden');
 });
 
-// Анимация морских пузырьков
+// Анимация пузырьков (без изменений)
 (function initBubbles() {
     const canvas = document.getElementById('bubbles-canvas');
     if (!canvas) return;
