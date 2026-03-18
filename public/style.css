@@ -1,3 +1,4 @@
+/* ========== ОСНОВНЫЕ СТИЛИ ========== */
 * {
     margin: 0;
     padding: 0;
@@ -41,6 +42,7 @@ body {
     z-index: -1;
 }
 
+/* Фоновые иконки */
 body::before,
 body::after,
 .game-container::before,
@@ -92,6 +94,7 @@ body::after {
     100% { transform: translate(-10px, 15px) rotate(-5deg); }
 }
 
+/* Основной контейнер */
 .game-container {
     max-width: 1300px;
     width: 100%;
@@ -297,6 +300,7 @@ body::after {
     background: #ffd700;
 }
 
+/* Карточки заданий */
 .cards-container {
     display: flex;
     justify-content: center;
@@ -385,7 +389,6 @@ body::after {
     position: relative;
 }
 
-/* Бейдж множителя */
 .multiplier-badge {
     display: inline-block;
     background: #b8860b;
@@ -399,7 +402,6 @@ body::after {
     border: 1px solid #ffd700;
 }
 
-/* Бейдж делителя */
 .divider-badge {
     display: inline-block;
     background: #4682b4;
@@ -455,6 +457,7 @@ body::after {
     100% { opacity:0; transform:scale(0) rotate(10deg); filter:brightness(2); }
 }
 
+/* Статистика пула заданий */
 .stats-panel {
     background: #1a3a4a;
     border: 2px solid #b8860b;
@@ -479,14 +482,21 @@ body::after {
 .stat-item .reagent-class {
     font-size: 1.3rem;
     font-weight: bold;
-    width: 25px;
-    text-align: center;
+    width: auto; /* убрали фиксированную ширину */
+    text-align: left;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     position: relative;
+    white-space: nowrap; /* чтобы звёзды не переносились */
 }
 
+/* Убираем псевдоэлемент с монеткой */
+.stat-item .reagent-class::after {
+    display: none;
+}
+
+/* Цвета для звёзд */
 .stat-item .reagent-class.f { color: #ffd700; }
 .stat-item .reagent-class.d { color: #ffb347; }
 .stat-item .reagent-class.c { color: #ff8c00; }
@@ -497,20 +507,6 @@ body::after {
     color: #dc143c;
     font-size: 1.3rem;
     text-shadow: 0 0 5px #ff0000;
-}
-
-.stat-item .reagent-class::after {
-    content: "💰";
-    font-size: 0.8rem;
-    margin-left: 3px;
-    opacity: 0.5;
-    transition: opacity 0.3s;
-    display: inline-block;
-    vertical-align: middle;
-}
-
-.stat-item:hover .reagent-class::after {
-    opacity: 1;
 }
 
 .history-panel {
@@ -753,6 +749,8 @@ body::after {
     margin-top: 15px;
     padding: 10px 30px;
 }
+
+/* Индикатор пути */
 .path-indicator {
     font-size: 0.9rem;
     margin-top: 5px;
