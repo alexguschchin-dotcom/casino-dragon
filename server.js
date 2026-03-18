@@ -196,8 +196,8 @@ const trophyTypes = [
   { name: 'Золотая монета', emoji: '💰', bonus: 'multiplier+1' },
   { name: 'Череп', emoji: '💀', bonus: 'skipPenalty' },
   { name: 'Компас', emoji: '🧭', bonus: 'reroll' },
-  { name: 'Подзорная труба', emoji: '🔭', bonus: 'peek' },
-  { name: 'Попугай', emoji: '🦜', bonus: 'extraChat' }
+  { name: 'Половина', emoji: '½', bonus: 'half' },
+  { name: 'Треть', emoji: '⅓', bonus: 'third' }
 ];
 function createInitialPools() {
   const tasks = [];
@@ -249,11 +249,12 @@ let questState = {
   pathChoice: null,
   pathLevel: 0,
   currentMultiplier: 1,
+  currentDivider: 1, // добавляем делитель (2 или 3 при использовании трофея)
   nextIsRaid: false,
   isCursedIsland: false,
   skipNextPenalty: false,
   needReroll: false,
-  penaltyMode: false // флаг штрафного режима
+  penaltyMode: false
 };
 
 // ================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==================
@@ -272,6 +273,13 @@ function checkRankUp(state) {
   while (state.reputation >= needed && state.rank < RANKS.length - 1) {
     state.rank++;
     state.reputation -= needed;
+  }
+}
+
+// Выдаём трофей, если уровень кратен 5 (кроме 0)
+function giveTrophyIfMilestone(state) {
+  if (state.level % 5 === 0 && state.level <= MAX_LEVEL) {
+    addRandomTrophy(state);
   }
 }
 
@@ -303,11 +311,15 @@ io.on('connection', (socket) => {
     }
 
     questState.reputation += 1;
-    if (Math.random() < 0.2) addRandomTrophy(questState);
     checkRankUp(questState);
 
-    // Выходим из штрафного режима (если вдруг)
+    // Даём трофей, если уровень кратен 5 (до повышения)
+    giveTrophyIfMilestone(questState);
+
+    // Выходим из штрафного режима
     questState.penaltyMode = false;
+    // Сбрасываем делитель после использования
+    questState.currentDivider = 1;
 
     if (questState.level < MAX_LEVEL) {
       questState.level++;
@@ -335,7 +347,6 @@ io.on('connection', (socket) => {
     });
     questState.failCount++;
 
-    // Включаем штрафной режим
     questState.penaltyMode = true;
 
     io.emit('state', questState);
@@ -368,13 +379,14 @@ io.on('connection', (socket) => {
     }
 
     questState.reputation += 1;
-    if (Math.random() < 0.2) addRandomTrophy(questState);
     checkRankUp(questState);
 
-    // Выходим из штрафного режима
-    questState.penaltyMode = false;
+    // Даём трофей, если уровень кратен 5
+    giveTrophyIfMilestone(questState);
 
-    // Повышаем уровень после выполнения штрафа
+    questState.penaltyMode = false;
+    questState.currentDivider = 1;
+
     if (questState.level < MAX_LEVEL) {
       questState.level++;
       questState.nextIsRaid = (questState.level % 5 === 0);
@@ -397,7 +409,6 @@ io.on('connection', (socket) => {
       });
       questState.successCount++;
       questState.reputation += 2;
-      if (Math.random() < 0.3) addRandomTrophy(questState);
     } else {
       const penalty = -1000;
       questState.currentBalance += penalty;
@@ -412,8 +423,11 @@ io.on('connection', (socket) => {
     }
     checkRankUp(questState);
 
-    // После рейда выходим из штрафного режима
+    // Даём трофей за рейд, если уровень кратен 5
+    giveTrophyIfMilestone(questState);
+
     questState.penaltyMode = false;
+    questState.currentDivider = 1;
 
     if (questState.level < MAX_LEVEL) {
       questState.level++;
@@ -434,6 +448,28 @@ io.on('connection', (socket) => {
     trophy.count--;
     if (trophy.count === 0) {
       questState.inventory.splice(trophyIndex, 1);
+    }
+
+    // Применяем эффект в зависимости от типа
+    const trophyDef = trophyTypes.find(t => t.name === trophyType);
+    if (trophyDef) {
+      switch (trophyDef.bonus) {
+        case 'half':
+          questState.currentDivider = 2;
+          break;
+        case 'third':
+          questState.currentDivider = 3;
+          break;
+        case 'multiplier+1':
+          // увеличиваем множитель на 1 для следующего задания? Пока просто игнорируем
+          break;
+        case 'skipPenalty':
+          questState.skipNextPenalty = true;
+          break;
+        case 'reroll':
+          questState.needReroll = true;
+          break;
+      }
     }
 
     io.emit('state', questState);
@@ -506,6 +542,7 @@ io.on('connection', (socket) => {
       pathChoice: null,
       pathLevel: 0,
       currentMultiplier: 1,
+      currentDivider: 1,
       nextIsRaid: false,
       isCursedIsland: false,
       skipNextPenalty: false,
@@ -520,14 +557,6 @@ io.on('connection', (socket) => {
     questState = savedState;
     io.emit('state', questState);
   });
-
-  socket.on('disconnect', () => console.log('Пират отплыл'));
-});
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Пиратский сервер на порту ${PORT}`);
-});
 
   socket.on('disconnect', () => console.log('Пират отплыл'));
 });
