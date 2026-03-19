@@ -122,16 +122,18 @@ function clearSavedGame() {
     localStorage.removeItem(SAVE_KEY);
 }
 
-const raidTemplates = [
-    '⚔️ Рейд: чат должен написать "Йо-хо-хо" + id Первые 5 написвших получают по 1000!',
-    '⚔️ Рейд: чат должен написать "Пираты рулят" + id первые 3 написавших получают по 2000 !',
-    '⚔️ Рейд: чат должен придумать название нашего корабля, придумавший лучшее название получает 5000!',
-    '⚔️ Рейд: чат должен написать комплименты капитану, два лучших получают по 5000!',
-    '⚔️ Рейд: чат должен придумать кличку для капитана, капитан выберет лучшую, создатель получает 10000!'
-];
+// Новые рейды по порядку уровней
+const raidTemplates = {
+    5: '⚔️ Рейд: чат должен написать "Йо-хо-хо + id" Первые 5 написавших получают по 4000!',
+    10: '⚔️ Рейд: чат должен написать "Леха, Батя и Вика - лучшая пиратская команда + id" первые 5 написавших получают по 5000 !',
+    15: '⚔️ Рейд: чат должен написать "лучший напиток пирата + id", первые 5 правильных ответов получают по 5000!',
+    20: '⚔️ Рейд: Бунт на корабле! Обычные пираты требуют золота! Напишите в чат "Часть добычи моя + id" первые 5 получают 5000!',
+    25: '⚔️ Рейд: чат должен написать "Хочу получить сокровище", первые 3 написавших получают 10000!',
+    30: '⚔️ Рейд: Перед капитаном стоит сложная задача! Рискнуть и сделать all in в любом пиратском слоте и если повезет получить настоящий клад или купить бонус в любом слоте за треть баланса!'
+};
 
-function getRandomRaidDescription() {
-    return raidTemplates[Math.floor(Math.random() * raidTemplates.length)];
+function getRaidDescription(level) {
+    return raidTemplates[level] || '⚔️ Рейд: задание для всего экипажа!';
 }
 
 function generateCardsForLevel() {
@@ -156,7 +158,7 @@ function generateCardsForLevel() {
         showToast(message);
         gameState.currentCards = [{
             id: 'raid_' + Date.now() + '_' + Math.random(),
-            description: getRandomRaidDescription(),
+            description: getRaidDescription(gameState.level), // используем фиксированное описание по уровню
             isRaid: true,
             selected: false,
             completed: false
@@ -175,16 +177,12 @@ function generateCardsForLevel() {
     // Фильтрация по пути риска
     let filteredTasks = gameState.availableTasks;
     if (gameState.riskMode && gameState.riskMode.active && gameState.level <= gameState.riskMode.untilLevel) {
-        // В зависимости от untilLevel определяем, какие сложности исключать
         if (gameState.riskMode.untilLevel <= 19) {
-            // Путь риска на 10 уровне: исключаем задания с difficulty 1
             filteredTasks = filteredTasks.filter(t => t.difficulty > 1);
         } else if (gameState.riskMode.untilLevel <= 29) {
-            // Путь риска на 20 уровне: исключаем задания с difficulty 1 и 2
             filteredTasks = filteredTasks.filter(t => t.difficulty > 2);
         }
         if (filteredTasks.length < 2) {
-            // Если после фильтрации осталось меньше двух заданий, берём из общего пула (чтобы не сломать игру)
             filteredTasks = gameState.availableTasks;
         }
     }
@@ -206,44 +204,35 @@ function generateCardsForLevel() {
     const shuffledTasks = [...filteredTasks].sort(() => 0.5 - Math.random());
     const tasks = shuffledTasks.slice(0, 2).map(task => {
         let multiplier = 1;
-
-        // Устанавливаем базовые вероятности для пути риска (уменьшенные)
         let baseChance = 0.2;
         let extraChance = 0.3;
 
         if (gameState.pathChoice === 'risk') {
-            baseChance = 0.1;   // базовый шанс множителя 10%
-            extraChance = 0.15;  // дополнительный шанс 15%
+            baseChance = 0.1;
+            extraChance = 0.15;
         }
 
-        // Проверяем базовый шанс – теперь даёт только x2
         if (Math.random() < baseChance) {
             multiplier = 2;
         }
 
-        // Применяем эффекты пути
         if (gameState.pathChoice === 'risk') {
-            // На пути риска не увеличиваем множитель, только добавляем extraChance
             if (multiplier === 1 && Math.random() < extraChance) {
                 multiplier = 2;
             }
         } else if (gameState.pathChoice === 'luck') {
-            // На лёгком пути уменьшаем шанс множителя
             if (multiplier > 1 && Math.random() < 0.5) {
                 multiplier = 1;
             }
         }
 
-        // Добавляем влияние ранга (но ограничиваем до 2)
         const rankBonus = Math.floor(gameState.rank / 2);
         multiplier = Math.min(2, multiplier + rankBonus);
 
-        // Применяем делитель от трофея
         if (gameState.currentDivider > 1) {
             multiplier = Math.max(1, Math.floor(multiplier / gameState.currentDivider));
         }
 
-        // Финальное ограничение: множитель не может быть больше 2
         if (multiplier > 2) multiplier = 2;
 
         return { ...task, selected: false, completed: false, multiplier };
@@ -298,7 +287,6 @@ socket.on('state', (serverState) => {
     } else {
         Object.assign(gameState, serverState);
 
-        // Показываем модалку выбора пути на уровнях 10 и 20 (на 30 не показываем)
         if ((gameState.level === 10 || gameState.level === 20) &&
             gameState.pathLevel !== gameState.level) {
             pathModal.classList.remove('hidden');
@@ -622,7 +610,7 @@ function endGame() {
     const rankName = RANKS[gameState.rank];
     finalMessage.innerHTML = `🏴‍☠️ Поздравляем! Вы нашли легендарный клад и стали королём пиратов!<br>` +
         `Ваш ранг: ${rankName}<br>` +
-        `Но в бутылке плещется что-то странное…`;
+        `Вы можете посмотреть карту сокровищ`;
     finalBalanceSpan.textContent = gameState.currentBalance;
     finalSuccess.textContent = gameState.successCount;
     finalFail.textContent = gameState.failCount;
