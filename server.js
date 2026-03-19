@@ -196,7 +196,6 @@ const trophyTypes = [
   { name: 'Половина', emoji: '½', bonus: 'half' },
   { name: 'Треть', emoji: '⅓', bonus: 'third' }
 ];
-
 function createInitialPools() {
   const tasks = [];
   const counts = [100, 60, 30, 20, 10, 2];
@@ -383,6 +382,11 @@ io.on('connection', (socket) => {
       questState.successCount++;
       questState.reputation += 2;
       if (Math.random() < 0.3) addRandomTrophy(questState);
+
+      // Открываем клетку на карте
+      if (questState.level <= MAX_LEVEL) {
+        questState.mapCells[questState.level - 1] = 'open';
+      }
     } else {
       questState.currentBalance -= 1000;
       questState.balanceHistory.push({ timestamp: Date.now(), desc: 'Рейд провален', change: -1000, balance: questState.currentBalance });
