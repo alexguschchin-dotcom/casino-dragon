@@ -122,7 +122,6 @@ function clearSavedGame() {
     localStorage.removeItem(SAVE_KEY);
 }
 
-// Новые рейды по порядку уровней
 const raidTemplates = {
     5: '⚔️ Рейд: чат должен написать "Йо-хо-хо + id" Первые 5 написавших получают по 4000!',
     10: '⚔️ Рейд: чат должен написать "Леха, Батя и Вика - лучшая пиратская команда + id" первые 5 написавших получают по 5000 !',
@@ -158,7 +157,7 @@ function generateCardsForLevel() {
         showToast(message);
         gameState.currentCards = [{
             id: 'raid_' + Date.now() + '_' + Math.random(),
-            description: getRaidDescription(gameState.level), // используем фиксированное описание по уровню
+            description: getRaidDescription(gameState.level),
             isRaid: true,
             selected: false,
             completed: false
@@ -177,9 +176,9 @@ function generateCardsForLevel() {
     // Фильтрация по пути риска
     let filteredTasks = gameState.availableTasks;
     if (gameState.riskMode && gameState.riskMode.active && gameState.level <= gameState.riskMode.untilLevel) {
-        if (gameState.riskMode.untilLevel <= 19) {
+        if (gameState.riskMode.untilLevel <= 18) { // выбор на 9 уровне -> untilLevel = 18
             filteredTasks = filteredTasks.filter(t => t.difficulty > 1);
-        } else if (gameState.riskMode.untilLevel <= 29) {
+        } else if (gameState.riskMode.untilLevel <= 28) { // выбор на 19 уровне -> untilLevel = 28
             filteredTasks = filteredTasks.filter(t => t.difficulty > 2);
         }
         if (filteredTasks.length < 2) {
@@ -287,7 +286,8 @@ socket.on('state', (serverState) => {
     } else {
         Object.assign(gameState, serverState);
 
-        if ((gameState.level === 10 || gameState.level === 20) &&
+        // Показываем модалку выбора пути на уровнях 9 и 19
+        if ((gameState.level === 9 || gameState.level === 19) &&
             gameState.pathLevel !== gameState.level) {
             pathModal.classList.remove('hidden');
         }
@@ -610,7 +610,7 @@ function endGame() {
     const rankName = RANKS[gameState.rank];
     finalMessage.innerHTML = `🏴‍☠️ Поздравляем! Вы нашли легендарный клад и стали королём пиратов!<br>` +
         `Ваш ранг: ${rankName}<br>` +
-        `Вы можете посмотреть карту сокровищ`;
+        `Вы можете посмотреть свою карту сокровищ`;
     finalBalanceSpan.textContent = gameState.currentBalance;
     finalSuccess.textContent = gameState.successCount;
     finalFail.textContent = gameState.failCount;
