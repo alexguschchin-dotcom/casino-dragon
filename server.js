@@ -197,8 +197,6 @@ const MAX_LEVEL = 30;
 const DEFAULT_BALANCE = 1500000;
 const PENALTY_BURN_RANGE = [15, 20]; // штраф сжигает 15-20 лёгких заданий
 
-// ================== ПУЛ ЗАДАНИЙ (ПИРАТСКАЯ ТЕМА) ==================
-const taskTemplates = [
  
 
 function createInitialPool() {
