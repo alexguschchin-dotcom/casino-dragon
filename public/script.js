@@ -152,6 +152,7 @@ function generateCardsForLevel() {
 
     let message = '';
 
+    // Рейд
     if (gameState.nextIsRaid) {
         message = `🔥 Остров ${gameState.level}: Рейд! Задание для всего экипажа!`;
         showToast(message);
@@ -165,6 +166,7 @@ function generateCardsForLevel() {
         return;
     }
 
+    // Проклятый остров
     if (gameState.isCursedIsland) {
         message = `💀 Остров ${gameState.level}: Проклятый! Все карточки — испытания!`;
         showToast(message);
@@ -173,6 +175,57 @@ function generateCardsForLevel() {
         return;
     }
 
+    // ================== СПЕЦИАЛЬНАЯ ЛОГИКА ДЛЯ 24 УРОВНЯ ==================
+    if (gameState.level === 24) {
+        // Особые задания, которые должны появиться
+        const specialDescriptions = [
+            'Капитанское A10: Создатель получает накид.',
+            'Проклятие S2: All in в Pirates pub.'
+        ];
+
+        // Найдём их в availableTasks
+        const specialTasks = [];
+        const remainingTasks = [];
+
+        for (const task of gameState.availableTasks) {
+            if (specialDescriptions.includes(task.description)) {
+                specialTasks.push({ ...task, selected: false, completed: false });
+            } else {
+                remainingTasks.push(task);
+            }
+        }
+
+        // Если специальных заданий меньше 2, добираем из остальных
+        let tasksForLevel = [...specialTasks];
+        while (tasksForLevel.length < 2 && remainingTasks.length > 0) {
+            const randomIndex = Math.floor(Math.random() * remainingTasks.length);
+            tasksForLevel.push({ ...remainingTasks[randomIndex], selected: false, completed: false });
+            remainingTasks.splice(randomIndex, 1);
+        }
+
+        // Если всё равно меньше 2 (вдруг заданий в пуле нет), добавим заглушку (но такого не должно быть)
+        if (tasksForLevel.length < 2) {
+            console.warn('Недостаточно заданий для 24 уровня, добавляем заглушку');
+            tasksForLevel.push({ id: 'dummy', description: 'Экспериментальное задание', difficulty: 1, selected: false, completed: false });
+        }
+
+        // Берём первые два (или меньше) для карточек
+        const tasks = tasksForLevel.slice(0, 2);
+
+        // Добавляем штрафную карточку
+        let penaltyCard = null;
+        if (gameState.penaltyPool.length > 0) {
+            const randomPenalty = gameState.penaltyPool[Math.floor(Math.random() * gameState.penaltyPool.length)];
+            penaltyCard = { ...randomPenalty, selected: false, completed: false, isPenalty: true };
+        }
+
+        let cards = [...tasks];
+        if (penaltyCard) cards.push(penaltyCard);
+        gameState.currentCards = cards.sort(() => 0.5 - Math.random());
+        return;
+    }
+
+    // ================== ОБЫЧНАЯ ГЕНЕРАЦИЯ ДЛЯ ОСТАЛЬНЫХ УРОВНЕЙ ==================
     // Фильтрация по пути риска
     let filteredTasks = gameState.availableTasks;
     if (gameState.riskMode && gameState.riskMode.active && gameState.level <= gameState.riskMode.untilLevel) {
@@ -286,6 +339,7 @@ socket.on('state', (serverState) => {
     } else {
         Object.assign(gameState, serverState);
 
+        // Показываем модалку выбора пути на уровнях 9 и 19
         if ((gameState.level === 9 || gameState.level === 19) &&
             gameState.pathLevel !== gameState.level) {
             pathModal.classList.remove('hidden');
