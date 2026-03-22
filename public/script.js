@@ -39,8 +39,7 @@ let gameState = {
     nextIsRaid: false,
     isCursedIsland: false,
     skipNextPenalty: false,
-    needReroll: false,
-    creatorTaskCompleted: false   // <-- НОВОЕ ПОЛЕ
+    needReroll: false
 };
 
 let level30CardsGenerated = false;
@@ -138,48 +137,6 @@ function getRaidDescription(level) {
 
 function generateCardsForLevel() {
     if (gameState.gameCompleted) return;
-
-    // ===== СПЕЦИАЛЬНАЯ ОБРАБОТКА 24 УРОВНЯ С ЗАДАНИЕМ A10 =====
-    if (gameState.level === 24 && !gameState.creatorTaskCompleted) {
-        // Отключаем рейд и проклятый остров
-        gameState.nextIsRaid = false;
-        gameState.isCursedIsland = false;
-
-        // Ищем задание A10 в пуле
-        let creatorTask = gameState.availableTasks.find(t => t.description === 'Капитанское A10: Создатель получает накид (личное сообщение).');
-        if (!creatorTask) {
-            // Если его нет (маловероятно, но на всякий случай), создаём его и добавляем в пул
-            const newTask = {
-                id: `task_${Date.now()}_${Math.random()}`,
-                description: 'Капитанское A10: Создатель получает накид (личное сообщение).',
-                difficulty: 5
-            };
-            gameState.availableTasks.push(newTask);
-            creatorTask = newTask;
-        }
-
-        // Берём два любых других задания (кроме A10)
-        const otherTasks = gameState.availableTasks.filter(t => t.description !== 'Капитанское A10: Создатель получает накид (личное сообщение).');
-        const shuffledOthers = [...otherTasks].sort(() => 0.5 - Math.random());
-        const selectedOthers = shuffledOthers.slice(0, 2);
-
-        // Формируем карточки
-        let cards = [];
-        cards.push({ ...creatorTask, selected: false, completed: false, multiplier: 1 });
-        cards.push(...selectedOthers.map(task => ({ ...task, selected: false, completed: false, multiplier: 1 })));
-
-        // Добавляем наказание, если есть
-        if (gameState.penaltyPool.length > 0) {
-            const randomPenalty = gameState.penaltyPool[Math.floor(Math.random() * gameState.penaltyPool.length)];
-            const penaltyCard = { ...randomPenalty, selected: false, completed: false, isPenalty: true };
-            cards.push(penaltyCard);
-        }
-
-        gameState.currentCards = cards.sort(() => 0.5 - Math.random());
-        return;
-    }
-    // ===== КОНЕЦ СПЕЦИАЛЬНОЙ ОБРАБОТКИ =====
-
     if (gameState.availableTasks.length === 0 && gameState.penaltyPool.length === 0) {
         gameState.currentCards = [];
         return;
@@ -219,9 +176,9 @@ function generateCardsForLevel() {
     // Фильтрация по пути риска
     let filteredTasks = gameState.availableTasks;
     if (gameState.riskMode && gameState.riskMode.active && gameState.level <= gameState.riskMode.untilLevel) {
-        if (gameState.riskMode.untilLevel <= 18) { // выбор на 9 уровне -> untilLevel = 18
+        if (gameState.riskMode.untilLevel <= 18) {
             filteredTasks = filteredTasks.filter(t => t.difficulty > 1);
-        } else if (gameState.riskMode.untilLevel <= 28) { // выбор на 19 уровне -> untilLevel = 28
+        } else if (gameState.riskMode.untilLevel <= 28) {
             filteredTasks = filteredTasks.filter(t => t.difficulty > 2);
         }
         if (filteredTasks.length < 2) {
@@ -329,7 +286,6 @@ socket.on('state', (serverState) => {
     } else {
         Object.assign(gameState, serverState);
 
-        // Показываем модалку выбора пути на уровнях 9 и 19
         if ((gameState.level === 9 || gameState.level === 19) &&
             gameState.pathLevel !== gameState.level) {
             pathModal.classList.remove('hidden');
@@ -653,7 +609,7 @@ function endGame() {
     const rankName = RANKS[gameState.rank];
     finalMessage.innerHTML = `🏴‍☠️ Поздравляем! Вы нашли легендарный клад и стали королём пиратов!<br>` +
         `Ваш ранг: ${rankName}<br>` +
-        `Вы можете посмотреть свою карту сокровищ`;
+        `Но в бутылке плещется что-то странное…`;
     finalBalanceSpan.textContent = gameState.currentBalance;
     finalSuccess.textContent = gameState.successCount;
     finalFail.textContent = gameState.failCount;
@@ -688,8 +644,7 @@ function resetGame() {
         nextIsRaid: false,
         isCursedIsland: false,
         skipNextPenalty: false,
-        needReroll: false,
-        creatorTaskCompleted: false
+        needReroll: false
     };
     level30CardsGenerated = false;
     socket.emit('reset', 1500000);
