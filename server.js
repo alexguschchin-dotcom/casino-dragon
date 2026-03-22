@@ -1,4 +1,3 @@
-
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -8,215 +7,218 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// ================== НАСТРОЙКИ ==================
 const MAX_LEVEL = 30;
 const DEFAULT_BALANCE = 1500000;
-const PENALTY_BURN_RANGE = [15, 20]; // штраф сжигает 15-20 лёгких заданий
+const RANKS = ['Юнга', 'Матрос', 'Боцман', 'Капитан', 'Адмирал'];
+const REPUTATION_PER_RANK = 10;
 
-// ================== ПУЛ ЗАДАНИЙ (ПИРАТСКАЯ ТЕМА) ==================
+// ================== ПУЛ ЗАДАНИЙ ==================
 const taskTemplates = [
   // ⭐ 1 звезда (класс F) — 42 задания
   { difficulty: 1, texts: [
-    'Приключение F1: Сделать 20 спинов в Sweet Bonanza по 400 дублонов. Отметить на карте.',
-    'Приключение F2: Купить бонус в Pirate‘s Pub за 5 000 дублонов. Напиться рома.',
-    'Приключение F3: Купить бонус в Gates of Olympus за 30 000 дублонов. Разгневать Зевса.',
-    'Приключение F4: Выдать двум юнгам по 500 дублонов. Записать в судовой журнал.',
-    'Приключение F5: Узнать, водятся ли минотавры на острове (спины по 200 дублонов).',
-    'Приключение F6: 30 спинов в Coin Up (ставка 500 дублонов). Набить трюмы монетами.',
-    'Приключение F7: Протестировать две подзорные трубы в Le King по 6 000 дублонов.',
-    'Приключение F8: Узнать, можно ли найти клад в Wild West Gold за 4800 дублонов.',
-    'Приключение F9: Купить бонус в RIP City за 8 000 дублонов, увидеть трёх котов-пиратов.',
-    'Приключение F10: Купить топ-бонус в Coin Volcano за 7500 дублонов, извержение золота.',
-    'Приключение F11: Исследовать пирамиду Клеопатры (бонус за 8000 дублонов).',
+    'Приключение F1: Сделать 20 спинов в Pirate Bonanza 2 по 3000 дублонов.',
+    'Приключение F2: Купить бонус в Pirate‘s Pub за 50 000 дублонов. Напиться рома.',
+    'Приключение F3: Купить обычный бонус в Pirate Bonanza 2 за 50 000 дублонов.',
+    'Приключение F4: Выдать двум юнгам по 3000 дублонов. Записать в судовой журнал.',
+    'Приключение F5: Узнать, водятся ли минотавры на острове 40 спинов по 1000 дублонов.',
+    'Приключение F6: Купить топовый бонус Pirate Bonanza 2 за 75 000 дублонов.',
+    'Приключение F7: Сделать 40 спинов по 1000 дублонов в Pirate gold delux.',
+    'Приключение F8: Купить бонус в Pirate gold deluxe за 70 000 дублонов.',
+    'Приключение F9: Отправляемся на рубалку! Выбить бонус в big bass float my boat по 1000 дублонов.',
+    'Приключение F10: Исследовать воды амазонки! Купить два бонуса в big bass amazon xtreme за 50000 дублонов.',
+    'Приключение F11: В ходе плавания мы встретили викингов! Победить их окупив бонус в Le viking за 60 000 дублонов.',
     'Приключение F12: Увидеть х64 в wild skullz (черепа и кости).',
-    'Приключение F13: Удивите старого пирата! Купите бонус в gates of olympus и окупитесь!',
-    'Приключение F14: Узнать мощность поезда Money Train 4 (бонус за 5000 дублонов).',
-    'Приключение F15: Купить бонус в Money Train 3 за 5 000 дублонов, записать результаты.',
-    'Приключение F16: Проверка на смелость! Поставьте 10000 дублонов в любой live игре.',
-    'Приключение F17: Узнать вероятность встретить 10-ку в Crazy Time (5 ставок по 1000 дублонов).',
-    'Приключение F18: Проверка на жадность! Выдать трём зрителям по 1000 дублонов.',
-    'Приключение F19: Узнать шанс бонуса в RIP City, 30 спинов по 300 дублонов.',
-    'Приключение F20: Купить топ-бонус в «Мумии» за 10 000 дублонов, не попасться в ловушку.',
-    'Приключение F21: Узнать шанс бонуса в Dog House Multihold, 30 спинов по 500 дублонов.',
+    'Приключение F13: Удивите старого пирата! Купите бонус в Pirate‘s Pub и окупитесь!',
+    'Приключение F14: В ходе путешествия мы наткнулись на группу бандитов! Победить их купив 2 бонуса в Duel at Dawn за 40000 дублонов.',
+    'Приключение F15: Наш корабль сломался! Отправиться в путишествие до следующего отсрова на поезде. Купить Money Train 3 за 50 000 дублонов.',
+    'Приключение F16: Карточная игра! Дважды победить своего соперника в blackjack (рука 40000).',
+    'Приключение F17: На пиратском судне появилась рулетка! Выбить правильное число в рулетке и доказать что ты настоящий пират.',
+    'Приключение F18: Жадные содаты забрали вашего юнгу! Выдать 5-м солдатам по 2000 дублонов.',
+    'Приключение F19: В ходе плавания вы натыкаетесь на поселение вампиров! Показать им кто главный окупив бонус в Vampy party (от 30000 дублонов).',
+    'Приключение F20: Собака на пиратском корабле! поймать ее и пустить на шашлык окупив бонус в The dog house muttlet crew за 50000 дублонов.',
+    'Приключение F21: Вам скучно! сделайте 30 спинов в Dog House Multihold по 2000 дублонов.',
     'Приключение F22: Купить топ-бонус в Big Bass Secrets и поймать 4 скаттеров.',
-    'Приключение F23: Проверить бонус в Release the Kraken за 8 000 дублонов — выпустить кракена.',
+    'Приключение F23: Выпустить кракена! Поймать функцию в Release the Kraken по ставке 1000 дублонов.',
     'Приключение F24: Отдых в порту! Послушать музыку в in jazz (любой бонус).',
-    'Приключение F25: Выбить обычный бонус в Le Fisherman (ставка 300 дублонов).',
-    'Приключение F26: Поймать wild на 5-й барабан в Wild West Gold Megaways (бонус 6 000 дублонов).',
-    'Приключение F27: 30 спинов в Wild West Gold Megaways по 400 дублонов.',
-    'Приключение F28: Купить все 3 бонуски 3 Buzzing Wilds — какая лучше?',
-    'Приключение F29: Ограбить вампиров! Окупить бонус в Vampy party.',
+    'Приключение F25: Рыбалка вместе в енотом! Выбить обычный бонус в Le Fisherman (ставка 2000 дублонов).',
+    'Приключение F26: Поймать wild на 5-й барабан в Wild West Gold Megaways (бонус 50 000 дублонов).',
+    'Приключение F27: 30 спинов в Wild West Gold Megaways по 1000 дублонов.',
+    'Приключение F28: Купить два бонуса в Jawsome Pirates за 40 000 дублонов',
+    'Приключение F29: Вы посетили до удовольствий! проведите 3 минуты в Geisha делая то что вам хочется.',
     'Приключение F30: Узнать правду о Dog House Royale Hunt — королевский ли там куш?',
-    'Приключение F31: Учебная рыбалка! Выбить бонус в любом Рыбаке по 500 дублонов.',
-    'Приключение F32: Нападение пиратов! Окупить бонус в Dog House Muttley Crew.',
-    'Приключение F33: Протестировать два компаса в Ze Zeus за 6 000 дублонов.',
-    'Приключение F34: Атака наблюдателей! Сделать бездепозитное колесо на 5 000 дублонов.',
-    'Приключение F35: Атака наблюдателей! Сделать депозитное колесо на 5 000 дублонов.',
-    'Приключение F36: Атака наблюдателей! Сделать депозитное колесо на 5 000 дублонов (один победитель).',
-    'Приключение F37: Узнать шанс выпадения 5 в Crazy Time (три ставки по 5 000 дублонов).',
-    'Приключение F38: Удача для юнги! выдать 3 000 дублонов.',
-    'Приключение F39: Попробовать сахар в sugar rush (бонус за 8 000 дублонов).',
-    'Приключение F40: Узнать мудрость богов! Купить бонус в Wisdom of Athena за 8000 дублонов.',
-    'Приключение F41: Изучение кошачьих! поймать ретригер в Fonzo‘s Feline Fortune (бонус 4800 дублонов).'
+    'Приключение F31: Учебная рыбалка! Выбить бонус в любом Рыбаке по 2000 дублонов.',
+    'Приключение F32: Ограбить грабницу фараона! Окупите бонус в le Pharaon за 40 000 дублонов.',
+    'Приключение F33: За ваши грехи на вас обратил вниманние  Зевс! Избегите его гнева не окупив бонус в Gates of olympus.',
+    'Приключение F34: Атака наблюдателей! Сделать бездепозитное колесо на 10 000 дублонов.',
+    'Приключение F35: Атака наблюдателей! Сделать депозитное колесо на 15 000 дублонов.',
+    'Приключение F36: Атака наблюдателей! Сделать депозитное колесо на 10 000 дублонов (два победителя).',
+    'Приключение F37: Вы попали на древний остров! Сделайте 30 спинов по 1000 дублонов в Medusa\'s stone.',
+    'Приключение F38: Удача для юнги! выдать 5 000 дублонов двум юнгам.',
+    'Приключение F39: Вы тайный любитель сладкого! Купите бонус в sugar rush за 50000 рублей.',
+    'Приключение F40: Поиграйте с котом пиратом! Купите два бонуса за 40 000 дублонов в Hot ross.',
+    'Приключение F41: Даже пират должен учиться! Проведите 2 минуты в Book of time.'
   ]},
 
   // ⭐⭐ 2 звезды (класс D) — 27 заданий
   { difficulty: 2, texts: [
-    'Вылазка D1: Поставить 5 000 дублонов в Crazy Time и выйти в плюс (или за борт).',
-    'Вылазка D2: 20 спинов в Hot Fiesta по 625 дублонов — сосчитать пиньяты.',
-    'Вылазка D3: Купить бонус в wanted Dead or a wild 2 за 8 000 дублонов — не умереть от скуки.',
-    'Вылазка D4: Исследование сладких фруктов! Купить бонус в sweet bonanza — найти x10.',
-    'Вылазка D5: Купить бонус в Gates of Olympus за 9600 дублонов — задобрить Зевса.',
-    'Вылазка D6: Поставить 7 000 дублонов на любое число в рулетке — проверить интуицию.',
-    'Вылазка D7: 20 спинов в Le Cowboy по 600 дублонов — почувствовать себя ковбоем.',
-    'Вылазка D8: Выдать 3 000 дублонов одному зрителю — сделать его счастливым.',
-    'Вылазка D9: Наблюдение за боем! Узнать кто круче в big bass boxing (бонус за 9600 дублонов).',
-    'Вылазка D10: Купить бонус в Yeti quest за 8000 дублонов — понаблюдать за йети.',
-    'Вылазка D11: Поставить 5 000 дублонов на 5 и 5 000 дублонов на 10 в Crazy Time — и окупиться.',
-    'Вылазка D12: Покупать бонуски в Money Train 3 за 10 000 дублонов — доехать до станции "Прибыль".',
-    'Вылазка D13: Ограбить банк! Получить x2 от суммы покупки бонуски в iron bank.',
-    'Вылазка D14: Испытать удачу! Выбить топ-бонус в Мумии за 7200 дублонов (2 попытки).',
+    'Вылазка D1: Поставить 50 000 дублонов в Crazy Time и выйти в плюс (или за борт).',
+    'Вылазка D2: Окупить бонус в Pirate‘s Pub (ставка от 30 000 дублонов).',
+    'Вылазка D3: Напиться пива! Купить 3 бонуса в Benny the Beer за 90 000 дублонов.',
+    'Вылазка D4: Выбить бонус в Benny the Beer по 2000 дублонов.',
+    'Вылазка D5: Наш корабль сломался! Отправиться в путишествие до следующего отсрова на поезде. Купить Money Train 3 за 75 000 дублонов.',
+    'Вылазка D6: Наш корабль сломался! Отправиться в путишествие до следующего отсрова на поезде. Купить Money Train 4 за 75 000 дублонов.',
+    'Вылазка D7: Отомстить ковбоям что гнали нас с суши на море! Окупить два бонуса в le cowboy за 75 000 дублонов.',
+    'Вылазка D8: Выдать 5 000 дублонов одному зрителю — сделать его счастливым.',
+    'Вылазка D9: Наблюдение за боем! Узнать какой боец лучше в big bass boxing (бонус за 50000 дублонов).',
+    'Вылазка D10: Купить две радуги в Le cowboy за 75 000 дублонов.',
+    'Вылазка D11: Поставить 40 000 дублонов на 5 и 30 000 дублонов на 10 в Crazy Time.',
+    'Вылазка D12: Вам понравилось путешествие в поезде! Покупать бонуски в Money Train 3 за 50 000 дублонов пока не почувствуешь золотые монеты.',
+    'Вылазка D13: Выбить бонус в Pirate‘s Pub (ставка от 1000).',
+    'Вылазка D14: Купить бонус в Pirate Bonanza за 75 000 и окупиться (3 попытки).',
     'Вылазка D15: Испытание от призрака! Выбить 2 шторы в angel vs sinner (2 попытки).',
-    'Вылазка D16: Бонус Sugar Rush за 6 400 дублонов, выбить >3 скаттеров (3 попытки).',
-    'Вылазка D17: Бонус Six Six Six за 10 000 дублонов — пробить больше 10 спинов (3 попытки).',
-    'Вылазка D18: Окупить бонус в Le Santa за 5 000 дублонов.',
-    'Вылазка D19: Бездепозитное колесо на 7 000 дублонов (5 минут).',
-    'Вылазка D20: Депозитное колесо на 5 000 дублонов (3 минуты).',
-    'Вылазка D21: Депозитное колесо для зрителей 3 000 дублонов (1 минута).',
+    'Вылазка D16: Выбить бонус в Pirate Bonanza по ставке 2 000 дублонов.',
+    'Вылазка D17: Бонус Six Six Six за 50 000 дублонов — пробить больше 10 спинов (3 попытки).',
+    'Вылазка D18: Даже пираты хотят подарков! Окупить бонус в Le Santa за 50 000 дублонов в х2.',
+    'Вылазка D19: Бездепозитное колесо на 20 000 дублонов (5 минут).',
+    'Вылазка D20: Депозитное колесо на 25 000 дублонов (3 минуты).',
+    'Вылазка D21: Депозитное колесо для зрителей 20 000 дублонов (1 минута).',
     'Вылазка D22: Наблюдение за древними. Купить бонус в Densho за 10 000 дублонов.',
-    'Вылазка D23: Купить бонус в Cloud Princess за 10 000 дублонов.',
-    'Вылазка D24: Пройти до x2 в любом «Рыбаке» с первой попытки.',
-    'Вылазка D25: Поймать линию вилдов в Hand of Midas 2 (бонус 4 800 дублонов).',
-    'Вылазка D26: Пройти до лягушки 4x4 в Wild Hop Drop (ставка 4 800 дублонов).',
-    'Вылазка D27: Устроить конкурс для зрителей на 5 000 дублонов — первые 5 "мяу" получают накид.'
+    'Вылазка D23: Вам приглянулась принцесса! Попробуйте забрать ее из замка выбив бонус за 30 спинов в  Cloud Princess по ставке 3000.',
+    'Вылазка D24: Мы попали в шторим! Выбраться из него купив 3 бонуски в big bass halloween (ставка от 50 000).',
+    'Вылазка D25: Охота за сокровищами! Выбить дракона на любом барабане в Dragon Money Treasures.',
+    'Вылазка D26: В ходе путешествия мы попали на неизвестный остров на котором была пирамида! Выбить больше 10 спинов в Мумии топовой бонуске от 50 000.',
+    'Вылазка D27: Устроить конкурс для зрителей на 10 000 дублонов — первые 5 "йо-хо-хо" получают накид.'
   ]},
 
   // ⭐⭐⭐ 3 звезды (класс C) — 28 заданий
   { difficulty: 3, texts: [
-    'Плавание C1: 30 спинов в Gates of Olympus по 1 000 дублонов.',
-    'Плавание C2: Два бонуса в Hot Fiesta за 10 000 дублонов каждый — устроить фиесту (хотя бы 1 окупной).',
-    'Плавание C3: 30 спинов в Fortune of Giza (ставка 800 дублонов).',
-    'Плавание C4: Две «радуги» в Le Bandit по 10000 дублонов (одна окупается).',
-    'Плавание C5: 30 спинов в Minotauros по 800 дублонов.',
-    'Плавание C6: 100 спинов в Gates of Olympus по 500 дублонов — битва с богами.',
-    'Плавание C7: Окупить бонус в Sweet Bonanza за 16 000 дублонов.',
-    'Плавание C8: Выиграть 20 000 дублонов в любом слоте за одну бонуску.',
-    'Плавание C9: Поставить 20 000 дублонов на чёрное и победить.',
+    'Плавание C1: Поймать 4 вилда в линию в Pirates pub в бонуске от 50 000.',
+    'Плавание C2: Испытание от короля моря! Окупите бонус в Realese the kraken за 100 000.',
+    'Плавание C3: Испытать удачи короля пиратов! Выбить бонус в fortune of giza (Ставка от 2000).',
+    'Плавание C4: Нападение осьминога! Отбейтесь от него купив 2 бонуски в Realese the kraken megaways за 100 000.',
+    'Плавание C5: На неизвестной отсрове вы обнаруживаете дом Минотавра, вы потривожили его сон! Пусть он устанет прыгнув в общем 50 раз в бонуске за 60 000.',
+    'Плавание C6: 100 спинов в Gates of Olympus по 4000 дублонов — битва с богами.',
+    'Плавание C7: Наш корабль сломался! Отправиться в путишествие до следующего отсрова на поезде. Купить Money Train 3 за 100 000 дублонов и окупиться.',
+    'Плавание C8: Выиграть 200 000 дублонов в любом слоте за одну бонуску.',
+    'Плавание C9: Поставить 70 000 дублонов на чёрное и победить.',
     'Плавание C10: 30 спинов в Undead fortune по 9 000 дублонов — избежать смерти.',
-    'Плавание C11: Выдать 2 000 дублонов пяти зрителям — щедрость.',
-    'Плавание C12: Бонус в Money Train 4 за 20 000 дублонов — экспресс до богатства.',
-    'Плавание C13: Поймать множитель x25 в Sweet Bonanza (бонус от 8 000 дублонов).',
-    'Плавание C14: Поставить 30 000 дублонов в рулетке.',
-    'Плавание C15: Выбить бонус в Le King за 50 спинов (ставка от 900 дублонов).',
-    'Плавание C16: Дойти до метки 4x4 в Sky Bounty (бонус от 10 000 дублонов).',
-    'Плавание C17: Выбить Super Scatter в Sweet Bonanza Super Scatter (бонус от 8 000 дублонов).',
+    'Плавание C11: Солдаты захватили вашего Штурмана! Без него нельзя продолжить путешествие! Выдать 5 солдатам по 5 000 дублонов.',
+    'Плавание C12: Наш корабль сломался! Отправиться в путишествие до следующего отсрова на поезде. Купить Money Train 4 за 100 000 дублонов и окупиться.',
+    'Плавание C13: Вы наткнулись не безумца что хочет взорвать ваш корабль! Не дайте ему это сделать окупив бонус в Fire in the Hole 2 (ставка от 80к).',
+    'Плавание C14: Выбить топовый бонус с обычки в Big Bass Secrets of the Golden Lake по любой ставке.',
+    'Плавание C15: Наказать короля енотов! Выбить бонус в Le King за 50 спинов (ставка от 2000 дублонов).',
+    'Плавание C16: Дойти до метки 4x4 в Sky Bounty (бонус от 70 000 дублонов).',
+    'Плавание C17: Ваша любовь к сладкому проявилась! Купить 2 топовых бонуса в sugar rush 1000 (ставка от 100 000).',
     'Плавание C18: Бонус Six Six Six, пробить >10 спинов (ставка от 10 000 дублонов).',
-    'Плавание C19: Окупить бонус в Frkn Bananas (ставка 12 000 дублонов, макс.2 попытки).',
-    'Плавание C20: Исследование вероятности топ-бонуса в San Quentin с рандомки (2 попытки).',
-    'Плавание C21: Получить минимум 8x в Madame Destiny Megaways (бонус 9600 дублонов, 2 попытки).',
-    'Плавание C22: Бонус в любом «Рыбаке», дойти до x3 (ставка от 10 000 дублонов).',
-    'Плавание C23: Окупить бонус за 16 000 дублонов во Fruit Party.',
-    'Плавание C24: Выбить x1000 в Big Bass Bonanza 1000 (бонус 8 000 дублонов).',
-    'Плавание C25: Поймать x200 в Wild West Gold (бонус 12 000 дублонов).',
-    'Плавание C26: Поймать бонус в Big Bass Splash (ставка 1 000 дублонов) за 40 спинов.',
-    'Плавание C27: Поймать 2 шторы в Angel vs Sinner (бонус 10 000 дублонов).',
-    'Плавание C28: Топовый бонус в Sugar Rush 1000 за 24 000 дублонов.'
+    'Плавание C19: Окупить бонус в Frkn Bananas в бонуске за 80 000 (макс.2 попытки).',
+    'Плавание C20: Выдать трем зрителям по 7500 дублонов.',
+    'Плавание C21: Получить минимум 8x в Madame Destiny Megaways в бонусе от 50 000 (2 попытки).',
+    'Плавание C22: Дойти до х3 в Big Bass Mission Fishin в бонуске от 50 000.',
+    'Плавание C23: Выдать четырем зрителям по 6000 дублонов.',
+    'Плавание C24: Выбить x1000 в Big Bass Bonanza 1000 (бонус 40 000 дублонов).',
+    'Плавание C25: Поймать x200 в Wild West Gold (бонус 100 000 дублонов).',
+    'Плавание C26: Сделать депозитное колесо для больших деперов на 5 минут.',
+    'Плавание C27: Сделать депозитное колесо для среднех деперов на 10 минут.',
+    'Плавание C28: Сделать бездепозитное колесо для на 3 минуты только для тех кто на стриме.'
   ]},
 
   // ⭐⭐⭐⭐ 4 звезды (класс B) — 20 заданий
   { difficulty: 4, texts: [
     'Шторм B1: Поймать бонус в Sweet Bonanza.',
     'Шторм B2: Выбить множитель x50 в Sweet Bonanza.',
-    'Шторм B3: Выбить три бонуса в Le Bunny (ставка от 500 дублонов) — исследование енотов.',
-    'Шторм B4: Трём зрителям выдать по 2 500 дублонов — благотворительность.',
+    'Шторм B3: Выбить три бонуса в Pirates pub (ставка от 1000 дублонов).',
+    'Шторм B4: Трём зрителям выдать по 5000 дублонов — благотворительность от капитана.',
     'Шторм B5: Особый приказ — пропуск одного задания.',
-    'Шторм B6: Разыграть в Telegram бонус за 20 000 дублонов.',
-    'Шторм B7: Топовый бонус в «Мумии» (ставка 20 000 дублонов) — больше 10 спинов (3 попытки).',
-    'Шторм B8: Исследование динамита. Окупить бонус в fire in the hole 2 (2 попытки).',
+    'Шторм B6: Разыграть в Telegram бонус за 200 000 дублонов.',
+    'Шторм B7: Исследование гробниц! Выбить топовый бонус в «Мумии» в рандомке за 90 000 (3 попытки).',
+    'Шторм B8: Купить два топовых бонуса в Мумии за 100 000 дублонов.',
     'Шторм B9: Поймать «под иксом» любую ставку в Crazy Time.',
-    'Шторм B10: Познать милость Зевса! Поймать x20 в Gates of Olympus (бонус 9600 дублонов).',
-    'Шторм B11: Найти самое рыбное место! Выбить три бонуса в одном Рыбаке.',
-    'Шторм B12: 80 спинов в Le Fisherman по 900 дублонов или выбить топ-бонус.',
-    'Шторм B13: Проверка на жадность! 5 зрителей получают по 2 500 дублонов.',
-    'Шторм B14: Прогулка с вампирами. Выбить бонус в The Vampires 2 по 500 дублонов.',
-    'Шторм B15: Ставка 50 000 дублонов в лайв-игре.',
-    'Шторм B16: Купить бонус в Dog House Megaways за 20 000 дублонов и окупиться.',
+    'Шторм B10: Познать милость Зевса! Поймать x20 в Gates of Olympus.',
+    'Шторм B11: Найти самое рыбное место, вам нужно кормить экипаж! Выбить три бонуса в одном Рыбаке.',
+    'Шторм B12: 80 спинов в Le Fisherman по 200 дублонов или выбить топ-бонус.',
+    'Шторм B13: 5 зрителей получают по 3 000 дублонов.',
+    'Шторм B14: Прогулка с вампирами. Выбить бонус в The Vampires 2 по 4000 дублонов.',
+    'Шторм B15: Ставка 150 000 дублонов в любой лайв-игре.',
+    'Шторм B16: Купить бонус в Dog House Megaways за 160 000 дублонов и окупиться.',
     'Шторм B17: Проверка удачи! Выиграть x200 в любом слоте с первой попытки.',
-    'Шторм B18: Поймать ретригер в dig dig digger (бонус от 10000 дублонов).',
-    'Шторм B19: 50 спинов в Le Bandit по 1 000 дублонов и выбить любой бонус.',
-    'Шторм B20: На корабль напал убийца! Выбить снайпера в Money Train 4 (ставка от 10 000 дублонов).'
+    'Шторм B18: Поймать ретригер в dig dig digger (бонус от 80000 дублонов).',
+    'Шторм B19: 50 спинов в Le Bandit по 3 000 дублонов и выбить любой бонус.',
+    'Шторм B20: На корабль напал убийца! Выбить снайпера в Money Train 4 (ставка от 50 000 дублонов).'
   ]},
 
   // ⭐⭐⭐⭐⭐ 5 звезд (класс A) — 10 заданий
   { difficulty: 5, texts: [
-    'Капитанское A1: Выбить множитель x100 в Sweet Bonanza.',
-    'Капитанское A2: Вы — капитан! All-in в Le Bandit.',
-    'Капитанское A3: All-in в Hot Fiesta.',
-    'Капитанское A4: Исследование! Выбить 14 спинов в dog house royal hunt (бонус 8000 дублонов).',
-    'Капитанское A5: Невозможное! Выбить Crazy Time и узнать его мощь.',
-    'Капитанское A6: Выбить 2 топ-бонуса в Jelly Slice (ставка 1 000 дублонов).',
-    'Капитанское A7: Поймать x100 в Sweet bonanza.',
-    'Капитанское A8: Поймать ретригер в sugar rush 1000 (топ-бонус).',
-    'Капитанское A9: Купить бонус в Money Train 4 за 60 000 дублонов — поезд в никуда.',
-    'Капитанское A10: Создатель получает накид (личное сообщение).'
+    'Капитанское A1: Получить х3 от суммы покупки бонуса в Pirate pub.',
+    'Капитанское A2: Вы — капитан! All-in в Pirates bonanza.',
+    'Капитанское A3: Купить 3 "радуги" в Pirates bonanza 2 за 175 000 дублонов .',
+    'Капитанское A4: Исследование! Выбить 14 спинов в dog house royal hunt в бонусе от 100 000.',
+    'Капитанское A5: Безумное колесо! Выбить Crazy Time.',
+    'Капитанское A6: Выбить бонуc в Pirate pub c 4 скаттерами (ставка 1 000 дублонов).',
+    'Капитанское A7: Депозитное колесо для больших деперов 5 победителей по 10к.',
+    'Капитанское A8: Раздать 5 наблюдателям по 8000 дублонов.',
+    'Капитанское A9: Путешествие класса люкс! Купить бонус в Money Train 4 за 250 000 дублонов дважды.',
+    'Капитанское A10: Создатель получает накид.'
   ]},
 
   // ⭐⭐⭐⭐⭐⭐ 6 звезд (класс S) — 2 задания
   { difficulty: 6, texts: [
-    'Проклятие S1: Пробить Hot Mode в Le cowboy (любая ставка).',
-    'Проклятие S2: Выбить красную луну в The vampires 2.'
+    'Проклятие S1: Ограбить логово ковбоев! Пробить Hot Mode в Le cowboy (любая ставка).',
+    'Проклятие S2: All in в Pirates pub.'
   ]}
 ];
 
 // ================== ПУЛ ШТРАФОВ ==================
 const penaltyTemplates = [
-  'Наказание: сделать 5 приседаний',
-  'Наказание: отжаться 10 раз',
-  'Наказание: спеть пиратскую песню',
-  'Наказание: прочитать скороговорку про корабль',
-  'Наказание: показать морское животное',
+  'Наказание: сделать 25 приседаний',
+  'Наказание: отжаться 15 раз',
+  'Наказание: спеть пиратскую песню (загуглить если не знаешь)',
+  'Наказание: Читать скороговорку про корабль пока Вика не будет довольна',
+  'Наказание: Следующие 5 минут говорить с пиратским акцентом',
   'Наказание: рассказать пиратский анекдот',
-  'Наказание: написать комплимент каждому зрителю в чате',
+  'Наказание: Закрыть один глаз на 10 минут',
   'Наказание: станцевать джигу',
   'Наказание: сделать 10 прыжков с криком "Йо-хо-хо!"',
-  'Наказание: простоять в позе "смотровая бочка" 1 минуту',
-  'Наказание: издать звук попугая',
-  'Наказание: надеть пиратскую треуголку',
+  'Наказание: Следующее задание ты выберешь самое сложное из тех что выпадет',
+  'Наказание: издать звук попугая 10 раз',
+  'Наказание: В конце каждого предложения говорить "салаги" штраф на 10 минут',
   'Наказание: показать пантомиму "поиск клада"',
   'Наказание: приседать, считая дублоны (30 секунд)',
   'Наказание: сделать комплимент своему кораблю',
   'Наказание: рассказать стих о море',
   'Наказание: нарисовать череп на камеру',
-  'Наказание: показать 5 эмоций капитана',
-  'Наказание: сделать массаж лицу (после шторма)',
-  'Наказание: поморгать 30 раз подряд маяком'
+  'Наказание: показать 5 эмоций капитана которые сражается с захватчиками',
+  'Наказание: Выбрать человека в чате и замутить его до конца стрима',
+  'Наказание: поморгать 100 раз подряд'
 ];
 
 // ================== ТРОФЕИ ==================
 const trophyTypes = [
-  { name: 'Золотая монета', emoji: '💰', bonus: 'multiplier+1' },
-  { name: 'Череп', emoji: '💀', bonus: 'skipPenalty' },
-  { name: 'Компас', emoji: '🧭', bonus: 'reroll' },
-  { name: 'Подзорная труба', emoji: '🔭', bonus: 'peek' },
-  { name: 'Попугай', emoji: '🦜', bonus: 'extraChat' }
+  { name: 'Половина', emoji: '½', bonus: 'half' },
+  { name: 'Треть', emoji: '⅓', bonus: 'third' }
 ];
 
-function createInitialPool() {
-  const pool = [];
+function createInitialPools() {
+  const tasks = [];
   const counts = [100, 60, 30, 20, 10, 2];
   for (let star = 1; star <= 6; star++) {
     const template = taskTemplates.find(t => t.difficulty === star);
     if (!template) continue;
     for (let i = 0; i < counts[star-1]; i++) {
       const text = template.texts[i % template.texts.length];
-      pool.push({
+      tasks.push({
         id: `task_${Date.now()}_${Math.random()}`,
         description: text,
         difficulty: star
       });
     }
   }
-  return shuffle(pool);
+  const penalties = penaltyTemplates.map((text, index) => ({
+    id: `penalty_${Date.now()}_${Math.random()}_${index}`,
+    description: text,
+    difficulty: 0,
+    isPenalty: true
+  }));
+  return { tasks: shuffle(tasks), penalties: shuffle(penalties) };
 }
 
 function shuffle(array) {
@@ -227,84 +229,65 @@ function shuffle(array) {
   return array;
 }
 
-function applyPenalty(pool) {
-  const lightTasks = pool.filter(t => t.difficulty >= 1 && t.difficulty <= 3);
-  if (lightTasks.length === 0) return 0;
-
-  const burnCount = Math.floor(Math.random() * (PENALTY_BURN_RANGE[1] - PENALTY_BURN_RANGE[0] + 1)) + PENALTY_BURN_RANGE[0];
-  const actualBurn = Math.min(burnCount, lightTasks.length);
-
-  const weights = { 1: 5, 2: 3, 3: 2 };
-  const totalWeight = 10;
-
-  let remainingLight = [...lightTasks];
-
-  for (let i = 0; i < actualBurn; i++) {
-    if (remainingLight.length === 0) break;
-
-    const rand = Math.random() * totalWeight;
-    let chosenStar = 1;
-    if (rand < 5) chosenStar = 1;
-    else if (rand < 8) chosenStar = 2;
-    else chosenStar = 3;
-
-    const candidates = remainingLight.filter(t => t.difficulty === chosenStar);
-    if (candidates.length > 0) {
-      const idx = Math.floor(Math.random() * candidates.length);
-      const taskToBurn = candidates[idx];
-      
-      const poolIndex = pool.findIndex(t => t.id === taskToBurn.id);
-      if (poolIndex !== -1) pool.splice(poolIndex, 1);
-      
-      const lightIndex = remainingLight.findIndex(t => t.id === taskToBurn.id);
-      if (lightIndex !== -1) remainingLight.splice(lightIndex, 1);
-    } else {
-      const anyTask = remainingLight[Math.floor(Math.random() * remainingLight.length)];
-      const poolIndex = pool.findIndex(t => t.id === anyTask.id);
-      if (poolIndex !== -1) pool.splice(poolIndex, 1);
-      const lightIndex = remainingLight.findIndex(t => t.id === anyTask.id);
-      if (lightIndex !== -1) remainingLight.splice(lightIndex, 1);
-    }
-  }
-
-  return actualBurn;
-}
-
-// ================== Состояние ==================
+const initial = createInitialPools();
 let questState = {
   level: 1,
-  availableTasks: createInitialPool(),
-  penaltyPool: [],
-  currentCards: [],
-  selectedTaskId: null,
+  availableTasks: initial.tasks,
+  penaltyPool: initial.penalties,
   currentBalance: DEFAULT_BALANCE,
-  balanceHistory: [],
-  penaltiesLog: [],
+  balanceHistory: [{ timestamp: Date.now(), desc: 'Стартовый баланс', change: DEFAULT_BALANCE, balance: DEFAULT_BALANCE }],
+  successCount: 0,
+  failCount: 0,
+  penaltyCount: 0,
+  mapCells: Array(MAX_LEVEL).fill('locked'),
   rank: 0,
   reputation: 0,
-  inventory: []
+  inventory: [],
+  pathChoice: null,
+  pathLevel: 0,
+  riskMode: { active: false, untilLevel: 0 },
+  currentMultiplier: 1,
+  currentDivider: 1,
+  nextIsRaid: false,
+  isCursedIsland: false,
+  skipNextPenalty: false,
+  needReroll: false,
+  penaltyMode: false
 };
 
-questState.balanceHistory.push({
-  timestamp: Date.now(),
-  desc: 'Стартовый баланс',
-  change: DEFAULT_BALANCE,
-  balance: DEFAULT_BALANCE
-});
+function addRandomTrophy(state) {
+  const type = trophyTypes[Math.floor(Math.random() * trophyTypes.length)].name;
+  const existing = state.inventory.find(t => t.type === type);
+  if (existing) {
+    existing.count++;
+  } else {
+    state.inventory.push({ type, count: 1 });
+  }
+}
 
-// ================== Сервер ==================
+function checkRankUp(state) {
+  const needed = (state.rank + 1) * REPUTATION_PER_RANK;
+  while (state.reputation >= needed && state.rank < RANKS.length - 1) {
+    state.rank++;
+    state.reputation -= needed;
+  }
+}
+
+function giveTrophyIfMilestone(state) {
+  if (state.level % 5 === 0 && state.level <= MAX_LEVEL) {
+    addRandomTrophy(state);
+  }
+}
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 io.on('connection', (socket) => {
-  console.log('Клиент подключён');
+  console.log('Пират подключён');
   socket.emit('state', questState);
 
-  // Успешное выполнение обычного задания
   socket.on('completeTask', (taskId, change, multiplier) => {
     const taskIndex = questState.availableTasks.findIndex(t => t.id === taskId);
-    if (taskIndex !== -1) {
-      questState.availableTasks.splice(taskIndex, 1);
-    }
+    if (taskIndex !== -1) questState.availableTasks.splice(taskIndex, 1);
 
     questState.currentBalance += change;
     questState.balanceHistory.push({
@@ -313,89 +296,160 @@ io.on('connection', (socket) => {
       change: change,
       balance: questState.currentBalance
     });
+    questState.successCount++;
 
-    // Повышение репутации и ранга
+    if (questState.level <= MAX_LEVEL) {
+      questState.mapCells[questState.level - 1] = 'open';
+    }
+
     questState.reputation += 1;
-    if (questState.reputation >= (questState.rank + 1) * 10) {
-      questState.rank = Math.min(questState.rank + 1, 4);
+    checkRankUp(questState);
+    giveTrophyIfMilestone(questState);
+
+    questState.penaltyMode = false;
+    questState.currentDivider = 1;
+
+    if (questState.level < MAX_LEVEL) {
+      questState.level++;
+      questState.nextIsRaid = (questState.level % 5 === 0);
+      questState.isCursedIsland = [7, 13, 21].includes(questState.level);
     }
 
-    // Шанс на трофей 20%
-    if (Math.random() < 0.2) {
-      const trophy = { type: 'Сундук', count: 1 }; // Простой трофей
-      questState.inventory.push(trophy);
-    }
-
-    // Увеличиваем уровень
-    questState.level = Math.min(questState.level + 1, MAX_LEVEL);
     io.emit('state', questState);
   });
 
-  // Провал обычного задания (штраф)
   socket.on('penaltyWithBalance', (taskId, newBalance) => {
+    const taskIndex = questState.availableTasks.findIndex(t => t.id === taskId);
+    if (taskIndex !== -1) questState.availableTasks.splice(taskIndex, 1);
+
     const change = newBalance - questState.currentBalance;
     questState.currentBalance = newBalance;
     questState.balanceHistory.push({
       timestamp: Date.now(),
-      desc: `Штраф (не выполнено)`,
+      desc: 'Задание провалено',
       change: change,
       balance: questState.currentBalance
     });
+    questState.failCount++;
 
-    // Перемещаем задание в penaltyPool
-    const taskIndex = questState.availableTasks.findIndex(t => t.id === taskId);
-    if (taskIndex !== -1) {
-      const failedTask = questState.availableTasks[taskIndex];
-      questState.penaltyPool.push(failedTask);
-      questState.availableTasks.splice(taskIndex, 1);
-    }
+    questState.penaltyMode = true;
 
-    // Применяем штраф: сжигаем лёгкие задания
-    const burned = applyPenalty(questState.availableTasks);
-    questState.balanceHistory.push({
-      timestamp: Date.now(),
-      desc: `Штраф: сгорело ${burned} лёгких заданий`,
-      change: 0,
-      balance: questState.currentBalance
-    });
-
-    // Увеличиваем уровень
-    questState.level = Math.min(questState.level + 1, MAX_LEVEL);
     io.emit('state', questState);
   });
 
-  // Успешное выполнение штрафного задания
   socket.on('applyPenaltyTask', (taskId, newBalance) => {
+    const penaltyIndex = questState.penaltyPool.findIndex(p => p.id === taskId);
+    if (penaltyIndex !== -1) questState.penaltyPool.splice(penaltyIndex, 1);
+
     const change = newBalance - questState.currentBalance;
     questState.currentBalance = newBalance;
     questState.balanceHistory.push({
       timestamp: Date.now(),
-      desc: `Наказание выполнено`,
+      desc: 'Наказание выполнено',
       change: change,
       balance: questState.currentBalance
     });
+    questState.penaltyCount++;
 
-    // Удаляем задание из penaltyPool
-    const taskIndex = questState.penaltyPool.findIndex(t => t.id === taskId);
-    if (taskIndex !== -1) {
-      questState.penaltyPool.splice(taskIndex, 1);
+    if (questState.isCursedIsland) {
+      questState.mapCells[questState.level - 1] = 'skull';
+      questState.isCursedIsland = false;
+    } else {
+      if (questState.mapCells[questState.level - 1] === 'locked') {
+        questState.mapCells[questState.level - 1] = 'skull';
+      }
     }
 
-    // Повышение репутации и ранга (штраф тоже даёт репутацию)
     questState.reputation += 1;
-    if (questState.reputation >= (questState.rank + 1) * 10) {
-      questState.rank = Math.min(questState.rank + 1, 4);
+    checkRankUp(questState);
+    giveTrophyIfMilestone(questState);
+
+    questState.penaltyMode = false;
+    questState.currentDivider = 1;
+
+    if (questState.level < MAX_LEVEL) {
+      questState.level++;
+      questState.nextIsRaid = (questState.level % 5 === 0);
+      questState.isCursedIsland = [7, 13, 21].includes(questState.level);
     }
 
-    // Шанс на трофей 20%
-    if (Math.random() < 0.2) {
-      const trophy = { type: 'Сундук', count: 1 };
-      questState.inventory.push(trophy);
-    }
-
-    // Увеличиваем уровень
-    questState.level = Math.min(questState.level + 1, MAX_LEVEL);
     io.emit('state', questState);
+  });
+
+  socket.on('raidComplete', (success) => {
+    if (success) {
+      questState.currentBalance += 5000;
+      questState.balanceHistory.push({ timestamp: Date.now(), desc: 'Рейд успешен', change: 5000, balance: questState.currentBalance });
+      questState.successCount++;
+      questState.reputation += 2;
+      if (Math.random() < 0.3) addRandomTrophy(questState);
+
+      if (questState.level <= MAX_LEVEL) {
+        questState.mapCells[questState.level - 1] = 'open';
+      }
+    } else {
+      questState.currentBalance -= 1000;
+      questState.balanceHistory.push({ timestamp: Date.now(), desc: 'Рейд провален', change: -1000, balance: questState.currentBalance });
+      questState.failCount++;
+      questState.reputation += 0.5;
+    }
+    checkRankUp(questState);
+    giveTrophyIfMilestone(questState);
+
+    questState.penaltyMode = false;
+    questState.currentDivider = 1;
+
+    if (questState.level < MAX_LEVEL) {
+      questState.level++;
+      questState.nextIsRaid = (questState.level % 5 === 0);
+      questState.isCursedIsland = [7, 13, 21].includes(questState.level);
+    }
+
+    io.emit('state', questState);
+  });
+
+  socket.on('useTrophy', (trophyType) => {
+    const trophyIndex = questState.inventory.findIndex(t => t.type === trophyType);
+    if (trophyIndex === -1) return;
+    const trophy = questState.inventory[trophyIndex];
+    if (trophy.count <= 0) return;
+
+    trophy.count--;
+    if (trophy.count === 0) questState.inventory.splice(trophyIndex, 1);
+
+    const trophyDef = trophyTypes.find(t => t.name === trophyType);
+    if (trophyDef) {
+      switch (trophyDef.bonus) {
+        case 'half': questState.currentDivider = 2; break;
+        case 'third': questState.currentDivider = 3; break;
+      }
+    }
+
+    io.emit('state', questState);
+  });
+
+  socket.on('choosePath', (choice) => {
+    questState.pathChoice = choice;
+    questState.pathLevel = questState.level;
+    if (choice === 'risk') {
+      questState.riskMode = { active: true, untilLevel: questState.level + 9 };
+    } else {
+      questState.riskMode = { active: false, untilLevel: 0 };
+    }
+    io.emit('state', questState);
+  });
+
+  socket.on('setBalance', (newBalance) => {
+    if (!isNaN(newBalance) && newBalance >= 0) {
+      questState.currentBalance = newBalance;
+      questState.balanceHistory.push({
+        timestamp: Date.now(),
+        desc: 'Дублоны изменены вручную',
+        change: 0,
+        balance: newBalance
+      });
+      io.emit('state', questState);
+    }
   });
 
   socket.on('prizeDraw', (data) => {
@@ -404,7 +458,7 @@ io.on('connection', (socket) => {
     questState.currentBalance -= total;
     questState.balanceHistory.push({
       timestamp: Date.now(),
-      desc: `Розыгрыш: ${amount}₽ x ${winners.length} (${winners.join(', ')})`,
+      desc: `Розыгрыш: ${amount}₽ x ${winners.length}`,
       change: -total,
       balance: questState.currentBalance
     });
@@ -413,60 +467,49 @@ io.on('connection', (socket) => {
 
   socket.on('addBalance', (description, amount) => {
     questState.currentBalance += amount;
-    questState.balanceHistory.push({
-      timestamp: Date.now(),
-      desc: description,
-      change: amount,
-      balance: questState.currentBalance
-    });
+    questState.balanceHistory.push({ timestamp: Date.now(), desc: description, change: amount, balance: questState.currentBalance });
     io.emit('state', questState);
   });
 
   socket.on('reset', (newBalance) => {
-    const startBalance = (newBalance !== undefined && !isNaN(newBalance)) ? newBalance : DEFAULT_BALANCE;
+    const start = (newBalance !== undefined && !isNaN(newBalance)) ? newBalance : DEFAULT_BALANCE;
+    const initial = createInitialPools();
     questState = {
       level: 1,
-      availableTasks: createInitialPool(),
-      penaltyPool: [],
-      currentCards: [],
-      selectedTaskId: null,
-      currentBalance: startBalance,
-      balanceHistory: [{
-        timestamp: Date.now(),
-        desc: 'Стартовый баланс',
-        change: startBalance,
-        balance: startBalance
-      }],
-      penaltiesLog: [],
+      availableTasks: initial.tasks,
+      penaltyPool: initial.penalties,
+      currentBalance: start,
+      balanceHistory: [{ timestamp: Date.now(), desc: 'Стартовый баланс', change: start, balance: start }],
+      successCount: 0,
+      failCount: 0,
+      penaltyCount: 0,
+      mapCells: Array(MAX_LEVEL).fill('locked'),
       rank: 0,
       reputation: 0,
-      inventory: []
+      inventory: [],
+      pathChoice: null,
+      pathLevel: 0,
+      riskMode: { active: false, untilLevel: 0 },
+      currentMultiplier: 1,
+      currentDivider: 1,
+      nextIsRaid: false,
+      isCursedIsland: false,
+      skipNextPenalty: false,
+      needReroll: false,
+      penaltyMode: false
     };
     io.emit('state', questState);
   });
 
   socket.on('loadSavedGame', (savedState) => {
-    questState = {
-      level: savedState.level || 1,
-      availableTasks: savedState.availableTasks || createInitialPool(),
-      penaltyPool: savedState.penaltyPool || [],
-      currentCards: savedState.currentCards || [],
-      selectedTaskId: savedState.selectedTaskId || null,
-      currentBalance: savedState.currentBalance,
-      balanceHistory: savedState.balanceHistory,
-      penaltiesLog: savedState.penaltiesLog || [],
-      rank: savedState.rank || 0,
-      reputation: savedState.reputation || 0,
-      inventory: savedState.inventory || []
-    };
+    questState = savedState;
     io.emit('state', questState);
-    console.log('Загружено сохранение с уровня', questState.level);
   });
 
-  socket.on('disconnect', () => console.log('Клиент отключён'));
+  socket.on('disconnect', () => console.log('Пират отплыл'));
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Сервер запущен на http://localhost:${PORT}`);
+  console.log(`Пиратский сервер на порту ${PORT}`);
 });
