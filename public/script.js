@@ -661,9 +661,9 @@ function endGame() {
     if (gameState.gameCompleted) return;
     gameState.gameCompleted = true;
     const rankName = RANKS[gameState.rank];
-    finalMessage.innerHTML = `🏴‍☠️ Поздравляем! Вы нашли легендарный клад и стали королём пиратов!<br>` +
+    finalMessage.innerHTML = `🏴‍☠️ Поздравляем! Вы стали королём пиратов!<br>` +
         `Ваш ранг: ${rankName}<br>` +
-        `Но в бутылке плещется что-то странное…`;
+        `Вы моежете посмотреть на карту сокровищ`;
     finalBalanceSpan.textContent = gameState.currentBalance;
     finalSuccess.textContent = gameState.successCount;
     finalFail.textContent = gameState.failCount;
