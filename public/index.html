@@ -2,140 +2,83 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Пиратский квест</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Битва кланов – панель стримера</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-    <canvas id="bubbles-canvas"></canvas>
-    <div class="sea-bg"></div>
-    <div id="toast" class="toast hidden"></div>
+    <div class="container">
+        <h1>🏆 Битва кланов 🏆</h1>
+        <div class="setup">
+            <h3>Настройка YouTube чата</h3>
+            <input type="text" id="videoId" placeholder="ID видео (например, abcd1234)" />
+            <input type="text" id="apiKey" placeholder="API ключ YouTube" />
+            <button id="initChatBtn">Подключиться к чату</button>
+        </div>
 
-    <div class="game-container">
-        <header class="header">
-            <h1 class="pirate-title">
-                <i class="fas fa-skull-crossbones"></i> 
-                Каюта капитана
-                <i class="fas fa-anchor"></i>
-            </h1>
-            <div class="level-indicator">Остров <span id="current-level">1</span>/30</div>
-            <div class="balance-panel">
-                <span class="label">💰 Дублоны</span>
-                <span class="value" id="current-balance">0</span>
-                <button id="apply-start-balance" class="btn-neon"><i class="fas fa-pen"></i></button>
+        <div class="teams">
+            <div class="team red">
+                <h2>🔴 Красные</h2>
+                <div class="score">Очки: <span id="redScore">0</span></div>
+                <div class="members">
+                    <h3>Участники:</h3>
+                    <ul id="redMembers"></ul>
+                </div>
+                <div class="tasks">
+                    <h3>Задания:</h3>
+                    <ul id="redTasks"></ul>
+                </div>
+                <div class="score-buttons">
+                    <button class="score-btn" data-team="red" data-points="5">+5</button>
+                    <button class="score-btn" data-team="red" data-points="10">+10</button>
+                    <button class="score-btn" data-team="red" data-points="20">+20</button>
+                </div>
+                <div class="task-input">
+                    <input type="text" id="redTask" placeholder="Задание от зрителя" />
+                    <button id="addRedTask">Записать задание</button>
+                </div>
             </div>
-        </header>
-
-        <!-- Верхние панели: карта, ранг, инвентарь -->
-        <div class="top-panels">
-            <div class="map-container">
-                <h2><i class="fas fa-map"></i> Карта сокровищ</h2>
-                <div id="map-grid" class="map-grid"></div>
-            </div>
-
-            <div class="rank-panel">
-                <h2><i class="fas fa-anchor"></i> Ранг</h2>
-                <p><span id="rank-name">Юнга</span> (⚓ <span id="rank-level">0</span>/<span id="rank-next">10</span>)</p>
-                <p id="path-indicator" class="path-indicator"></p>
-            </div>
-
-            <div class="inventory-panel">
-                <h3><i class="fas fa-box"></i> Трофеи</h3>
-                <div id="inventory-list" class="inventory-list"></div>
+            <div class="team blue">
+                <h2>🔵 Синие</h2>
+                <div class="score">Очки: <span id="blueScore">0</span></div>
+                <div class="members">
+                    <h3>Участники:</h3>
+                    <ul id="blueMembers"></ul>
+                </div>
+                <div class="tasks">
+                    <h3>Задания:</h3>
+                    <ul id="blueTasks"></ul>
+                </div>
+                <div class="score-buttons">
+                    <button class="score-btn" data-team="blue" data-points="5">+5</button>
+                    <button class="score-btn" data-team="blue" data-points="10">+10</button>
+                    <button class="score-btn" data-team="blue" data-points="20">+20</button>
+                </div>
+                <div class="task-input">
+                    <input type="text" id="blueTask" placeholder="Задание от зрителя" />
+                    <button id="addBlueTask">Записать задание</button>
+                </div>
             </div>
         </div>
 
-        <div class="cards-container" id="cards-container"></div>
-
-        <div class="stats-panel" id="pool-stats"></div>
-
-        <div class="history-panel">
-            <h2><i class="fas fa-scroll"></i> Судовой журнал</h2>
-            <div id="history-list" class="history-list"></div>
+        <div class="controls">
+            <button id="resetScores">Сбросить очки</button>
+            <button id="clearMembers">Очистить участников</button>
         </div>
 
-        <div class="control-panel">
-            <button id="reset-btn" class="btn-danger hidden">🔄 Новое плавание</button>
-        </div>
-    </div>
-
-    <!-- Модалка задания -->
-    <div id="task-modal" class="modal hidden">
-        <div class="modal-content">
-            <h2><i class="fas fa-map"></i> Капитанский приказ</h2>
-            <p id="task-description"></p>
-            <div class="balance-input">
-                <label>Новый запас дублонов:</label>
-                <input type="number" id="new-balance" step="100">
-            </div>
-            <div class="modal-buttons">
-                <button id="complete-task" class="btn-success">✅ Выполнено</button>
-                <button id="fail-task" class="btn-danger">❌ Провал</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Модалка завершения -->
-    <div id="completion-modal" class="modal hidden">
-        <div class="modal-content completion-content">
-            <h2>🏆 Сокровище найдено!</h2>
-            <p id="final-message"></p>
-            <div class="completion-stats">
-                <p>✅ Успешных вылазок: <span id="final-success">0</span></p>
-                <p>❌ Провалов: <span id="final-fail">0</span></p>
-                <p>⚠️ Наказаний: <span id="final-penalty">0</span></p>
-            </div>
-            <p>Итоговые дублоны: <span id="final-balance"></span> 💰</p>
-            <div class="completion-buttons">
-                <button id="flask-gag-btn" class="btn-neon">🗺️ Карта сокровищ</button>
-                <button id="completion-reset-btn" class="btn-neon">🔄 Новое плавание</button>
+        <div id="winnerModal" class="modal hidden">
+            <div class="modal-content">
+                <h2>🏆 ПОБЕДА! 🏆</h2>
+                <p id="winnerText"></p>
+                <p>10 случайных победителей из команды:</p>
+                <ul id="winnersList"></ul>
+                <button id="closeWinnerModal">Закрыть</button>
             </div>
         </div>
     </div>
 
-    <!-- Модалка выбора пути -->
-    <div id="path-modal" class="modal hidden">
-        <div class="modal-content">
-            <h2>🧭 Выберите путь</h2>
-            <p>На какую дорогу ступить?</p>
-            <div class="path-buttons">
-                <!-- Обновлённый текст: уровни 9 и 19 -->
-                <button id="path-risk" class="btn-neon">⚡ Путь риска (на 9 ур. без 1⭐, выбор на 19 ур. без 1⭐ и 2⭐)</button>
-                <button id="path-luck" class="btn-neon">🍀 Лёгкий путь (все задания как обычно)</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Модалка правил -->
-    <div id="rules-modal" class="modal hidden">
-        <div class="modal-content">
-            <h2>📜 Кодекс пирата</h2>
-            <p>Вы — капитан пиратского корабля. Ваша цель — пройти 30 островов (уровней) и найти легендарный клад. На каждом острове вам предлагаются две вылазки (задания) и одно наказание.</p>
-            <p><strong>Вылазки (задания):</strong> Выберите задание, выполните его, затем введите новый запас дублонов. Провал отправляет на штрафной уровень.</p>
-            <p><strong>Наказания:</strong> Выполнив наказание, вы возвращаетесь к основному квесту.</p>
-            <p><strong>Рейды:</strong> Задания для всего экипажа.</p>
-            <p><strong>Проклятые острова:</strong> Все три карточки — наказания.</p>
-            <p><strong>Трофеи:</strong> Выдаются каждые 5 уровней. «Половина» делит множитель задания на 2, «Треть» — на 3. Используйте их с умом!</p>
-            <p><strong>Путь риска:</strong> На уровнях 9 и 19 вы можете выбрать путь риска — на 9 уровне исчезают задания 1⭐ на следующие 10 уровней, на 19 уровне — 1⭐ и 2⭐. Лёгкий путь оставляет всё как есть.</p>
-            <p><strong>Репутация и ранг:</strong> За успехи вы получаете репутацию. Каждые 10 очков повышают ранг (Юнга → Матрос → Боцман → Капитан → Адмирал). Ранг увеличивает множители заданий.</p>
-            <p><strong>Карта сокровищ:</strong> В конце игры нажмите «Карта сокровищ», чтобы увидеть все пройденные острова.</p>
-            <label><input type="checkbox" id="dont-show-rules"> Больше не показывать</label>
-            <button id="start-quest-btn" class="btn-neon">Понятно</button>
-        </div>
-    </div>
-
-    <!-- Модалка карты сокровищ -->
-    <div id="map-modal" class="modal hidden">
-        <div class="modal-content map-modal-content">
-            <h2><i class="fas fa-map"></i> Полная карта</h2>
-            <div id="full-map-grid" class="map-grid large-map"></div>
-            <button id="close-map-modal" class="btn-neon">Закрыть</button>
-        </div>
-    </div>
-
-    <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
