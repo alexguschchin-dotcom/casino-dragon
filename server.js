@@ -1,7 +1,7 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const { LiveChat } = require('youtube-chat'); // новая библиотека
+const { LiveChat } = require('youtube-chat');
 
 const app = express();
 const server = http.createServer(app);
@@ -9,7 +9,6 @@ const io = socketIo(server);
 
 app.use(express.static('public'));
 
-// Данные команд
 let teams = {
     red: { name: 'Красные', members: [], score: 0, tasks: [] },
     blue: { name: 'Синие', members: [], score: 0, tasks: [] }
@@ -17,7 +16,6 @@ let teams = {
 
 let chatClient = null;
 
-// Функция запуска бота для чата (теперь только videoId)
 function startChatBot(videoId) {
     if (chatClient) {
         chatClient.stop();
@@ -31,9 +29,11 @@ function startChatBot(videoId) {
         console.log(`✅ Бот успешно подключён к чату ${videoId}`);
     });
 
-    chat.on('message', (msg) => {
+    // ПРАВИЛЬНОЕ событие для получения сообщений - 'chat'
+    chat.on('chat', (msg) => {
         const author = msg.author.name;
         const text = msg.message.trim().toLowerCase();
+        console.log(`[CHAT] ${author}: ${text}`); // для отладки
 
         if (text === '!красная') {
             if (!teams.red.members.includes(author)) {
@@ -62,7 +62,6 @@ io.on('connection', (socket) => {
     console.log('Стример подключился');
     socket.emit('updateTeams', teams);
 
-    // Инициализация чата (теперь только videoId)
     socket.on('initChat', ({ videoId }) => {
         if (!videoId) {
             socket.emit('errorMessage', 'Введите ID видео');
@@ -72,12 +71,10 @@ io.on('connection', (socket) => {
         socket.emit('chatStarted', 'Бот запущен!');
     });
 
-    // Начисление очков
     socket.on('addScore', ({ team, points }) => {
         if (team === 'red') teams.red.score += points;
         else if (team === 'blue') teams.blue.score += points;
         io.emit('updateTeams', teams);
-
         if (teams.red.score >= 100 || teams.blue.score >= 100) {
             const winner = teams.red.score >= 100 ? 'red' : 'blue';
             io.emit('gameOver', { winner, members: teams[winner].members });
