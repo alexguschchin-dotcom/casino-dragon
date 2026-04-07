@@ -13,13 +13,11 @@ const resetScoresBtn = document.getElementById('resetScores');
 const clearMembersBtn = document.getElementById('clearMembers');
 const initChatBtn = document.getElementById('initChatBtn');
 const videoIdInput = document.getElementById('videoId');
-const apiKeyInput = document.getElementById('apiKey');
 const winnerModal = document.getElementById('winnerModal');
 const winnerText = document.getElementById('winnerText');
 const winnersList = document.getElementById('winnersList');
 const closeWinnerModal = document.getElementById('closeWinnerModal');
 
-// Обновление UI
 function updateUI(data) {
     teamsData = data;
     redScoreSpan.textContent = data.red.score;
@@ -34,7 +32,6 @@ socket.on('updateTeams', updateUI);
 socket.on('gameOver', ({ winner, members }) => {
     const winnerName = winner === 'red' ? 'Красные' : 'Синие';
     winnerText.innerText = `Победила команда ${winnerName}!`;
-    // Выбираем 10 случайных участников
     const shuffled = [...members];
     for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -49,7 +46,6 @@ closeWinnerModal.addEventListener('click', () => {
     winnerModal.classList.add('hidden');
 });
 
-// Начисление очков
 document.querySelectorAll('.score-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const team = btn.dataset.team;
@@ -58,7 +54,6 @@ document.querySelectorAll('.score-btn').forEach(btn => {
     });
 });
 
-// Запись заданий
 document.getElementById('addRedTask').addEventListener('click', () => {
     const task = document.getElementById('redTask').value;
     if (task.trim()) {
@@ -74,24 +69,22 @@ document.getElementById('addBlueTask').addEventListener('click', () => {
     }
 });
 
-// Сброс очков
 resetScoresBtn.addEventListener('click', () => {
     socket.emit('resetScores');
 });
+
 clearMembersBtn.addEventListener('click', () => {
     if (confirm('Очистить всех участников и начать новую игру?')) {
         socket.emit('clearMembers');
     }
 });
 
-// Инициализация чата YouTube
 initChatBtn.addEventListener('click', () => {
     const videoId = videoIdInput.value.trim();
-    const apiKey = apiKeyInput.value.trim();
-    if (!videoId || !apiKey) {
-        alert('Введите ID видео и API ключ YouTube');
+    if (!videoId) {
+        alert('Введите ID видео YouTube');
         return;
     }
-    socket.emit('initChat', { videoId, apiKey });
+    socket.emit('initChat', { videoId });
     alert('Бот чата запущен! Зрители могут писать !красная или !синяя');
 });
