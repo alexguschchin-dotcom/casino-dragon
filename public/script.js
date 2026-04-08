@@ -1,6 +1,8 @@
 const socket = io();
 
 let teamsData = { red: { score: 0, members: [], tasks: [] }, blue: { score: 0, members: [], tasks: [] } };
+let redFilter = '';
+let blueFilter = '';
 
 const redScoreSpan = document.getElementById('redScore');
 const blueScoreSpan = document.getElementById('blueScore');
@@ -24,12 +26,78 @@ const winnersList = document.getElementById('winnersList');
 const closeWinnerModal = document.getElementById('closeWinnerModal');
 const chatStatus = document.getElementById('chatStatus');
 
+// Добавляем поля поиска
+const addSearchBoxes = () => {
+    const redMembersContainer = document.querySelector('.red .members');
+    const blueMembersContainer = document.querySelector('.blue .members');
+    if (!document.getElementById('redSearch')) {
+        const redSearch = document.createElement('input');
+        redSearch.id = 'redSearch';
+        redSearch.placeholder = '🔍 Поиск по красным...';
+        redSearch.style.width = '100%';
+        redSearch.style.marginBottom = '10px';
+        redSearch.style.padding = '5px';
+        redSearch.style.borderRadius = '20px';
+        redSearch.style.border = '1px solid #f9a825';
+        redSearch.style.background = 'rgba(255,255,255,0.1)';
+        redSearch.style.color = '#fff';
+        redSearch.addEventListener('input', (e) => {
+            redFilter = e.target.value.toLowerCase();
+            renderMembers('red');
+        });
+        redMembersContainer.insertBefore(redSearch, redMembersContainer.firstChild);
+    }
+    if (!document.getElementById('blueSearch')) {
+        const blueSearch = document.createElement('input');
+        blueSearch.id = 'blueSearch';
+        blueSearch.placeholder = '🔍 Поиск по синим...';
+        blueSearch.style.width = '100%';
+        blueSearch.style.marginBottom = '10px';
+        blueSearch.style.padding = '5px';
+        blueSearch.style.borderRadius = '20px';
+        blueSearch.style.border = '1px solid #f9a825';
+        blueSearch.style.background = 'rgba(255,255,255,0.1)';
+        blueSearch.style.color = '#fff';
+        blueSearch.addEventListener('input', (e) => {
+            blueFilter = e.target.value.toLowerCase();
+            renderMembers('blue');
+        });
+        blueMembersContainer.insertBefore(blueSearch, blueMembersContainer.firstChild);
+    }
+};
+
+function renderMembers(team) {
+    const members = team === 'red' ? teamsData.red.members : teamsData.blue.members;
+    const filter = team === 'red' ? redFilter : blueFilter;
+    let filtered = members;
+    if (filter) {
+        filtered = members.filter(m => m.toLowerCase().includes(filter));
+    }
+    const listEl = team === 'red' ? redMembersList : blueMembersList;
+    
+    if (filter) {
+        // При поиске показываем всех подходящих
+        listEl.innerHTML = filtered.map(m => `<li>${m}</li>`).join('');
+    } else {
+        // Без поиска – только последние 10
+        const last10 = filtered.slice(-10);
+        listEl.innerHTML = last10.map(m => `<li>${m}</li>`).join('');
+        if (filtered.length > 10) {
+            const extra = document.createElement('li');
+            extra.style.fontStyle = 'italic';
+            extra.style.color = '#aaa';
+            extra.innerText = `... и ещё ${filtered.length - 10} участников. Используйте поиск.`;
+            listEl.appendChild(extra);
+        }
+    }
+}
+
 function updateUI(data) {
     teamsData = data;
     redScoreSpan.textContent = data.red.score;
     blueScoreSpan.textContent = data.blue.score;
-    redMembersList.innerHTML = data.red.members.map(m => `<li>${m}</li>`).join('');
-    blueMembersList.innerHTML = data.blue.members.map(m => `<li>${m}</li>`).join('');
+    renderMembers('red');
+    renderMembers('blue');
     redTasksList.innerHTML = data.red.tasks.map(t => `<li>${t.text} (${new Date(t.timestamp).toLocaleTimeString()})</li>`).join('');
     blueTasksList.innerHTML = data.blue.tasks.map(t => `<li>${t.text} (${new Date(t.timestamp).toLocaleTimeString()})</li>`).join('');
 }
@@ -41,7 +109,7 @@ socket.on('pairsHistory', (history) => {
 socket.on('currentPair', (pair) => {
     if (pair) {
         currentPairDisplay.innerHTML = `🎲 Текущая пара: 🔴 ${pair.red}  vs  🔵 ${pair.blue}`;
-        messagesListDiv.innerHTML = ''; // очищаем сообщения старой пары
+        messagesListDiv.innerHTML = '';
     } else {
         currentPairDisplay.innerHTML = 'Нет активной пары';
     }
@@ -71,7 +139,6 @@ closeWinnerModal.addEventListener('click', () => {
     winnerModal.classList.add('hidden');
 });
 
-// Начисление очков
 document.querySelectorAll('.score-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const team = btn.dataset.team;
@@ -80,7 +147,6 @@ document.querySelectorAll('.score-btn').forEach(btn => {
     });
 });
 
-// Задания
 document.getElementById('addRedTask').addEventListener('click', () => {
     const task = document.getElementById('redTask').value;
     if (task.trim()) {
@@ -96,7 +162,6 @@ document.getElementById('addBlueTask').addEventListener('click', () => {
     }
 });
 
-// Кнопки управления
 resetScoresBtn.addEventListener('click', () => socket.emit('resetScores'));
 clearMembersBtn.addEventListener('click', () => {
     if (confirm('Очистить всех участников, историю и сбросить очки?'))
@@ -105,7 +170,6 @@ clearMembersBtn.addEventListener('click', () => {
 pickPairBtn.addEventListener('click', () => socket.emit('pickRandomPair'));
 endBattleBtn.addEventListener('click', () => socket.emit('endBattle'));
 
-// Инициализация чата
 initChatBtn.addEventListener('click', () => {
     const videoId = videoIdInput.value.trim();
     const apiKey = apiKeyInput.value.trim();
@@ -116,3 +180,5 @@ initChatBtn.addEventListener('click', () => {
     socket.emit('initChat', { videoId, apiKey });
     chatStatus.innerHTML = '<span>⏳ Подключение...</span>';
 });
+
+document.addEventListener('DOMContentLoaded', addSearchBoxes);
