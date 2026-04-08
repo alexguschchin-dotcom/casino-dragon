@@ -87,7 +87,7 @@ h1 {
 }
 .members ul, .tasks ul {
     list-style: none;
-    max-height: 200px;
+    max-height: 150px;
     overflow-y: auto;
 }
 .members li, .tasks li {
@@ -147,40 +147,6 @@ h1 {
     font-weight: bold;
     cursor: pointer;
 }
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.9);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-.modal-content {
-    background: #1a1a2e;
-    border-radius: 40px;
-    padding: 30px;
-    text-align: center;
-    border: 2px solid #f9a825;
-    max-width: 500px;
-    width: 90%;
-}
-.modal-content ul {
-    margin: 20px 0;
-    max-height: 200px;
-    overflow-y: auto;
-}
-.modal-content li {
-    padding: 5px;
-}
-.hidden {
-    display: none;
-}
-
-/* Новые стили для панели битвы и истории */
 .battle-panel {
     background: rgba(0,0,0,0.5);
     border-radius: 20px;
@@ -237,4 +203,36 @@ h1 {
 .history li {
     padding: 5px;
     border-bottom: 1px solid #ccc;
+}
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+.modal-content {
+    background: #1a1a2e;
+    border-radius: 40px;
+    padding: 30px;
+    text-align: center;
+    border: 2px solid #f9a825;
+    max-width: 500px;
+    width: 90%;
+}
+.modal-content ul {
+    margin: 20px 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.modal-content li {
+    padding: 5px;
+}
+.hidden {
+    display: none;
 }

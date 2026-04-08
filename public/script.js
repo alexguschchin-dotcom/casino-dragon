@@ -4,6 +4,7 @@ let teamsData = { red: { score: 0, members: [], tasks: [] }, blue: { score: 0, m
 let redFilter = '';
 let blueFilter = '';
 
+// DOM элементы
 const redScoreSpan = document.getElementById('redScore');
 const blueScoreSpan = document.getElementById('blueScore');
 const redMembersList = document.getElementById('redMembers');
@@ -13,8 +14,10 @@ const blueTasksList = document.getElementById('blueTasks');
 const resetScoresBtn = document.getElementById('resetScores');
 const clearMembersBtn = document.getElementById('clearMembers');
 const initChatBtn = document.getElementById('initChatBtn');
+const initKickChatBtn = document.getElementById('initKickChatBtn');
 const videoIdInput = document.getElementById('videoId');
 const apiKeyInput = document.getElementById('apiKey');
+const kickUsernameInput = document.getElementById('kickUsername');
 const pickPairBtn = document.getElementById('pickPairBtn');
 const currentPairDisplay = document.getElementById('currentPairDisplay');
 const messagesListDiv = document.getElementById('messagesList');
@@ -25,8 +28,9 @@ const winnerText = document.getElementById('winnerText');
 const winnersList = document.getElementById('winnersList');
 const closeWinnerModal = document.getElementById('closeWinnerModal');
 const chatStatus = document.getElementById('chatStatus');
+const kickStatus = document.getElementById('kickStatus');
 
-// Добавляем поля поиска
+// Добавление поисковых полей
 const addSearchBoxes = () => {
     const redMembersContainer = document.querySelector('.red .members');
     const blueMembersContainer = document.querySelector('.blue .members');
@@ -74,7 +78,6 @@ function renderMembers(team) {
         filtered = members.filter(m => m.toLowerCase().includes(filter));
     }
     const listEl = team === 'red' ? redMembersList : blueMembersList;
-    
     if (filter) {
         listEl.innerHTML = filtered.map(m => `<li>${m}</li>`).join('');
     } else {
@@ -122,9 +125,13 @@ socket.on('pairMessage', ({ side, author, text }) => {
 socket.on('chatStarted', (msg) => {
     chatStatus.innerHTML = `<span style="color:green;">✅ ${msg}</span>`;
 });
+socket.on('kickChatStarted', (msg) => {
+    kickStatus.innerHTML = `<span style="color:green;">✅ ${msg}</span>`;
+});
 socket.on('errorMessage', (msg) => {
     alert(msg);
-    chatStatus.innerHTML = `<span style="color:red;">❌ ${msg}</span>`;
+    if (chatStatus) chatStatus.innerHTML = `<span style="color:red;">❌ ${msg}</span>`;
+    if (kickStatus) kickStatus.innerHTML = `<span style="color:red;">❌ ${msg}</span>`;
 });
 socket.on('gameOver', ({ winner, members }) => {
     const winnerName = winner === 'red' ? 'Красные' : 'Синие';
@@ -137,6 +144,7 @@ closeWinnerModal.addEventListener('click', () => {
     winnerModal.classList.add('hidden');
 });
 
+// Кнопки управления
 document.querySelectorAll('.score-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const team = btn.dataset.team;
@@ -168,14 +176,11 @@ clearMembersBtn.addEventListener('click', () => {
 pickPairBtn.addEventListener('click', () => socket.emit('pickRandomPair'));
 endBattleBtn.addEventListener('click', () => socket.emit('endBattle'));
 
-// Обработчики кнопок перевыбора
-document.getElementById('rerollRedBtn')?.addEventListener('click', () => {
-    socket.emit('rerollRed');
-});
-document.getElementById('rerollBlueBtn')?.addEventListener('click', () => {
-    socket.emit('rerollBlue');
-});
+// Кнопки перевыбора
+document.getElementById('rerollRedBtn').addEventListener('click', () => socket.emit('rerollRed'));
+document.getElementById('rerollBlueBtn').addEventListener('click', () => socket.emit('rerollBlue'));
 
+// Инициализация YouTube
 initChatBtn.addEventListener('click', () => {
     const videoId = videoIdInput.value.trim();
     const apiKey = apiKeyInput.value.trim();
@@ -185,6 +190,17 @@ initChatBtn.addEventListener('click', () => {
     }
     socket.emit('initChat', { videoId, apiKey });
     chatStatus.innerHTML = '<span>⏳ Подключение...</span>';
+});
+
+// Инициализация Kick
+initKickChatBtn.addEventListener('click', () => {
+    const username = kickUsernameInput.value.trim();
+    if (!username) {
+        alert('Введите имя пользователя Kick');
+        return;
+    }
+    socket.emit('initKickChat', { username });
+    kickStatus.innerHTML = '<span>⏳ Подключение...</span>';
 });
 
 document.addEventListener('DOMContentLoaded', addSearchBoxes);
