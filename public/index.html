@@ -2,82 +2,81 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Битва кланов – панель стримера</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>🏆 Битва кланов 🏆</h1>
-        <div class="setup">
-            <h3>Настройка YouTube чата</h3>
-            <input type="text" id="videoId" placeholder="ID видео (например, abcd1234)" />
-            <button id="initChatBtn">Подключиться к чату</button>
-        </div>
+<div class="container">
+    <h1>🏆 Битва кланов 🏆</h1>
+    <div class="setup">
+        <h3>Настройка YouTube чата</h3>
+        <input type="text" id="videoId" placeholder="ID видео (например, abcd1234)" />
+        <input type="text" id="apiKey" placeholder="API ключ YouTube" />
+        <button id="initChatBtn">Подключиться к чату</button>
+        <div id="chatStatus"></div>
+    </div>
 
-        <div class="teams">
-            <div class="team red">
-                <h2>🔴 Красные</h2>
-                <div class="score">Очки: <span id="redScore">0</span></div>
-                <div class="members">
-                    <h3>Участники:</h3>
-                    <ul id="redMembers"></ul>
-                </div>
-                <div class="tasks">
-                    <h3>Задания:</h3>
-                    <ul id="redTasks"></ul>
-                </div>
-                <div class="score-buttons">
-                    <button class="score-btn" data-team="red" data-points="5">+5</button>
-                    <button class="score-btn" data-team="red" data-points="10">+10</button>
-                    <button class="score-btn" data-team="red" data-points="20">+20</button>
-                </div>
-                <div class="task-input">
-                    <input type="text" id="redTask" placeholder="Задание от зрителя" />
-                    <button id="addRedTask">Записать задание</button>
-                </div>
+    <div class="teams">
+        <div class="team red">
+            <h2>🔴 Красные</h2>
+            <div class="score">Очки: <span id="redScore">0</span></div>
+            <div class="members"><h3>Участники:</h3><ul id="redMembers"></ul></div>
+            <div class="score-buttons">
+                <button class="score-btn" data-team="red" data-points="5">+5</button>
+                <button class="score-btn" data-team="red" data-points="10">+10</button>
+                <button class="score-btn" data-team="red" data-points="20">+20</button>
             </div>
-            <div class="team blue">
-                <h2>🔵 Синие</h2>
-                <div class="score">Очки: <span id="blueScore">0</span></div>
-                <div class="members">
-                    <h3>Участники:</h3>
-                    <ul id="blueMembers"></ul>
-                </div>
-                <div class="tasks">
-                    <h3>Задания:</h3>
-                    <ul id="blueTasks"></ul>
-                </div>
-                <div class="score-buttons">
-                    <button class="score-btn" data-team="blue" data-points="5">+5</button>
-                    <button class="score-btn" data-team="blue" data-points="10">+10</button>
-                    <button class="score-btn" data-team="blue" data-points="20">+20</button>
-                </div>
-                <div class="task-input">
-                    <input type="text" id="blueTask" placeholder="Задание от зрителя" />
-                    <button id="addBlueTask">Записать задание</button>
-                </div>
+            <div class="task-input">
+                <input type="text" id="redTask" placeholder="Задание от зрителя" />
+                <button id="addRedTask">Записать задание</button>
             </div>
         </div>
-
-        <div class="controls">
-            <button id="resetScores">Сбросить очки</button>
-            <button id="clearMembers">Очистить участников</button>
-        </div>
-
-        <div id="winnerModal" class="modal hidden">
-            <div class="modal-content">
-                <h2>🏆 ПОБЕДА! 🏆</h2>
-                <p id="winnerText"></p>
-                <p>10 случайных победителей из команды:</p>
-                <ul id="winnersList"></ul>
-                <button id="closeWinnerModal">Закрыть</button>
+        <div class="team blue">
+            <h2>🔵 Синие</h2>
+            <div class="score">Очки: <span id="blueScore">0</span></div>
+            <div class="members"><h3>Участники:</h3><ul id="blueMembers"></ul></div>
+            <div class="score-buttons">
+                <button class="score-btn" data-team="blue" data-points="5">+5</button>
+                <button class="score-btn" data-team="blue" data-points="10">+10</button>
+                <button class="score-btn" data-team="blue" data-points="20">+20</button>
+            </div>
+            <div class="task-input">
+                <input type="text" id="blueTask" placeholder="Задание от зрителя" />
+                <button id="addBlueTask">Записать задание</button>
             </div>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <div class="battle-panel">
+        <button id="pickPairBtn">🎲 Выбрать случайную пару</button>
+        <div id="currentPairDisplay" class="pair-display"></div>
+        <div id="pairMessages" class="pair-messages">
+            <h3>Сообщения текущей пары</h3>
+            <div id="messagesList"></div>
+        </div>
+        <button id="resetScores">Сбросить очки</button>
+        <button id="clearMembers">Очистить всё</button>
+        <button id="endBattleBtn">🏆 Завершить битву и выбрать победителей</button>
+    </div>
+
+    <div class="history">
+        <h3>История пар</h3>
+        <ul id="historyList"></ul>
+    </div>
+
+    <div id="winnerModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>🏆 ПОБЕДА! 🏆</h2>
+            <p id="winnerText"></p>
+            <p>10 случайных победителей из команды:</p>
+            <ul id="winnersList"></ul>
+            <button id="closeWinnerModal">Закрыть</button>
+        </div>
+    </div>
+</div>
+<script src="script.js"></script>
 </body>
 </html>

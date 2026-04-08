@@ -13,10 +13,17 @@ const resetScoresBtn = document.getElementById('resetScores');
 const clearMembersBtn = document.getElementById('clearMembers');
 const initChatBtn = document.getElementById('initChatBtn');
 const videoIdInput = document.getElementById('videoId');
+const apiKeyInput = document.getElementById('apiKey');
+const pickPairBtn = document.getElementById('pickPairBtn');
+const currentPairDisplay = document.getElementById('currentPairDisplay');
+const messagesListDiv = document.getElementById('messagesList');
+const endBattleBtn = document.getElementById('endBattleBtn');
+const historyList = document.getElementById('historyList');
 const winnerModal = document.getElementById('winnerModal');
 const winnerText = document.getElementById('winnerText');
 const winnersList = document.getElementById('winnersList');
 const closeWinnerModal = document.getElementById('closeWinnerModal');
+const chatStatus = document.getElementById('chatStatus');
 
 function updateUI(data) {
     teamsData = data;
@@ -29,16 +36,35 @@ function updateUI(data) {
 }
 
 socket.on('updateTeams', updateUI);
+socket.on('pairsHistory', (history) => {
+    historyList.innerHTML = history.map(p => `<li>🔴 ${p.red} vs 🔵 ${p.blue} — ${new Date(p.timestamp).toLocaleTimeString()}</li>`).join('');
+});
+socket.on('currentPair', (pair) => {
+    if (pair) {
+        currentPairDisplay.innerHTML = `🎲 Текущая пара: 🔴 ${pair.red}  vs  🔵 ${pair.blue}`;
+        messagesListDiv.innerHTML = ''; // очищаем старые сообщения
+    } else {
+        currentPairDisplay.innerHTML = 'Нет активной пары';
+    }
+});
+socket.on('pairMessage', ({ side, author, text, timestamp }) => {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message-item';
+    messageDiv.innerHTML = `<span class="message-author">${author}</span>: ${text}`;
+    messagesListDiv.appendChild(messageDiv);
+    messagesListDiv.scrollTop = messagesListDiv.scrollHeight;
+});
+socket.on('chatStarted', (msg) => {
+    chatStatus.innerHTML = `<span style="color:green;">✅ ${msg}</span>`;
+});
+socket.on('errorMessage', (msg) => {
+    alert(msg);
+    chatStatus.innerHTML = `<span style="color:red;">❌ ${msg}</span>`;
+});
 socket.on('gameOver', ({ winner, members }) => {
     const winnerName = winner === 'red' ? 'Красные' : 'Синие';
     winnerText.innerText = `Победила команда ${winnerName}!`;
-    const shuffled = [...members];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    const selected = shuffled.slice(0, 10);
-    winnersList.innerHTML = selected.map(w => `<li>${w}</li>`).join('');
+    winnersList.innerHTML = members.map(w => `<li>${w}</li>`).join('');
     winnerModal.classList.remove('hidden');
 });
 
@@ -46,6 +72,7 @@ closeWinnerModal.addEventListener('click', () => {
     winnerModal.classList.add('hidden');
 });
 
+// Начисление очков
 document.querySelectorAll('.score-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const team = btn.dataset.team;
@@ -54,6 +81,7 @@ document.querySelectorAll('.score-btn').forEach(btn => {
     });
 });
 
+// Задания
 document.getElementById('addRedTask').addEventListener('click', () => {
     const task = document.getElementById('redTask').value;
     if (task.trim()) {
@@ -69,22 +97,23 @@ document.getElementById('addBlueTask').addEventListener('click', () => {
     }
 });
 
-resetScoresBtn.addEventListener('click', () => {
-    socket.emit('resetScores');
-});
-
+// Кнопки управления
+resetScoresBtn.addEventListener('click', () => socket.emit('resetScores'));
 clearMembersBtn.addEventListener('click', () => {
-    if (confirm('Очистить всех участников и начать новую игру?')) {
+    if (confirm('Очистить всех участников, историю и сбросить очки?'))
         socket.emit('clearMembers');
-    }
 });
+pickPairBtn.addEventListener('click', () => socket.emit('pickRandomPair'));
+endBattleBtn.addEventListener('click', () => socket.emit('endBattle'));
 
+// Инициализация чата YouTube
 initChatBtn.addEventListener('click', () => {
     const videoId = videoIdInput.value.trim();
-    if (!videoId) {
-        alert('Введите ID видео YouTube');
+    const apiKey = apiKeyInput.value.trim();
+    if (!videoId || !apiKey) {
+        alert('Введите ID видео и API ключ YouTube');
         return;
     }
-    socket.emit('initChat', { videoId });
-    alert('Бот чата запущен! Зрители могут писать !красная или !синяя');
+    socket.emit('initChat', { videoId, apiKey });
+    chatStatus.innerHTML = '<span>⏳ Подключение...</span>';
 });
