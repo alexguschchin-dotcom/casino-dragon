@@ -76,10 +76,8 @@ function renderMembers(team) {
     const listEl = team === 'red' ? redMembersList : blueMembersList;
     
     if (filter) {
-        // При поиске показываем всех подходящих
         listEl.innerHTML = filtered.map(m => `<li>${m}</li>`).join('');
     } else {
-        // Без поиска – только последние 10
         const last10 = filtered.slice(-10);
         listEl.innerHTML = last10.map(m => `<li>${m}</li>`).join('');
         if (filtered.length > 10) {
@@ -169,6 +167,14 @@ clearMembersBtn.addEventListener('click', () => {
 });
 pickPairBtn.addEventListener('click', () => socket.emit('pickRandomPair'));
 endBattleBtn.addEventListener('click', () => socket.emit('endBattle'));
+
+// Обработчики кнопок перевыбора
+document.getElementById('rerollRedBtn')?.addEventListener('click', () => {
+    socket.emit('rerollRed');
+});
+document.getElementById('rerollBlueBtn')?.addEventListener('click', () => {
+    socket.emit('rerollBlue');
+});
 
 initChatBtn.addEventListener('click', () => {
     const videoId = videoIdInput.value.trim();
