@@ -20,18 +20,17 @@ let liveChatId = null;
 let apiKey = null;
 let videoId = null;
 let nextPageToken = null;
+let gameFinished = false; // флаг для предотвращения повторных завершений
 
 // --- Переменные для Kick ---
 let kickConnection = null;
 let kickUsername = null;
 
-// --- Функция для проверки и завершения игры при 100 очках ---
+// --- Функция проверки и завершения игры при 100 очках ---
 function checkWinAndFinish() {
-    // Проверяем, не завершена ли игра уже, чтобы не спамить событие
-    if (global.gameFinished) return;
-    
+    if (gameFinished) return;
     if (teams.red.score >= 100 || teams.blue.score >= 100) {
-        global.gameFinished = true; // Ставим флаг, чтобы не вызывать несколько раз
+        gameFinished = true;
         const winner = teams.red.score >= 100 ? 'red' : 'blue';
         const winnerMembers = [...teams[winner].members];
         if (winnerMembers.length === 0) return;
@@ -42,7 +41,7 @@ function checkWinAndFinish() {
     }
 }
 
-// --- YouTube функции (без изменений) ---
+// --- YouTube функции ---
 async function getLiveChatId(videoId, key) {
     const service = google.youtube('v3');
     const response = await service.videos.list({
@@ -104,9 +103,9 @@ function startChatMonitoring(io, liveChatId, apiKey) {
                 }
             }
         } catch (err) {
-            console.error('Ошибка чата:', err);
+            console.error('Ошибка чата YouTube:', err);
             if (err.response?.status === 403) {
-                io.emit('errorMessage', 'Превышена квота API. Увеличьте интервал опроса или подождите до завтра.');
+                io.emit('errorMessage', 'Превышена квота YouTube API. Увеличьте интервал опроса или подождите до завтра.');
                 clearInterval(chatMonitor);
                 chatMonitor = null;
             }
@@ -182,10 +181,10 @@ io.on('connection', (socket) => {
     socket.emit('pairsHistory', pairsHistory);
     if (currentPair) socket.emit('currentPair', currentPair);
 
-    // Инициализация YouTube
+    // YouTube
     socket.on('initChat', async ({ videoId: vid, apiKey: key }) => {
         if (!vid || !key) {
-            socket.emit('errorMessage', 'Введите ID видео и API-ключ');
+            socket.emit('errorMessage', 'Введите ID видео и API-ключ YouTube');
             return;
         }
         videoId = vid;
@@ -201,7 +200,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Инициализация Kick
+    // Kick
     socket.on('initKickChat', ({ username }) => {
         if (!username) {
             socket.emit('errorMessage', 'Введите имя пользователя Kick');
@@ -211,15 +210,16 @@ io.on('connection', (socket) => {
         startKickChat(kickUsername);
     });
 
-    // --- Остальные события (addScore, pickRandomPair и т.д.) ---
+    // Начисление очков
     socket.on('addScore', ({ team, points }) => {
         if (team === 'red') teams.red.score += points;
         else if (team === 'blue') teams.blue.score += points;
         io.emit('updateTeams', teams);
         console.log(`📊 +${points} команде ${team}`);
-        checkWinAndFinish(); // Вызываем проверку после начисления очков
+        checkWinAndFinish();
     });
 
+    // Выбор случайной пары
     socket.on('pickRandomPair', () => {
         if (teams.red.members.length === 0 || teams.blue.members.length === 0) {
             socket.emit('errorMessage', 'В обеих командах должны быть участники');
@@ -240,6 +240,7 @@ io.on('connection', (socket) => {
         console.log(`🎲 Новая пара: ${randomRed} (красный) vs ${randomBlue} (синий)`);
     });
 
+    // Перевыбор красного
     socket.on('rerollRed', () => {
         if (!currentPair) {
             socket.emit('errorMessage', 'Нет активной пары');
@@ -262,6 +263,7 @@ io.on('connection', (socket) => {
         console.log(`🔄 Красный заменён: ${currentRed} -> ${newRed}`);
     });
 
+    // Перевыбор синего
     socket.on('rerollBlue', () => {
         if (!currentPair) {
             socket.emit('errorMessage', 'Нет активной пары');
@@ -284,13 +286,15 @@ io.on('connection', (socket) => {
         console.log(`🔄 Синий заменён: ${currentBlue} -> ${newBlue}`);
     });
 
+    // Сброс очков (не сбрасывает флаг gameFinished, чтобы не ломать логику, но при очистке сбросим)
     socket.on('resetScores', () => {
         teams.red.score = 0;
         teams.blue.score = 0;
         io.emit('updateTeams', teams);
-        global.gameFinished = false; // Сбрасываем флаг игры
+        gameFinished = false;
     });
 
+    // Полная очистка
     socket.on('clearMembers', () => {
         teams.red.members = [];
         teams.blue.members = [];
@@ -303,9 +307,10 @@ io.on('connection', (socket) => {
         io.emit('updateTeams', teams);
         io.emit('pairsHistory', pairsHistory);
         io.emit('currentPair', null);
-        global.gameFinished = false; // Сбрасываем флаг игры
+        gameFinished = false;
     });
 
+    // Добавление задания
     socket.on('addTask', ({ team, task }) => {
         const taskObj = { text: task, timestamp: new Date() };
         if (team === 'red') teams.red.tasks.push(taskObj);
@@ -313,7 +318,9 @@ io.on('connection', (socket) => {
         io.emit('updateTeams', teams);
     });
 
+    // Ручное завершение битвы
     socket.on('endBattle', () => {
+        if (gameFinished) return;
         let winnerTeam = null;
         if (teams.red.score > teams.blue.score) winnerTeam = 'red';
         else if (teams.blue.score > teams.red.score) winnerTeam = 'blue';
@@ -327,7 +334,7 @@ io.on('connection', (socket) => {
         const selected = shuffled.slice(0, 10);
         io.emit('gameOver', { winner: winnerTeam, members: selected });
         console.log(`🏆 Ручное завершение: победитель ${winnerTeam}`);
-        global.gameFinished = true; // Завершаем игру
+        gameFinished = true;
     });
 });
 
