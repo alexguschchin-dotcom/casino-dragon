@@ -12,15 +12,14 @@ let teams = {
     red: { name: 'Красные', members: [], score: 0, tasks: [] },
     blue: { name: 'Синие', members: [], score: 0, tasks: [] }
 };
-let pairsHistory = [];        // все сыгранные пары
-let currentPair = null;       // { red, blue }
+let pairsHistory = [];
+let currentPair = null;
 let chatMonitor = null;
 let liveChatId = null;
 let apiKey = null;
 let videoId = null;
 let nextPageToken = null;
 
-// Получение liveChatId по videoId
 async function getLiveChatId(videoId, key) {
     const service = google.youtube('v3');
     const response = await service.videos.list({
@@ -36,7 +35,6 @@ async function getLiveChatId(videoId, key) {
     }
 }
 
-// Мониторинг чата (каждые 5 секунд)
 function startChatMonitoring(io, liveChatId, apiKey) {
     if (chatMonitor) clearInterval(chatMonitor);
     nextPageToken = null;
@@ -58,26 +56,28 @@ function startChatMonitoring(io, liveChatId, apiKey) {
                 const author = msg.authorDetails.displayName;
                 const text = msg.snippet.displayMessage.trim().toLowerCase();
 
-                // Обработка команд
+                // Запрет смены команды
                 if (text === '!красная') {
-                    if (!teams.red.members.includes(author)) {
+                    if (!teams.red.members.includes(author) && !teams.blue.members.includes(author)) {
                         teams.red.members.push(author);
                         io.emit('updateTeams', teams);
                         console.log(`➕ ${author} -> Красные`);
+                    } else if (teams.blue.members.includes(author)) {
+                        console.log(`⚠️ ${author} уже в синих, не может стать красным`);
                     }
                 } else if (text === '!синяя') {
-                    if (!teams.blue.members.includes(author)) {
+                    if (!teams.blue.members.includes(author) && !teams.red.members.includes(author)) {
                         teams.blue.members.push(author);
                         io.emit('updateTeams', teams);
                         console.log(`➕ ${author} -> Синие`);
+                    } else if (teams.red.members.includes(author)) {
+                        console.log(`⚠️ ${author} уже в красных, не может стать синим`);
                     }
                 }
 
-                // Если есть текущая пара и сообщение от одного из них
                 if (currentPair && (author === currentPair.red || author === currentPair.blue)) {
                     const side = author === currentPair.red ? 'red' : 'blue';
                     io.emit('pairMessage', { side, author, text, timestamp: Date.now() });
-                    // сохраняем в историю этой пары
                     const pairIndex = pairsHistory.findIndex(p => p.red === currentPair.red && p.blue === currentPair.blue);
                     if (pairIndex !== -1) {
                         if (side === 'red') pairsHistory[pairIndex].redMessages.push({ author, text, timestamp: Date.now() });
@@ -96,7 +96,6 @@ function startChatMonitoring(io, liveChatId, apiKey) {
     }, 5000);
 }
 
-// Автоматическое завершение битвы при 100 очках
 function checkWinAndFinish() {
     if (teams.red.score >= 100 || teams.blue.score >= 100) {
         const winner = teams.red.score >= 100 ? 'red' : 'blue';
@@ -105,8 +104,7 @@ function checkWinAndFinish() {
         const shuffled = winnerMembers.sort(() => 0.5 - Math.random());
         const selected = shuffled.slice(0, 10);
         io.emit('gameOver', { winner, members: selected });
-        console.log(`🏆 АВТОМАТИЧЕСКАЯ ПОБЕДА команды ${winner}, выбрано ${selected.length} победителей`);
-        // Опционально: остановить дальнейшие начисления? Можно оставить как есть.
+        console.log(`🏆 АВТОМАТИЧЕСКАЯ ПОБЕДА команды ${winner}`);
     }
 }
 
@@ -116,7 +114,6 @@ io.on('connection', (socket) => {
     socket.emit('pairsHistory', pairsHistory);
     if (currentPair) socket.emit('currentPair', currentPair);
 
-    // Инициализация чата
     socket.on('initChat', async ({ videoId: vid, apiKey: key }) => {
         if (!vid || !key) {
             socket.emit('errorMessage', 'Введите ID видео и API-ключ');
@@ -135,7 +132,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Выбор случайной пары
     socket.on('pickRandomPair', () => {
         if (teams.red.members.length === 0 || teams.blue.members.length === 0) {
             socket.emit('errorMessage', 'В обеих командах должны быть участники');
@@ -156,23 +152,64 @@ io.on('connection', (socket) => {
         console.log(`🎲 Новая пара: ${randomRed} (красный) vs ${randomBlue} (синий)`);
     });
 
-    // Начисление очков
+    socket.on('rerollRed', () => {
+        if (!currentPair) {
+            socket.emit('errorMessage', 'Нет активной пары');
+            return;
+        }
+        const currentRed = currentPair.red;
+        const available = teams.red.members.filter(m => m !== currentRed);
+        if (available.length === 0) {
+            socket.emit('errorMessage', 'Нет других красных участников для замены');
+            return;
+        }
+        const newRed = available[Math.floor(Math.random() * available.length)];
+        currentPair.red = newRed;
+        const lastPair = pairsHistory[pairsHistory.length - 1];
+        if (lastPair && lastPair.red === currentRed && lastPair.blue === currentPair.blue) {
+            lastPair.red = newRed;
+        }
+        io.emit('currentPair', currentPair);
+        io.emit('pairsHistory', pairsHistory);
+        console.log(`🔄 Красный заменён: ${currentRed} -> ${newRed}`);
+    });
+
+    socket.on('rerollBlue', () => {
+        if (!currentPair) {
+            socket.emit('errorMessage', 'Нет активной пары');
+            return;
+        }
+        const currentBlue = currentPair.blue;
+        const available = teams.blue.members.filter(m => m !== currentBlue);
+        if (available.length === 0) {
+            socket.emit('errorMessage', 'Нет других синих участников для замены');
+            return;
+        }
+        const newBlue = available[Math.floor(Math.random() * available.length)];
+        currentPair.blue = newBlue;
+        const lastPair = pairsHistory[pairsHistory.length - 1];
+        if (lastPair && lastPair.red === currentPair.red && lastPair.blue === currentBlue) {
+            lastPair.blue = newBlue;
+        }
+        io.emit('currentPair', currentPair);
+        io.emit('pairsHistory', pairsHistory);
+        console.log(`🔄 Синий заменён: ${currentBlue} -> ${newBlue}`);
+    });
+
     socket.on('addScore', ({ team, points }) => {
         if (team === 'red') teams.red.score += points;
         else if (team === 'blue') teams.blue.score += points;
         io.emit('updateTeams', teams);
         console.log(`📊 +${points} команде ${team}`);
-        checkWinAndFinish(); // автоматическая проверка победы
+        checkWinAndFinish();
     });
 
-    // Сброс очков
     socket.on('resetScores', () => {
         teams.red.score = 0;
         teams.blue.score = 0;
         io.emit('updateTeams', teams);
     });
 
-    // Полная очистка (участники, очки, история, текущая пара)
     socket.on('clearMembers', () => {
         teams.red.members = [];
         teams.blue.members = [];
@@ -187,7 +224,6 @@ io.on('connection', (socket) => {
         io.emit('currentPair', null);
     });
 
-    // Добавление задания (опционально)
     socket.on('addTask', ({ team, task }) => {
         const taskObj = { text: task, timestamp: new Date() };
         if (team === 'red') teams.red.tasks.push(taskObj);
@@ -195,7 +231,6 @@ io.on('connection', (socket) => {
         io.emit('updateTeams', teams);
     });
 
-    // Ручное завершение битвы
     socket.on('endBattle', () => {
         let winnerTeam = null;
         if (teams.red.score > teams.blue.score) winnerTeam = 'red';
