@@ -2,7 +2,6 @@ const socket = io();
 
 let teamsData = { red: { score: 0, members: [], tasks: [] }, blue: { score: 0, members: [], tasks: [] } };
 
-// DOM элементы
 const redScoreSpan = document.getElementById('redScore');
 const blueScoreSpan = document.getElementById('blueScore');
 const redMembersList = document.getElementById('redMembers');
@@ -42,12 +41,12 @@ socket.on('pairsHistory', (history) => {
 socket.on('currentPair', (pair) => {
     if (pair) {
         currentPairDisplay.innerHTML = `🎲 Текущая пара: 🔴 ${pair.red}  vs  🔵 ${pair.blue}`;
-        messagesListDiv.innerHTML = ''; // очищаем старые сообщения
+        messagesListDiv.innerHTML = ''; // очищаем сообщения старой пары
     } else {
         currentPairDisplay.innerHTML = 'Нет активной пары';
     }
 });
-socket.on('pairMessage', ({ side, author, text, timestamp }) => {
+socket.on('pairMessage', ({ side, author, text }) => {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message-item';
     messageDiv.innerHTML = `<span class="message-author">${author}</span>: ${text}`;
@@ -106,7 +105,7 @@ clearMembersBtn.addEventListener('click', () => {
 pickPairBtn.addEventListener('click', () => socket.emit('pickRandomPair'));
 endBattleBtn.addEventListener('click', () => socket.emit('endBattle'));
 
-// Инициализация чата YouTube
+// Инициализация чата
 initChatBtn.addEventListener('click', () => {
     const videoId = videoIdInput.value.trim();
     const apiKey = apiKeyInput.value.trim();
