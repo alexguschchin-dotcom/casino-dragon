@@ -4,12 +4,12 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Раздаём все файлы из корня проекта (где лежит server.js)
-app.use(express.static(__dirname));
+// Статика из папки public
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Для всех остальных запросов отдаём index.html
+// Все остальные запросы -> index.html из public
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(PORT, () => {
