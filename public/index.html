@@ -10,7 +10,6 @@
 </head>
 <body>
     <div class="game-container">
-        <!-- Левая колонка: рыцарь и карта уровней -->
         <div class="left-column">
             <div class="knight-card">
                 <i class="fas fa-chess-knight knight-icon"></i>
@@ -24,14 +23,10 @@
                 </div>
                 <div class="exp-text">Опыт: <span id="exp-current">0</span> / <span id="exp-next">100</span></div>
             </div>
-            <div class="level-map" id="level-map">
-                <!-- Карта уровней генерируется динамически -->
-            </div>
+            <div class="level-map" id="level-map"></div>
         </div>
-
-        <!-- Правая колонка: активное задание и управление -->
-        <div class="right-column">
-            <div class="game-panel">
+        <div class="right-column" id="right-column">
+            <div class="game-panel" id="game-panel">
                 <div class="panel-header">
                     <h3><i class="fas fa-scroll"></i> Текущее задание</h3>
                     <button id="reset-progress" class="reset-btn"><i class="fas fa-skull"></i> Сбросить прогресс</button>
@@ -41,7 +36,7 @@
                         <span class="level-badge" id="current-level-badge">Уровень 1</span>
                         <span class="quest-counter" id="quest-counter">Заданий выполнено: 0 / 20</span>
                     </div>
-                    <div class="quest-text" id="quest-text">Нажмите «Начать квест»</div>
+                    <div class="quest-text" id="quest-text">Нажмите на уровень слева</div>
                     <div class="quest-type-indicator" id="quest-type"></div>
                     <div id="dynamic-area"></div>
                     <div class="action-buttons">
@@ -56,7 +51,6 @@
         </div>
     </div>
 
-    <!-- Модалка окончания уровня -->
     <div id="level-complete-modal" class="modal hidden">
         <div class="modal-content glass">
             <i class="fas fa-crown congrats-crown"></i>
@@ -65,8 +59,6 @@
             <button id="next-level-btn" class="btn-primary">Следующий уровень</button>
         </div>
     </div>
-
-    <!-- Модалка окончания всей игры -->
     <div id="game-complete-modal" class="modal hidden">
         <div class="modal-content glass">
             <i class="fas fa-dragon"></i>
@@ -75,8 +67,6 @@
             <button id="restart-game" class="btn-primary">Начать заново</button>
         </div>
     </div>
-
-    <!-- Модалка с подсказкой от зрителей -->
     <div id="hint-modal" class="modal hidden">
         <div class="modal-content glass small">
             <h3><i class="fas fa-lightbulb"></i> Подсказка зрителей</h3>

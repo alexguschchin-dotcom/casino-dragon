@@ -6,11 +6,38 @@
 
 body {
     font-family: 'Inter', sans-serif;
-    background: linear-gradient(145deg, #2a1a0a, #1a0e05);
+    background: radial-gradient(circle at 20% 20%, #1a1a1a, #0a0a0a);
     min-height: 100vh;
     color: #e6d5a8;
     padding: 20px;
-    transition: background 0.5s ease;
+    transition: background 0.5s ease, background-image 0.5s ease;
+    position: relative;
+}
+
+/* Уникальные фоны для уровней (анимации леса, снега, искр) */
+body.theme-level1 { background: radial-gradient(circle at 20% 30%, #4a2a1a, #1a0a00); }
+body.theme-level2 { background: radial-gradient(circle at 30% 70%, #1a2a0a, #0a1a0a); background-image: repeating-linear-gradient(45deg, rgba(100,150,50,0.1) 0px, rgba(100,150,50,0.1) 20px, transparent 20px, transparent 40px); animation: fallingLeaves 20s linear infinite; }
+body.theme-level3 { background: radial-gradient(circle at 50% 20%, #2a2a3a, #0a0a1a); background-image: radial-gradient(circle at 10% 20%, rgba(255,255,255,0.1) 1px, transparent 1px); background-size: 30px 30px; animation: snow 15s linear infinite; }
+body.theme-level4 { background: radial-gradient(circle at 20% 80%, #2a0a3a, #0a001a); background-image: radial-gradient(circle at 30% 40%, rgba(212,175,55,0.2) 2px, transparent 2px); background-size: 40px 40px; animation: sparkle 3s infinite; }
+body.theme-level5 { background: radial-gradient(circle at 30% 40%, #3a2a1a, #1a0e00); background-image: repeating-linear-gradient(90deg, rgba(255,215,0,0.1) 0px, rgba(255,215,0,0.1) 2px, transparent 2px, transparent 10px); animation: goldenGlow 4s infinite; }
+
+@keyframes fallingLeaves {
+    0% { background-position: 0 0; }
+    100% { background-position: 200px 200px; }
+}
+@keyframes snow {
+    0% { background-position: 0 0; }
+    100% { background-position: 100px 200px; }
+}
+@keyframes sparkle {
+    0% { opacity: 0.3; }
+    50% { opacity: 1; }
+    100% { opacity: 0.3; }
+}
+@keyframes goldenGlow {
+    0% { filter: brightness(1); }
+    50% { filter: brightness(1.1); }
+    100% { filter: brightness(1); }
 }
 
 .game-container {
@@ -19,23 +46,18 @@ body {
     display: flex;
     gap: 25px;
     flex-wrap: wrap;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.4);
     backdrop-filter: blur(4px);
     border-radius: 40px;
     padding: 25px;
-    border: 1px solid #d4af37;
+    border: 1px solid rgba(212,175,55,0.3);
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    position: relative;
+    z-index: 2;
 }
 
-.left-column {
-    flex: 1.2;
-    min-width: 280px;
-}
-
-.right-column {
-    flex: 2;
-    min-width: 320px;
-}
+.left-column { flex: 1.2; min-width: 280px; }
+.right-column { flex: 2; min-width: 320px; }
 
 .knight-card {
     background: rgba(10,10,10,0.8);
@@ -46,26 +68,17 @@ body {
     border: 1px solid #d4af37;
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
 }
-
 .knight-icon {
     font-size: 4rem;
     color: #d4af37;
     margin-bottom: 10px;
     animation: float 3s ease-in-out infinite;
 }
-
 @keyframes float {
-    0%, 100% { transform: translateY(0); }
+    0%,100% { transform: translateY(0); }
     50% { transform: translateY(-8px); }
 }
-
-.knight-card h2 {
-    font-size: 1.8rem;
-    margin-bottom: 15px;
-    font-weight: 700;
-    letter-spacing: 1px;
-}
-
+.knight-card h2 { font-size: 1.8rem; margin-bottom: 15px; }
 .knight-stats {
     display: flex;
     justify-content: space-between;
@@ -75,7 +88,6 @@ body {
     padding: 8px 15px;
     border-radius: 60px;
 }
-
 .exp-bar {
     background: #3a2a1a;
     border-radius: 20px;
@@ -83,26 +95,19 @@ body {
     margin: 10px 0;
     overflow: hidden;
 }
-
 .exp-fill {
     background: linear-gradient(90deg, #d4af37, #ff8c00);
     width: 0%;
     height: 100%;
     transition: width 0.5s ease;
 }
-
-.exp-text {
-    font-size: 0.8rem;
-    opacity: 0.9;
-}
+.exp-text { font-size: 0.8rem; }
 
 .level-map {
     background: rgba(0,0,0,0.5);
     border-radius: 30px;
     padding: 15px;
-    backdrop-filter: blur(2px);
 }
-
 .level-item {
     display: flex;
     align-items: center;
@@ -115,58 +120,24 @@ body {
     cursor: pointer;
     transition: 0.2s;
 }
-
-.level-item.disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    filter: grayscale(0.2);
-}
-
+.level-item.disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(0.2); }
 .level-item.active {
     border-left: 4px solid #ff8c00;
     background: rgba(212,175,55,0.15);
     box-shadow: 0 0 8px gold;
 }
-
-.level-icon {
-    font-size: 2rem;
-    width: 50px;
-    text-align: center;
-}
-
-.level-info {
-    flex: 1;
-}
-
-.level-title {
-    font-weight: bold;
-    font-size: 1.2rem;
-    margin-bottom: 5px;
-}
-
-.progress-dots {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-}
-
+.level-icon { font-size: 2rem; width: 50px; text-align: center; }
+.level-info { flex: 1; }
+.level-title { font-weight: bold; font-size: 1.2rem; margin-bottom: 5px; }
+.progress-dots { display: flex; gap: 6px; flex-wrap: wrap; }
 .dot {
     width: 10px;
     height: 10px;
     background: #5d4037;
     border-radius: 50%;
-    transition: 0.2s;
 }
-
-.dot.completed {
-    background: #d4af37;
-    box-shadow: 0 0 6px gold;
-}
-
-.level-status {
-    font-size: 0.9rem;
-    font-weight: bold;
-}
+.dot.completed { background: #d4af37; box-shadow: 0 0 6px gold; }
+.level-status { font-size: 0.9rem; }
 
 .game-panel {
     background: rgba(0,0,0,0.7);
@@ -175,8 +146,8 @@ body {
     height: 100%;
     display: flex;
     flex-direction: column;
+    transition: all 0.5s ease;
 }
-
 .panel-header {
     display: flex;
     justify-content: space-between;
@@ -185,7 +156,6 @@ body {
     flex-wrap: wrap;
     gap: 15px;
 }
-
 .reset-btn {
     background: #5d4037;
     border: none;
@@ -193,43 +163,23 @@ body {
     border-radius: 30px;
     color: #fff;
     cursor: pointer;
-    transition: 0.2s;
-    font-weight: bold;
 }
-
-.reset-btn:hover {
-    background: #d32f2f;
-    transform: scale(1.02);
-}
-
-.quest-area {
-    flex: 1;
-}
+.reset-btn:hover { background: #d32f2f; }
 
 .quest-info {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
     margin-bottom: 20px;
     padding-bottom: 10px;
     border-bottom: 1px solid #d4af37;
-    flex-wrap: wrap;
-    gap: 10px;
 }
-
 .level-badge {
     background: #d4af37;
     color: #000;
     padding: 4px 12px;
     border-radius: 30px;
     font-weight: bold;
-    font-size: 0.9rem;
 }
-
-.quest-counter {
-    font-size: 0.9rem;
-}
-
 .quest-text {
     font-size: 1.5rem;
     font-weight: 600;
@@ -239,19 +189,8 @@ body {
     padding: 15px;
     border-radius: 30px;
 }
-
-.quest-type-indicator {
-    font-size: 0.8rem;
-    color: #d4af37;
-    margin-bottom: 15px;
-    letter-spacing: 0.5px;
-}
-
-#dynamic-area {
-    margin-bottom: 20px;
-    min-height: 70px;
-}
-
+.quest-type-indicator { font-size: 0.8rem; color: #d4af37; margin-bottom: 15px; }
+#dynamic-area { margin-bottom: 20px; min-height: 70px; }
 .dynamic-input {
     background: #2c1a0e;
     border: 1px solid #d4af37;
@@ -259,26 +198,7 @@ body {
     padding: 12px 18px;
     width: 100%;
     color: #fff;
-    font-size: 1rem;
 }
-
-.option-buttons {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-top: 10px;
-}
-
-.option-buttons button {
-    background: #2c1a0e;
-    border: 1px solid #d4af37;
-    border-radius: 40px;
-    padding: 8px 16px;
-    cursor: pointer;
-    transition: 0.2s;
-    color: #e6d5a8;
-}
-
 .random-btn {
     background: #d4af37;
     border: none;
@@ -287,21 +207,14 @@ body {
     margin-top: 10px;
     cursor: pointer;
     font-weight: bold;
-    transition: 0.2s;
 }
-
-.random-btn:hover {
-    background: #ff8c00;
-    transform: scale(1.02);
-}
-
+.random-btn:hover { background: #ff8c00; }
 .action-buttons {
     display: flex;
     gap: 15px;
     margin-top: 30px;
     flex-wrap: wrap;
 }
-
 .btn-primary {
     background: #d4af37;
     border: none;
@@ -309,16 +222,9 @@ body {
     border-radius: 60px;
     font-weight: bold;
     cursor: pointer;
-    transition: 0.2s;
     color: #000;
 }
-
-.btn-primary:hover {
-    background: #ff8c00;
-    transform: scale(1.02);
-    box-shadow: 0 0 10px gold;
-}
-
+.btn-primary:hover { background: #ff8c00; transform: scale(1.02); box-shadow: 0 0 10px gold; }
 .btn-secondary {
     background: #5d4037;
     border: none;
@@ -326,20 +232,8 @@ body {
     border-radius: 60px;
     color: #fff;
     cursor: pointer;
-    transition: 0.2s;
 }
-
-.btn-secondary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.btn-secondary:hover:not(:disabled) {
-    background: #ff8c00;
-    color: #000;
-    transform: scale(1.02);
-}
-
+.btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
 .chat-info {
     margin-top: 20px;
     background: rgba(0,0,0,0.5);
@@ -347,10 +241,29 @@ body {
     padding: 12px;
     text-align: center;
     font-size: 0.9rem;
-    backdrop-filter: blur(4px);
 }
 
-/* Модальные окна */
+/* Уникальное оформление правой панели для каждого уровня */
+[data-theme="level1"] .game-panel { background: linear-gradient(145deg, #3e2a1f, #1e150e); border: 1px solid #cd7f32; }
+[data-theme="level1"] .btn-primary, [data-theme="level1"] .random-btn { background: #cd7f32; }
+[data-theme="level1"] .btn-primary:hover, [data-theme="level1"] .random-btn:hover { background: #ffb347; }
+
+[data-theme="level2"] .game-panel { background: linear-gradient(145deg, #2a3a1a, #15200a); border: 1px solid #6b8e23; }
+[data-theme="level2"] .btn-primary, [data-theme="level2"] .random-btn { background: #6b8e23; }
+[data-theme="level2"] .btn-primary:hover, [data-theme="level2"] .random-btn:hover { background: #8fbc3b; }
+
+[data-theme="level3"] .game-panel { background: linear-gradient(145deg, #3a3a4a, #1a1a2a); border: 1px solid #b0c4de; }
+[data-theme="level3"] .btn-primary, [data-theme="level3"] .random-btn { background: #4682b4; }
+[data-theme="level3"] .btn-primary:hover, [data-theme="level3"] .random-btn:hover { background: #6ca6d9; }
+
+[data-theme="level4"] .game-panel { background: linear-gradient(145deg, #3a1a4a, #1a0a2a); border: 1px solid #8a2be2; }
+[data-theme="level4"] .btn-primary, [data-theme="level4"] .random-btn { background: #8a2be2; }
+[data-theme="level4"] .btn-primary:hover, [data-theme="level4"] .random-btn:hover { background: #b565ff; }
+
+[data-theme="level5"] .game-panel { background: linear-gradient(145deg, #4a3a1a, #2a1a0a); border: 1px solid #ffd700; }
+[data-theme="level5"] .btn-primary, [data-theme="level5"] .random-btn { background: #ffd700; color: #000; }
+[data-theme="level5"] .btn-primary:hover, [data-theme="level5"] .random-btn:hover { background: #ffe135; box-shadow: 0 0 15px gold; }
+
 .modal {
     position: fixed;
     top: 0;
@@ -364,7 +277,6 @@ body {
     align-items: center;
     z-index: 2000;
 }
-
 .modal-content {
     background: rgba(15,15,10,0.95);
     border-radius: 60px;
@@ -373,40 +285,10 @@ body {
     max-width: 500px;
     width: 90%;
     border: 2px solid #d4af37;
-    box-shadow: 0 0 30px rgba(212,175,55,0.3);
 }
-
-.glass {
-    background: rgba(20,15,10,0.95);
-    backdrop-filter: blur(4px);
-}
-
-.small {
-    max-width: 400px;
-}
-
-.congrats-crown {
-    font-size: 3rem;
-    color: #ffd700;
-    margin-bottom: 15px;
-}
-
-.hidden {
-    display: none;
-}
-
-/* Адаптивность */
+.small { max-width: 400px; }
+.hidden { display: none; }
 @media (max-width: 800px) {
-    .game-container {
-        flex-direction: column;
-    }
-    .quest-text {
-        font-size: 1.2rem;
-    }
-    .level-title {
-        font-size: 1rem;
-    }
-    .knight-card h2 {
-        font-size: 1.4rem;
-    }
+    .game-container { flex-direction: column; }
+    .quest-text { font-size: 1.2rem; }
 }
