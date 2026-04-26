@@ -3,13 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Сага о проклятом рыцаре | RPG квест</title>
+    <title>Сага о проклятом рыцаре | Эпопея в 5 актах</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
+    <!-- Canvas для динамических частиц (лепестки, снег, искры) -->
+    <canvas id="particle-canvas" class="particle-layer"></canvas>
+
     <div class="game-container">
+        <!-- ЛЕВАЯ КОЛОНКА: рыцарь + карта уровней -->
         <div class="left-column">
             <div class="knight-card">
                 <i class="fas fa-chess-knight knight-icon"></i>
@@ -25,38 +29,61 @@
             </div>
             <div class="level-map" id="level-map"></div>
         </div>
-        <div class="right-column" id="right-column">
+
+        <!-- ПРАВАЯ КОЛОНКА: текущее задание + лидерборд -->
+        <div class="right-column">
             <div class="game-panel" id="game-panel">
                 <div class="panel-header">
                     <h3><i class="fas fa-scroll"></i> Текущее задание</h3>
-                    <button id="reset-progress" class="reset-btn"><i class="fas fa-skull"></i> Сбросить прогресс</button>
+                    <div class="header-actions">
+                        <button id="sound-toggle" class="sound-btn"><i class="fas fa-volume-up"></i></button>
+                        <button id="reset-progress" class="reset-btn"><i class="fas fa-skull"></i> Сброс</button>
+                    </div>
                 </div>
                 <div class="quest-area">
                     <div class="quest-info">
                         <span class="level-badge" id="current-level-badge">Уровень 1</span>
-                        <span class="quest-counter" id="quest-counter">Заданий выполнено: 0 / 20</span>
+                        <span class="quest-counter" id="quest-counter">Заданий: 0 / 20</span>
                     </div>
-                    <div class="quest-text" id="quest-text">Нажмите на уровень слева</div>
+                    <div class="quest-text" id="quest-text">Выберите уровень слева</div>
                     <div class="quest-type-indicator" id="quest-type"></div>
                     <div id="dynamic-area"></div>
                     <div class="action-buttons">
                         <button id="complete-quest" class="btn-primary"><i class="fas fa-check"></i> Выполнено</button>
-                        <button id="next-quest" class="btn-secondary" disabled><i class="fas fa-arrow-right"></i> Следующее задание</button>
+                        <button id="next-quest" class="btn-secondary" disabled><i class="fas fa-arrow-right"></i> Следующее</button>
                     </div>
                 </div>
             </div>
-            <div class="chat-info">
-                <i class="fas fa-comments"></i> Зрители могут помогать: пишите <strong>!помощь</strong> в чат — стример получит подсказку.
+
+            <!-- ТАБЛИЦА ЛИДЕРОВ -->
+            <div class="leaderboard-panel">
+                <div class="leaderboard-header">
+                    <i class="fas fa-trophy"></i> Помощники рыцаря
+                    <select id="active-hero" class="hero-select">
+                        <option value="alex">Алексей</option>
+                        <option value="vika">Вика</option>
+                        <option value=batiya">Батя</option>
+                    </select>
+                </div>
+                <div class="leaderboard-list" id="leaderboard-list">
+                    <div class="leaderboard-row"><span><i class="fas fa-crown"></i> Алексей</span><span id="score-alex">0</span></div>
+                    <div class="leaderboard-row"><span><i class="fas fa-star"></i> Вика</span><span id="score-vika">0</span></div>
+                    <div class="leaderboard-row"><span><i class="fas fa-dragon"></i> Батя</span><span id="score-batiya">0</span></div>
+                </div>
+                <div class="chat-info">
+                    <i class="fas fa-comments"></i> Зрители пишут <strong>!помощь</strong> в чат — подсказка
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- МОДАЛЬНЫЕ ОКНА -->
     <div id="level-complete-modal" class="modal hidden">
         <div class="modal-content glass">
             <i class="fas fa-crown congrats-crown"></i>
             <h2>Уровень пройден!</h2>
             <p id="level-complete-text"></p>
-            <button id="next-level-btn" class="btn-primary">Следующий уровень</button>
+            <button id="next-level-btn" class="btn-primary">Продолжить приключение</button>
         </div>
     </div>
     <div id="game-complete-modal" class="modal hidden">
@@ -74,6 +101,7 @@
             <button id="close-hint" class="btn-primary">Понятно</button>
         </div>
     </div>
+    <div id="toast-notification" class="toast hidden"></div>
 
     <script src="script.js"></script>
 </body>
