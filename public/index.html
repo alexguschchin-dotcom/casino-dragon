@@ -2,99 +2,87 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Битва кланов – панель стримера</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Сага о проклятом рыцаре | RPG квест</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <script src="/socket.io/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-<div class="container">
-    <h1>🏆 Битва кланов 🏆</h1>
-
-    <!-- Блок YouTube -->
-    <div class="setup">
-        <h3>📺 YouTube чат</h3>
-        <input type="text" id="videoId" placeholder="ID видео (например, abcd1234)" />
-        <input type="text" id="apiKey" placeholder="API ключ YouTube" />
-        <button id="initChatBtn">Подключиться к YouTube</button>
-        <div id="chatStatus"></div>
-    </div>
-
-    <!-- Блок Kick -->
-    <div class="setup">
-        <h3>🥾 Kick чат</h3>
-        <input type="text" id="kickUsername" placeholder="Имя пользователя Kick (например, xqc)" />
-        <button id="initKickChatBtn">Подключиться к Kick</button>
-        <div id="kickStatus"></div>
-    </div>
-
-    <!-- Команды -->
-    <div class="teams">
-        <div class="team red">
-            <h2>🔴 Красные</h2>
-            <div class="score">Очки: <span id="redScore">0</span></div>
-            <div class="members"><h3>Участники:</h3><ul id="redMembers"></ul></div>
-            <div class="score-buttons">
-                <button class="score-btn" data-team="red" data-points="5">+5</button>
-                <button class="score-btn" data-team="red" data-points="10">+10</button>
-                <button class="score-btn" data-team="red" data-points="20">+20</button>
+    <div class="game-container">
+        <div class="left-column">
+            <div class="knight-card">
+                <i class="fas fa-chess-knight knight-icon"></i>
+                <h2>Проклятый рыцарь</h2>
+                <div class="knight-stats">
+                    <div><i class="fas fa-shield-alt"></i> Уровень: <span id="player-level">1</span></div>
+                    <div><i class="fas fa-gem"></i> Осколки души: <span id="soul-shards">0</span></div>
+                </div>
+                <div class="exp-bar">
+                    <div class="exp-fill" id="exp-fill"></div>
+                </div>
+                <div class="exp-text">Опыт: <span id="exp-current">0</span> / <span id="exp-next">100</span></div>
             </div>
-            <div class="task-input">
-                <input type="text" id="redTask" placeholder="Задание от зрителя" />
-                <button id="addRedTask">Записать задание</button>
+            <div class="level-map" id="level-map">
+                <!-- Карта уровней генерируется динамически -->
             </div>
         </div>
-        <div class="team blue">
-            <h2>🔵 Синие</h2>
-            <div class="score">Очки: <span id="blueScore">0</span></div>
-            <div class="members"><h3>Участники:</h3><ul id="blueMembers"></ul></div>
-            <div class="score-buttons">
-                <button class="score-btn" data-team="blue" data-points="5">+5</button>
-                <button class="score-btn" data-team="blue" data-points="10">+10</button>
-                <button class="score-btn" data-team="blue" data-points="20">+20</button>
+
+        <div class="right-column">
+            <div class="game-panel">
+                <div class="panel-header">
+                    <h3><i class="fas fa-scroll"></i> Текущее задание</h3>
+                    <button id="reset-progress" class="reset-btn"><i class="fas fa-skull"></i> Сбросить прогресс</button>
+                </div>
+                <div class="quest-area">
+                    <div class="quest-info">
+                        <span class="level-badge" id="current-level-badge">Уровень 1</span>
+                        <span class="quest-counter" id="quest-counter">Заданий выполнено: 0 / 20</span>
+                    </div>
+                    <div class="quest-text" id="quest-text">Нажмите «Начать квест»</div>
+                    <div class="quest-type-indicator" id="quest-type"></div>
+                    <div id="dynamic-area"></div>
+                    <div class="action-buttons">
+                        <button id="complete-quest" class="btn-primary"><i class="fas fa-check"></i> Выполнено</button>
+                        <button id="next-quest" class="btn-secondary" disabled><i class="fas fa-arrow-right"></i> Следующее задание</button>
+                    </div>
+                </div>
             </div>
-            <div class="task-input">
-                <input type="text" id="blueTask" placeholder="Задание от зрителя" />
-                <button id="addBlueTask">Записать задание</button>
+            <div class="chat-info">
+                <i class="fas fa-comments"></i> Зрители могут помогать: пишите <strong>!помощь</strong> в чат — стример получит подсказку.
             </div>
         </div>
     </div>
 
-    <!-- Битва -->
-    <div class="battle-panel">
-        <button id="pickPairBtn">🎲 Выбрать случайную пару</button>
-        <div id="currentPairDisplay" class="pair-display"></div>
-        <div style="display: flex; gap: 10px; margin: 10px 0;">
-            <button id="rerollRedBtn" style="background:#ff4444;">🔄 Перевыбрать красного</button>
-            <button id="rerollBlueBtn" style="background:#4488ff;">🔄 Перевыбрать синего</button>
+    <!-- Модалка окончания уровня -->
+    <div id="level-complete-modal" class="modal hidden">
+        <div class="modal-content glass">
+            <i class="fas fa-crown congrats-crown"></i>
+            <h2>Уровень пройден!</h2>
+            <p id="level-complete-text"></p>
+            <button id="next-level-btn" class="btn-primary">Следующий уровень</button>
         </div>
-        <div id="pairMessages" class="pair-messages">
-            <h3>📨 Сообщения текущей пары</h3>
-            <div id="messagesList"></div>
-        </div>
-        <button id="resetScores">Сбросить очки</button>
-        <button id="clearMembers">Очистить всё</button>
-        <button id="endBattleBtn">🏆 Завершить битву вручную</button>
     </div>
 
-    <!-- История пар -->
-    <div class="history">
-        <h3>📜 История пар</h3>
-        <ul id="historyList"></ul>
-    </div>
-
-    <!-- Модальное окно победителей -->
-    <div id="winnerModal" class="modal hidden">
-        <div class="modal-content">
-            <h2>🏆 ПОБЕДА! 🏆</h2>
-            <p id="winnerText"></p>
-            <p>10 случайных победителей из команды:</p>
-            <ul id="winnersList"></ul>
-            <button id="closeWinnerModal">Закрыть</button>
+    <!-- Модалка окончания всей игры -->
+    <div id="game-complete-modal" class="modal hidden">
+        <div class="modal-content glass">
+            <i class="fas fa-dragon"></i>
+            <h2>Поздравляем!</h2>
+            <p>Вы освободили рыцаря от проклятия!<br>Вы настоящий герой казино.</p>
+            <button id="restart-game" class="btn-primary">Начать заново</button>
         </div>
     </div>
-</div>
-<script src="script.js"></script>
+
+    <!-- Модалка с подсказкой от зрителей -->
+    <div id="hint-modal" class="modal hidden">
+        <div class="modal-content glass small">
+            <h3><i class="fas fa-lightbulb"></i> Подсказка зрителей</h3>
+            <p id="hint-text"></p>
+            <button id="close-hint" class="btn-primary">Понятно</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
