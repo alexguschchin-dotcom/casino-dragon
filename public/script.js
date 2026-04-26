@@ -1,118 +1,202 @@
-// ========== КОНФИГУРАЦИЯ УРОВНЕЙ ==========
-const levels = [
-    {
+// ================================
+//        ГЛОБАЛЬНЫЕ ДАННЫЕ
+// ================================
+
+// Структура уровней и заданий
+const levelsData = [
+    {   // Уровень 1: Таверна "Удача"
         name: "Таверна «Удача»",
         icon: "fa-mug-hot",
-        expRequired: 100,
-        quests: generateQuests(1, 20)
+        expNeeded: 100,
+        background: "linear-gradient(145deg, #2a1a0a, #1a0e05)",
+        questCount: 20,
+        quests: []
     },
-    {
+    {   // Уровень 2: Лес костей
         name: "Лес костей",
         icon: "fa-tree",
-        expRequired: 150,
-        quests: generateQuests(2, 20)
+        expNeeded: 150,
+        background: "linear-gradient(145deg, #1a2a1a, #0e1a0e)",
+        questCount: 20,
+        quests: []
     },
-    {
+    {   // Уровень 3: Гора блэкджека
         name: "Гора блэкджека",
         icon: "fa-mountain",
-        expRequired: 200,
-        quests: generateQuests(3, 20)
+        expNeeded: 200,
+        background: "linear-gradient(145deg, #2a2a1a, #1a1a0a)",
+        questCount: 20,
+        quests: []
     },
-    {
+    {   // Уровень 4: Пещера слотов
         name: "Пещера слотов",
         icon: "fa-cave",
-        expRequired: 250,
-        quests: generateQuests(4, 20)
+        expNeeded: 250,
+        background: "linear-gradient(145deg, #1a1a2a, #0a0a1a)",
+        questCount: 20,
+        quests: []
     },
-    {
+    {   // Уровень 5: Тронный зал джекпота
         name: "Тронный зал джекпота",
         icon: "fa-crown",
-        expRequired: 300,
-        quests: generateQuests(5, 20)
+        expNeeded: 300,
+        background: "linear-gradient(145deg, #3a2a1a, #2a1a0a)",
+        questCount: 20,
+        quests: []
     }
 ];
 
-// Генератор заданий для уровня (уровни 1-5)
-function generateQuests(level, count) {
+// Библиотека случайных заданий по типам
+const questLibrary = {
+    fixed: [
+        "Сделайте 20 спинов в {slot} по 20$",
+        "Поставьте на {color} в рулетке и выиграйте",
+        "Сыграйте 5 партий в блэкджек, проиграв не более 2",
+        "Купите бонус за {price} в любом слоте",
+        "Сделайте 3 депозита по {deposit}",
+        "Выиграйте 3 раунда подряд в {game}",
+        "Поймайте бонусную игру в {slot2}",
+        "Удвойте ставку в блэкджеке и выиграйте",
+        "Наберите {win} выигрыша за 10 спинов",
+        "Сделайте ставку на {number} в рулетке"
+    ],
+    random: [
+        "выбейте множитель x{mult} в бонусной игре",
+        "получите блэкджек {count} раза подряд",
+        "выполните {tasks} любых заданий из чата",
+        "сделайте {spins} спинов на слоте с множителем",
+        "поймайте ретриггер в бонусе {times} раза"
+    ],
+    quiz: [
+        "Какой символ в слотах заменяет другие? (Wild/Scatter/Bonus)",
+        "Что означает RTP? (Return to Player/Real Time Play/Random)",
+        "Сколько чисел в европейской рулетке? (36/37/38)",
+        "Назовите самый популярный слот в мире (Starburst/Book of Dead/Sweet Bonanza)",
+        "Кто написал роман «Игрок»? (Достоевский/Толстой/Чехов)",
+        "В каком городе находится казино Монте-Карло? (Монако/Франция/Италия)",
+        "Что такое «анте» в покере? (начальная ставка/доп. бонус/штраф)",
+        "Какой фильм о казино считается классикой? (Казино/Оушен/С широко закрытыми глазами)",
+        "Сколько очков даёт туз в блэкджеке? (1 или 11/10/11)",
+        "Как называется комбинация 2,3,4,5,6 одной масти? (Стрит-флеш/Флеш/Стрит)"
+    ]
+};
+
+// Параметры генерации
+const slotsList = ["Dog house", "Sweet Bonanza", "Gates of Olympus", "Sugar Rush", "Le Bandit"];
+const colors = ["красное", "чёрное"];
+const games = ["рулетку", "блэкджек", "покер", "слоты"];
+const prices = ["500$", "1000$", "2000$", "5000$"];
+const deposits = ["100$", "500$", "1000$"];
+const wins = ["500$", "1000$", "2000$", "5000$"];
+const numbers = ["7", "12", "21", "33", "зеро"];
+
+// Генерация заданий для уровня
+function generateQuestsForLevel(levelIdx) {
+    const level = levelsData[levelIdx];
     const quests = [];
-    for (let i = 0; i < count; i++) {
-        const type = getRandomQuestType(level);
+    for (let i = 0; i < level.questCount; i++) {
+        const type = determineQuestType(levelIdx, i);
+        let text = "";
+        let correctAnswer = null;
+        
+        if (type === "fixed") {
+            const template = questLibrary.fixed[Math.floor(Math.random() * questLibrary.fixed.length)];
+            text = template
+                .replace("{slot}", slotsList[Math.floor(Math.random() * slotsList.length)])
+                .replace("{color}", colors[Math.floor(Math.random() * colors.length)])
+                .replace("{price}", prices[Math.floor(Math.random() * prices.length)])
+                .replace("{deposit}", deposits[Math.floor(Math.random() * deposits.length)])
+                .replace("{game}", games[Math.floor(Math.random() * games.length)])
+                .replace("{slot2}", slotsList[Math.floor(Math.random() * slotsList.length)])
+                .replace("{win}", wins[Math.floor(Math.random() * wins.length)])
+                .replace("{number}", numbers[Math.floor(Math.random() * numbers.length)]);
+        } 
+        else if (type === "random") {
+            const template = questLibrary.random[Math.floor(Math.random() * questLibrary.random.length)];
+            text = template
+                .replace("{mult}", String(Math.floor(Math.random() * 20 + 5)))
+                .replace("{count}", String(Math.floor(Math.random() * 3 + 2)))
+                .replace("{tasks}", String(Math.floor(Math.random() * 5 + 1)))
+                .replace("{spins}", String(Math.floor(Math.random() * 50 + 20)))
+                .replace("{times}", String(Math.floor(Math.random() * 3 + 1)));
+        } 
+        else if (type === "quiz") {
+            const idx = Math.floor(Math.random() * questLibrary.quiz.length);
+            const qText = questLibrary.quiz[idx];
+            // Простой парсер для извлечения ответа (сильно упрощённо, но для демо хватит)
+            if (qText.includes("Wild")) correctAnswer = "wild";
+            else if (qText.includes("Return to Player")) correctAnswer = "return to player";
+            else if (qText.includes("37")) correctAnswer = "37";
+            else if (qText.includes("Starburst")) correctAnswer = "starburst";
+            else if (qText.includes("Достоевский")) correctAnswer = "достоевский";
+            else if (qText.includes("Монако")) correctAnswer = "монако";
+            else if (qText.includes("начальная ставка")) correctAnswer = "анте";
+            else if (qText.includes("Казино")) correctAnswer = "казино";
+            else if (qText.includes("1 или 11")) correctAnswer = "1 или 11";
+            else if (qText.includes("Стрит-флеш")) correctAnswer = "стрит-флеш";
+            text = qText;
+        }
+        
         quests.push({
             id: i,
             type: type,
-            text: getQuestText(type, level, i),
+            text: text,
             completed: false,
-            dynamicData: null // для хранения текущего рандомного условия
+            correctAnswer: correctAnswer,
+            dynamicData: null  // для хранения сгенерированного случайного условия
         });
     }
     return quests;
 }
 
-function getRandomQuestType(level) {
-    // Распределение: 60% фикс, 20% рандом, 20% викторина
-    const r = Math.random();
-    if (r < 0.6) return 'fixed';
-    if (r < 0.8) return 'random';
-    return 'quiz';
+function determineQuestType(levelIdx, questIndex) {
+    // На первых уровнях больше фикс, на высоких – сложные типы
+    if (levelIdx === 0) {
+        if (questIndex < 12) return "fixed";
+        else if (questIndex < 17) return "random";
+        else return "quiz";
+    } else if (levelIdx === 1) {
+        if (questIndex < 10) return "fixed";
+        else if (questIndex < 16) return "random";
+        else return "quiz";
+    } else if (levelIdx === 2) {
+        if (questIndex < 8) return "fixed";
+        else if (questIndex < 14) return "random";
+        else return "quiz";
+    } else if (levelIdx === 3) {
+        if (questIndex < 6) return "fixed";
+        else if (questIndex < 12) return "random";
+        else return "quiz";
+    } else {
+        if (questIndex < 4) return "fixed";
+        else if (questIndex < 10) return "random";
+        else return "quiz";
+    }
 }
 
-function getQuestText(type, level, index) {
-    const tasks = {
-        1: [
-            "Сделайте 20 спинов в любом слоте по 20$",
-            "Поставьте на красное в рулетке и выиграйте",
-            "Сыграйте 5 партий в блэкджек, не проиграв более 2 раз",
-            "Купите бонус за 1000$ в любом слоте",
-            "Выполните 3 любых задания из списка зрителей"
-        ],
-        2: [
-            "Удвойте ставку в блэкджеке и выиграйте",
-            "Наберите 2000$ выигрыша за 10 спинов",
-            "Поймайте бонусную игру в Gates of Olympus",
-            "Сделайте ставку на зеро в рулетке",
-            "Выиграйте 2 раунда подряд в покере"
-        ],
-        3: [
-            "Выбейте множитель х50 в бонусной игре",
-            "Сделайте 50 спинов по 50$ не проиграв 70% банка",
-            "Получите блэкджек 2 раза подряд",
-            "Купите бонус за 2500$ и окупите его",
-            "Выиграйте 5 раундов в рулетке подряд"
-        ],
-        4: [
-            "Поймайте х1000 в Sweet Bonanza",
-            "Сделайте 100 спинов со средней ставкой 100$ и ROI > 80%",
-            "Выбейте 3 бонусные игры за 30 минут",
-            "Удвойте ставку 4 раза подряд в блэкджеке и выиграйте",
-            "Соберите стрит-флеш в видеопокере"
-        ],
-        5: [
-            "Выиграйте джекпот в любом слоте",
-            "Наберите 10000$ за один спин",
-            "Выполните 3 самых сложных задания из предыдущих уровней за 1 час",
-            "Поймайте ретриггер в бонусной игре 3 раза подряд",
-            "Сделайте накид создателю (по желанию)"
-        ]
-    };
-    const levelTasks = tasks[level] || tasks[1];
-    return levelTasks[index % levelTasks.length] + ` (задание #${index+1})`;
+// Заполняем задания для всех уровней
+for (let i=0; i<levelsData.length; i++) {
+    levelsData[i].quests = generateQuestsForLevel(i);
 }
 
 // Состояние игры
 let game = {
-    currentLevel: 0,      // 0-4
+    currentLevel: 0,
     currentQuestIndex: 0,
     exp: 0,
     soulShards: 0,
-    completedQuests: [],   // массив объектов {level, questId}
-    levelCompleted: [false, false, false, false, false]
+    completedQuests: [],   // {level, questId}
+    levelCompleted: [false, false, false, false, false],
+    settings: {
+        soundEnabled: true,
+        hintsEnabled: true
+    }
 };
 
 let currentQuestObj = null;
-let currentDynamic = null; // для рандомных заданий
-let waitingForRandomize = false;
+let pendingRandomize = false;
 
-// DOM
+// DOM элементы
 const playerLevelSpan = document.getElementById('player-level');
 const soulShardsSpan = document.getElementById('soul-shards');
 const expFill = document.getElementById('exp-fill');
@@ -134,49 +218,77 @@ const restartGameBtn = document.getElementById('restart-game');
 const hintModal = document.getElementById('hint-modal');
 const hintTextSpan = document.getElementById('hint-text');
 const closeHintBtn = document.getElementById('close-hint');
+const themeToggle = document.getElementById('theme-toggle'); // необязательно, но добавим позже
 
-// Сохранение
+// ================================
+//        СОХРАНЕНИЕ / ЗАГРУЗКА
+// ================================
 function saveGame() {
-    localStorage.setItem('knightRpg', JSON.stringify(game));
+    const toSave = {
+        currentLevel: game.currentLevel,
+        currentQuestIndex: game.currentQuestIndex,
+        exp: game.exp,
+        soulShards: game.soulShards,
+        completedQuests: game.completedQuests,
+        levelCompleted: game.levelCompleted,
+        settings: game.settings
+    };
+    localStorage.setItem('knightRpg', JSON.stringify(toSave));
 }
 
 function loadGame() {
     const saved = localStorage.getItem('knightRpg');
     if (saved) {
         try {
-            const loaded = JSON.parse(saved);
-            game = { ...game, ...loaded };
-        } catch(e) {}
+            const data = JSON.parse(saved);
+            game.currentLevel = data.currentLevel;
+            game.currentQuestIndex = data.currentQuestIndex;
+            game.exp = data.exp;
+            game.soulShards = data.soulShards;
+            game.completedQuests = data.completedQuests;
+            game.levelCompleted = data.levelCompleted;
+            game.settings = data.settings || { soundEnabled: true, hintsEnabled: true };
+        } catch(e) { console.warn(e); }
     }
-    // Инициализация completedQuests, если пусто
+    // Инициализация массивов если нет
     if (!game.completedQuests) game.completedQuests = [];
     if (!game.levelCompleted) game.levelCompleted = [false, false, false, false, false];
-    // Если currentLevel не корректен
-    if (game.currentLevel >= levels.length) game.currentLevel = levels.length-1;
-    normalizeProgress();
+    // Переносим флаг завершённости заданий в объекты quests
+    for (let lvl=0; lvl<levelsData.length; lvl++) {
+        for (let q of levelsData[lvl].quests) {
+            const found = game.completedQuests.some(cq => cq.level === lvl && cq.questId === q.id);
+            q.completed = found;
+        }
+    }
+    // Проверяем завершённость уровней
+    for (let lvl=0; lvl<levelsData.length; lvl++) {
+        const allCompleted = levelsData[lvl].quests.every(q => q.completed);
+        if (allCompleted && !game.levelCompleted[lvl]) {
+            game.levelCompleted[lvl] = true;
+        }
+    }
+    // Корректировка текущего уровня
+    if (game.currentLevel >= levelsData.length) game.currentLevel = levelsData.length-1;
+    while (game.currentLevel > 0 && !game.levelCompleted[game.currentLevel-1]) {
+        game.currentLevel--;
+    }
+    // Текущий индекс задания - следующий невыполненный
+    const curLevelQuests = levelsData[game.currentLevel].quests;
+    let nextUncompleted = curLevelQuests.findIndex(q => !q.completed);
+    if (nextUncompleted === -1) nextUncompleted = curLevelQuests.length-1;
+    game.currentQuestIndex = nextUncompleted;
+    saveGame();
     updateUI();
     loadCurrentQuest();
 }
 
-function normalizeProgress() {
-    // Проверяем, что не выполнено больше заданий, чем есть
-    for (let lvl=0; lvl<levels.length; lvl++) {
-        const completedCount = game.completedQuests.filter(q => q.level === lvl).length;
-        if (completedCount === levels[lvl].quests.length && !game.levelCompleted[lvl]) {
-            game.levelCompleted[lvl] = true;
-        }
-    }
-    // Автоматическое открытие следующего уровня, если текущий завершён
-    if (game.levelCompleted[game.currentLevel] && game.currentLevel+1 < levels.length) {
-        game.currentLevel++;
-    }
-    if (game.currentLevel >= levels.length) game.currentLevel = levels.length-1;
-}
-
+// ================================
+//          ОБНОВЛЕНИЕ UI
+// ================================
 function updateUI() {
-    // Опыт и уровень
-    const levelData = levels[game.currentLevel];
-    const expNeeded = levelData.expRequired;
+    const level = levelsData[game.currentLevel];
+    // Опыт
+    const expNeeded = level.expNeeded;
     expCurrentSpan.innerText = game.exp;
     expNextSpan.innerText = expNeeded;
     let percent = (game.exp / expNeeded) * 100;
@@ -184,30 +296,29 @@ function updateUI() {
     expFill.style.width = `${percent}%`;
     playerLevelSpan.innerText = game.currentLevel + 1;
     soulShardsSpan.innerText = game.soulShards;
-    currentLevelBadge.innerText = `Уровень ${game.currentLevel+1}: ${levelData.name}`;
+    currentLevelBadge.innerText = `Уровень ${game.currentLevel+1}: ${level.name}`;
     
-    // Счётчик выполненных заданий на текущем уровне
-    const completedCount = getCompletedQuestsCount(game.currentLevel);
-    const totalQuests = levels[game.currentLevel].quests.length;
-    questCounterSpan.innerText = `Заданий выполнено: ${completedCount} / ${totalQuests}`;
+    // Счётчик выполненных заданий
+    const completedCount = levelsData[game.currentLevel].quests.filter(q => q.completed).length;
+    const total = levelsData[game.currentLevel].quests.length;
+    questCounterSpan.innerText = `Заданий выполнено: ${completedCount} / ${total}`;
     
-    // Кнопка "Следующее задание" активна только если есть выполненные и не все завершены
-    const canNext = (completedCount > game.currentQuestIndex) && (game.currentQuestIndex < totalQuests);
+    // Кнопка "Следующее задание" активна только если есть выполненное и не все завершены
+    const canNext = (completedCount > 0 && completedCount < total);
     nextBtn.disabled = !canNext;
     
-    // Рендер карты уровней
+    // Отрисовка карты уровней
     renderLevelMap();
-}
-
-function getCompletedQuestsCount(level) {
-    return game.completedQuests.filter(q => q.level === level).length;
+    
+    // Смена фона в зависимости от уровня
+    document.body.style.background = levelsData[game.currentLevel].background;
 }
 
 function renderLevelMap() {
     levelMapDiv.innerHTML = '';
-    for (let i=0; i<levels.length; i++) {
-        const level = levels[i];
-        const completedCount = getCompletedQuestsCount(i);
+    for (let i=0; i<levelsData.length; i++) {
+        const level = levelsData[i];
+        const completedCount = level.quests.filter(q => q.completed).length;
         const total = level.quests.length;
         const isCompleted = (completedCount === total);
         const isActive = (i === game.currentLevel);
@@ -224,7 +335,7 @@ function renderLevelMap() {
                 <div class="level-title">Уровень ${i+1}: ${level.name}</div>
                 <div class="progress-dots">
                     ${Array(total).fill().map((_, idx) => {
-                        const isQuestCompleted = game.completedQuests.some(q => q.level === i && q.questId === idx);
+                        const isQuestCompleted = level.quests[idx].completed;
                         return `<div class="dot ${isQuestCompleted ? 'completed' : ''}"></div>`;
                     }).join('')}
                 </div>
@@ -237,39 +348,33 @@ function renderLevelMap() {
     }
 }
 
-function switchLevel(levelIdx) {
-    if (levelIdx === game.currentLevel) return;
-    if (levelIdx > game.currentLevel && !game.levelCompleted[levelIdx-1]) {
-        alert('Сначала завершите предыдущий уровень!');
+function switchLevel(newLevel) {
+    if (newLevel === game.currentLevel) return;
+    if (newLevel > game.currentLevel && !game.levelCompleted[newLevel-1]) {
+        alert("Сначала завершите предыдущий уровень!");
         return;
     }
-    game.currentLevel = levelIdx;
-    // Устанавливаем текущий индекс задания на следующее невыполненное
-    const completed = getCompletedQuestsCount(levelIdx);
-    game.currentQuestIndex = completed;
-    if (game.currentQuestIndex >= levels[levelIdx].quests.length) {
-        game.currentQuestIndex = levels[levelIdx].quests.length - 1;
-    }
+    game.currentLevel = newLevel;
+    // Обновляем текущий индекс на первый невыполненный
+    const quests = levelsData[game.currentLevel].quests;
+    let nextIdx = quests.findIndex(q => !q.completed);
+    if (nextIdx === -1) nextIdx = quests.length-1;
+    game.currentQuestIndex = nextIdx;
     saveGame();
     updateUI();
     loadCurrentQuest();
 }
 
+// ================================
+//          ЗАГРУЗКА ЗАДАНИЯ
+// ================================
 function loadCurrentQuest() {
-    const level = levels[game.currentLevel];
-    if (!level) return;
-    const quests = level.quests;
-    const idx = game.currentQuestIndex;
-    if (idx >= quests.length) {
-        // Все задания выполнены, но уровень ещё не завершён? Проверим
-        if (getCompletedQuestsCount(game.currentLevel) === quests.length) {
-            completeLevel();
-        }
-        return;
-    }
-    currentQuestObj = quests[idx];
-    if (currentQuestObj.completed) {
-        // Подтягиваем следующий
+    const level = levelsData[game.currentLevel];
+    const quest = level.quests[game.currentQuestIndex];
+    if (!quest) return;
+    currentQuestObj = quest;
+    if (quest.completed) {
+        // Если вдруг уже выполнено, перейти к следующему
         moveToNextQuest();
         return;
     }
@@ -279,147 +384,177 @@ function loadCurrentQuest() {
 function renderCurrentQuest() {
     const q = currentQuestObj;
     questTextDiv.innerText = q.text;
-    let typeText = '';
-    if (q.type === 'fixed') typeText = '📜 Фиксированное задание';
-    else if (q.type === 'random') typeText = '🎲 Случайное задание (нажмите "Сгенерировать")';
-    else typeText = '❓ Вопрос (ответьте письменно)';
+    
+    let typeText = "";
+    if (q.type === "fixed") typeText = "📜 Фиксированное задание";
+    else if (q.type === "random") typeText = "🎲 Случайное задание (нужно сгенерировать)";
+    else typeText = "❓ Викторина (введите ответ)";
     questTypeDiv.innerText = typeText;
     
-    dynamicArea.innerHTML = '';
-    if (q.type === 'random') {
-        const randomBtn = document.createElement('button');
-        randomBtn.className = 'random-btn';
-        randomBtn.innerHTML = '<i class="fas fa-dice"></i> Сгенерировать новое задание';
-        randomBtn.onclick = () => generateRandomQuest();
-        dynamicArea.appendChild(randomBtn);
-        if (q.dynamicData) {
-            const p = document.createElement('p');
-            p.innerHTML = `🎲 Текущее условие: ${q.dynamicData}`;
+    dynamicArea.innerHTML = "";
+    if (q.type === "random") {
+        // Если нет сгенерированного условия, показываем кнопку
+        if (!q.dynamicData) {
+            const genBtn = document.createElement("button");
+            genBtn.className = "random-btn";
+            genBtn.innerHTML = '<i class="fas fa-dice"></i> Сгенерировать задание';
+            genBtn.onclick = () => generateRandomQuestCondition();
+            dynamicArea.appendChild(genBtn);
+            pendingRandomize = true;
+        } else {
+            const p = document.createElement("p");
+            p.innerHTML = `<i class="fas fa-dice"></i> Условие: ${q.dynamicData}`;
             dynamicArea.appendChild(p);
+            pendingRandomize = false;
         }
-    } else if (q.type === 'quiz') {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.placeholder = 'Введите ваш ответ...';
-        input.className = 'dynamic-input';
-        input.id = 'quiz-answer';
+    } else if (q.type === "quiz") {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.placeholder = "Введите ответ...";
+        input.className = "dynamic-input";
+        input.id = "quizAnswerInput";
         dynamicArea.appendChild(input);
     }
-    // Сохраняем dynamic данные в глобальной переменной
-    waitingForRandomize = (q.type === 'random' && !q.dynamicData);
 }
 
-function generateRandomQuest() {
-    if (!currentQuestObj || currentQuestObj.type !== 'random') return;
-    const randomTasks = [
-        "Сделайте 30 спинов и выиграйте хотя бы 500$",
-        "Сыграйте в рулетку 3 раза на зеро",
-        "Удвойте ставку в блэкджеке и выиграйте",
-        "Поймайте бонус в Sweet Bonanza",
-        "Выиграйте 2 раунда в покере подряд",
-        "Получите множитель х20 в слоте"
+function generateRandomQuestCondition() {
+    if (!currentQuestObj || currentQuestObj.type !== "random") return;
+    const possible = [
+        `выбейте множитель x${Math.floor(Math.random()*30+10)}`,
+        `получите блэкджек ${Math.floor(Math.random()*3+2)} раза подряд`,
+        `сделайте ${Math.floor(Math.random()*50+30)} спинов по 20$`,
+        `поймайте бонус в ${slotsList[Math.floor(Math.random()*slotsList.length)]}`,
+        `выиграйте ${Math.floor(Math.random()*500+200)}$ в рулетке`,
+        `удвойте ставку и выиграйте ${Math.floor(Math.random()*3+1)} раза`
     ];
-    const randomTask = randomTasks[Math.floor(Math.random() * randomTasks.length)];
-    currentQuestObj.dynamicData = randomTask;
+    const cond = possible[Math.floor(Math.random() * possible.length)];
+    currentQuestObj.dynamicData = cond;
     saveGame();
     renderCurrentQuest();
 }
 
+// ================================
+//       ВЫПОЛНЕНИЕ ЗАДАНИЯ
+// ================================
 function completeQuest() {
     if (!currentQuestObj) return;
     if (currentQuestObj.completed) {
-        alert('Это задание уже выполнено');
+        alert("Это задание уже выполнено!");
         return;
     }
-    // Проверка для рандомного: нужно сгенерировать
-    if (currentQuestObj.type === 'random' && !currentQuestObj.dynamicData) {
-        alert('Сначала сгенерируйте задание кнопкой ниже');
+    // Проверка для рандома: нужно сначала сгенерировать условие
+    if (currentQuestObj.type === "random" && !currentQuestObj.dynamicData) {
+        alert("Сначала сгенерируйте задание кнопкой ниже!");
         return;
+    }
+    // Для викторины проверяем ответ
+    if (currentQuestObj.type === "quiz") {
+        const input = document.getElementById("quizAnswerInput");
+        if (!input) {
+            alert("Поле ответа не найдено");
+            return;
+        }
+        const userAnswer = input.value.trim().toLowerCase();
+        const correct = currentQuestObj.correctAnswer;
+        if (!correct || userAnswer !== correct) {
+            alert(`❌ Неправильно! Правильный ответ: ${correct}. Задание не засчитано.`);
+            return;
+        }
     }
     
-    // Начисляем опыт и осколки
+    // Начисление наград
     const levelIdx = game.currentLevel;
     const expGain = 20 + levelIdx * 5;
+    const shardGain = 5 + levelIdx * 2;
     game.exp += expGain;
-    game.soulShards += 5 + levelIdx;
+    game.soulShards += shardGain;
     
-    // Отмечаем выполненным
+    // Отметка выполнения
     currentQuestObj.completed = true;
     game.completedQuests.push({
         level: levelIdx,
         questId: currentQuestObj.id
     });
     
-    // Проверка на повышение уровня (опыт)
+    // Проверка на завершение уровня
+    const allCompleted = levelsData[levelIdx].quests.every(q => q.completed);
+    if (allCompleted && !game.levelCompleted[levelIdx]) {
+        game.levelCompleted[levelIdx] = true;
+    }
+    
+    // Проверка на повышение уровня (по опыту)
     let levelUp = false;
-    while (game.exp >= levels[game.currentLevel].expRequired && game.currentLevel < levels.length-1) {
-        game.exp -= levels[game.currentLevel].expRequired;
+    while (game.exp >= levelsData[game.currentLevel].expNeeded && game.currentLevel < levelsData.length-1) {
+        game.exp -= levelsData[game.currentLevel].expNeeded;
         game.currentLevel++;
         levelUp = true;
-        // Проверяем, не завершён ли новый уровень
+        // При переходе уровня сохраняем, но не переключаем индекс
     }
     if (levelUp) {
-        // При переходе уровня сбрасываем текущий индекс задания на начало
-        game.currentQuestIndex = 0;
-        // Проверяем, все ли задания были выполнены на предыдущем уровне? В любом случае идёт дальше
-    } else {
-        // Переход к следующему заданию вручную через кнопку "Следующее задание"
-        // Но сначала нужно обновить UI
+        // Корректируем currentQuestIndex на первый невыполненный
+        const newLevelQuests = levelsData[game.currentLevel].quests;
+        let nextIdx = newLevelQuests.findIndex(q => !q.completed);
+        if (nextIdx === -1) nextIdx = newLevelQuests.length-1;
+        game.currentQuestIndex = nextIdx;
+        saveGame();
+        updateUI();
+        loadCurrentQuest();
+        alert(`✨ Поздравляем! Вы достигли уровня ${game.currentLevel+1}! ✨`);
+        return;
     }
+    
+    // Иначе переходим к следующему невыполненному заданию
     saveGame();
     updateUI();
-    
-    // Автоматически переходим к следующему невыполненному заданию, если есть
-    const nextUncompleted = getNextUncompletedQuestIndex();
+    const nextUncompleted = levelsData[levelIdx].quests.findIndex((q, idx) => !q.completed && idx > game.currentQuestIndex);
     if (nextUncompleted !== -1) {
         game.currentQuestIndex = nextUncompleted;
         saveGame();
         loadCurrentQuest();
     } else {
-        // Уровень завершён
-        completeLevel();
-    }
-    updateUI();
-}
-
-function getNextUncompletedQuestIndex() {
-    const level = levels[game.currentLevel];
-    for (let i=0; i<level.quests.length; i++) {
-        if (!level.quests[i].completed) return i;
-    }
-    return -1;
-}
-
-function completeLevel() {
-    const levelIdx = game.currentLevel;
-    game.levelCompleted[levelIdx] = true;
-    saveGame();
-    
-    if (levelIdx + 1 < levels.length) {
-        // Открываем следующий уровень
-        levelCompleteModal.classList.remove('hidden');
-        document.getElementById('level-complete-text').innerHTML = `Вы завершили уровень ${levelIdx+1}: ${levels[levelIdx].name}.<br>Открыт уровень ${levelIdx+2}!`;
-    } else {
-        // Игра завершена
-        gameCompleteModal.classList.remove('hidden');
+        // Все задания уровня выполнены
+        if (allCompleted) {
+            if (levelIdx + 1 < levelsData.length) {
+                levelCompleteModal.classList.remove('hidden');
+                document.getElementById('level-complete-text').innerHTML = `Вы завершили уровень ${levelIdx+1}: ${levelsData[levelIdx].name}.<br>Открыт уровень ${levelIdx+2}!`;
+            } else {
+                gameCompleteModal.classList.remove('hidden');
+            }
+        } else {
+            // Есть невыполненные, но мы на последнем? перейти к следующему
+            moveToNextQuest();
+        }
     }
     updateUI();
 }
 
 function moveToNextQuest() {
-    const nextIdx = getNextUncompletedQuestIndex();
-    if (nextIdx !== -1 && nextIdx > game.currentQuestIndex) {
-        game.currentQuestIndex = nextIdx;
+    const level = game.currentLevel;
+    const nextUncompleted = levelsData[level].quests.findIndex(q => !q.completed);
+    if (nextUncompleted !== -1) {
+        game.currentQuestIndex = nextUncompleted;
         saveGame();
         loadCurrentQuest();
         updateUI();
-    } else if (nextIdx === -1) {
-        completeLevel();
     } else {
-        alert('Нет доступных заданий');
+        // Все выполнены, но уровень возможно не завершён? завершаем
+        if (!game.levelCompleted[level]) {
+            game.levelCompleted[level] = true;
+            saveGame();
+            updateUI();
+            if (level + 1 < levelsData.length) {
+                levelCompleteModal.classList.remove('hidden');
+                document.getElementById('level-complete-text').innerHTML = `Вы завершили уровень ${level+1}: ${levelsData[level].name}.<br>Открыт уровень ${level+2}!`;
+            } else {
+                gameCompleteModal.classList.remove('hidden');
+            }
+        }
     }
 }
 
+// ================================
+//        СБРОС И ПОМОЩЬ
+// ================================
 function resetProgress() {
     if (confirm('Сбросить весь прогресс игры? Все уровни и осколки будут удалены.')) {
         localStorage.removeItem('knightRpg');
@@ -427,33 +562,40 @@ function resetProgress() {
     }
 }
 
-function handleHint() {
-    // Подсказка для зрителей (команда !помощь)
-    let hint = '';
-    if (currentQuestObj && !currentQuestObj.completed) {
-        if (currentQuestObj.type === 'quiz') {
-            hint = 'Попробуй ответить на вопрос, используя логику или подсказки в интернете.';
-        } else if (currentQuestObj.type === 'random') {
-            hint = 'Сгенерируй задание, затем выполни его в казино.';
-        } else {
-            hint = 'Просто выполни задание, описанное выше, и нажми "Выполнено".';
-        }
-    } else {
-        hint = 'Сначала выбери активное задание.';
+function showHint() {
+    if (!currentQuestObj || currentQuestObj.completed) {
+        hintTextSpan.innerText = "Сначала выберите активное задание.";
+        hintModal.classList.remove('hidden');
+        return;
     }
-    hintTextSpan.innerText = hint;
+    let hint = "";
+    if (currentQuestObj.type === "fixed") {
+        hint = "Просто выполните описанное действие в казино и нажмите «Выполнено».";
+    } else if (currentQuestObj.type === "random") {
+        if (currentQuestObj.dynamicData) {
+            hint = `Сейчас задание: ${currentQuestObj.dynamicData}. Выполните его и нажмите «Выполнено».`;
+        } else {
+            hint = "Сначала сгенерируйте случайное задание кнопкой ниже.";
+        }
+    } else if (currentQuestObj.type === "quiz") {
+        hint = `Подсказка: правильный ответ начинается с буквы "${currentQuestObj.correctAnswer[0]}".`;
+    }
+    hintTextSpan.innerHTML = hint;
     hintModal.classList.remove('hidden');
 }
 
-// Обработчики
+// ================================
+//        ОБРАБОТЧИКИ СОБЫТИЙ
+// ================================
 completeBtn.addEventListener('click', completeQuest);
 nextBtn.addEventListener('click', moveToNextQuest);
 resetProgressBtn.addEventListener('click', resetProgress);
 nextLevelBtnModal.addEventListener('click', () => {
     levelCompleteModal.classList.add('hidden');
-    if (game.currentLevel+1 < levels.length) {
+    if (game.currentLevel+1 < levelsData.length) {
         game.currentLevel++;
-        game.currentQuestIndex = 0;
+        game.currentQuestIndex = levelsData[game.currentLevel].quests.findIndex(q => !q.completed);
+        if (game.currentQuestIndex === -1) game.currentQuestIndex = 0;
         saveGame();
         updateUI();
         loadCurrentQuest();
@@ -464,8 +606,30 @@ restartGameBtn.addEventListener('click', () => {
 });
 closeHintBtn.addEventListener('click', () => hintModal.classList.add('hidden'));
 
-// Имитация команды из чата (можно вызвать через консоль, если нужно)
-window.handleHint = handleHint;
+// Команда из чата (можно вызывать из консоли или через бота)
+window.showHint = showHint;
 
-// Загрузка игры
+// ================================
+//        ДОП. АНИМАЦИИ
+// ================================
+function animateKnight() {
+    const knight = document.querySelector('.knight-icon');
+    if (knight) {
+        knight.style.animation = 'none';
+        setTimeout(() => { knight.style.animation = 'float 3s ease-in-out infinite'; }, 10);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadGame();
+    // Добавляем анимацию при выполнении задания
+    const observer = new MutationObserver(() => {
+        if (currentQuestObj && currentQuestObj.completed) animateKnight();
+    });
+    observer.observe(document.body, { attributes: true, childList: true, subtree: true });
+});
+
+// ================================
+//        ИНИЦИАЛИЗАЦИЯ
+// ================================
 loadGame();
