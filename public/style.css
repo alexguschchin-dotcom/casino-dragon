@@ -1,37 +1,25 @@
-/* =====================================================
-   ГЛОБАЛЬНЫЕ СТИЛИ И ПЕРЕМЕННЫЕ (расширенные)
-   ===================================================== */
+/* ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ========== */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
-
 :root {
     --gold: #d4af37;
     --gold-dark: #b8860b;
-    --gold-light: #ffd700;
     --copper: #cd7f32;
-    --bronze: #8c7853;
-    --dark-bg: #0a0a0a;
-    --dark-panel: rgba(10,10,10,0.85);
     --transition-fast: 0.2s;
     --transition-medium: 0.4s;
-    --transition-slow: 0.8s;
-    --glow-gold: 0 0 8px rgba(212,175,55,0.6);
 }
-
 body {
     font-family: 'Inter', sans-serif;
     background: radial-gradient(circle at 20% 20%, #1a1a1a, #0a0a0a);
     min-height: 100vh;
     color: #e6d5a8;
     padding: 20px;
-    transition: all 0.5s ease;
-    position: relative;
+    transition: background 0.6s ease;
     overflow-x: hidden;
 }
-
 .game-container {
     max-width: 1600px;
     margin: 0 auto;
@@ -39,97 +27,67 @@ body {
     gap: 30px;
     flex-wrap: wrap;
     background: rgba(0,0,0,0.4);
-    backdrop-filter: blur(5px);
+    backdrop-filter: blur(8px);
     border-radius: 60px;
     padding: 30px;
-    border: 1px solid rgba(212,175,55,0.3);
+    border: 1px solid rgba(212,175,55,0.4);
     box-shadow: 0 20px 40px rgba(0,0,0,0.6);
     position: relative;
     z-index: 10;
 }
-
-.left-column {
-    flex: 1.2;
-    min-width: 300px;
-}
-.right-column {
-    flex: 2;
-    min-width: 380px;
-    display: flex;
-    flex-direction: column;
-    gap: 25px;
-}
+.left-column { flex: 1.2; min-width: 280px; }
+.right-column { flex: 2; min-width: 380px; display: flex; flex-direction: column; gap: 25px; }
 
 /* ========== КАРТОЧКА РЫЦАРЯ ========== */
 .knight-card {
-    background: rgba(0,0,0,0.65);
-    backdrop-filter: blur(8px);
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(10px);
     border-radius: 60px;
     padding: 30px 25px;
     text-align: center;
     margin-bottom: 30px;
     border: 1px solid var(--gold);
-    box-shadow: 0 15px 30px rgba(0,0,0,0.4);
-    transition: transform var(--transition-medium), box-shadow var(--transition-medium);
+    transition: transform 0.3s;
 }
-.knight-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 25px 45px rgba(0,0,0,0.6);
-}
+.knight-card:hover { transform: translateY(-5px); }
 .knight-icon {
     font-size: 5rem;
     color: var(--gold);
-    margin-bottom: 15px;
-    animation: floatKnight 3s ease-in-out infinite;
-    filter: drop-shadow(0 0 8px rgba(212,175,55,0.5));
+    animation: floatKnight 3s infinite;
+    filter: drop-shadow(0 0 10px rgba(212,175,55,0.6));
 }
 @keyframes floatKnight {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-}
-.knight-card h2 {
-    font-size: 2rem;
-    font-weight: 800;
-    background: linear-gradient(135deg, var(--gold), var(--gold-light));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    margin-bottom: 20px;
+    0%,100%{ transform: translateY(0); }
+    50%{ transform: translateY(-12px); }
 }
 .knight-stats {
     display: flex;
     justify-content: space-between;
     margin: 20px 0;
-    font-size: 1.1rem;
     background: rgba(0,0,0,0.5);
     padding: 10px 20px;
     border-radius: 60px;
-    backdrop-filter: blur(4px);
 }
-.knight-stats i { margin-right: 8px; color: var(--gold); }
 .exp-bar {
     background: #2a1a0a;
     border-radius: 30px;
     height: 14px;
     margin: 15px 0;
     overflow: hidden;
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
 }
 .exp-fill {
     background: linear-gradient(90deg, var(--gold), var(--copper));
     width: 0%;
     height: 100%;
-    transition: width 0.6s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-    box-shadow: 0 0 6px var(--gold-light);
+    transition: width 0.5s cubic-bezier(0.2,0.9,0.4,1.1);
+    box-shadow: 0 0 8px gold;
 }
-.exp-text { font-size: 0.9rem; opacity: 0.9; }
 
-/* ========== КАРТА УРОВНЕЙ (все уровни доступны) ========== */
+/* ========== КАРТА УРОВНЕЙ (всегда доступны) ========== */
 .level-map {
     background: rgba(0,0,0,0.5);
     border-radius: 50px;
     padding: 20px;
-    backdrop-filter: blur(4px);
 }
 .level-item {
     display: flex;
@@ -137,104 +95,80 @@ body {
     gap: 18px;
     padding: 14px 18px;
     margin-bottom: 14px;
-    background: rgba(20,15,10,0.6);
+    background: rgba(20,15,10,0.7);
     border-radius: 50px;
     border-left: 5px solid var(--gold);
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: 0.2s;
 }
-.level-item:hover {
-    transform: translateX(8px);
-    background: rgba(50,40,25,0.8);
-    border-left-width: 8px;
-}
+.level-item:hover { transform: translateX(8px); background: rgba(50,40,25,0.9); }
 .level-item.active {
     border-left-color: #ff8c00;
     background: rgba(212,175,55,0.2);
-    box-shadow: 0 0 15px rgba(255,140,0,0.4);
+    box-shadow: 0 0 15px rgba(255,140,0,0.5);
 }
 .level-icon { font-size: 2.2rem; width: 60px; text-align: center; }
 .level-info { flex: 1; }
 .level-title { font-weight: bold; font-size: 1.3rem; margin-bottom: 6px; }
 .progress-dots { display: flex; gap: 8px; flex-wrap: wrap; }
 .dot {
-    width: 12px;
-    height: 12px;
+    width: 12px; height: 12px;
     background: #5a3e2a;
     border-radius: 50%;
-    transition: all var(--transition-fast);
+    transition: 0.2s;
 }
 .dot.completed { background: var(--gold); box-shadow: 0 0 8px gold; }
-.level-status { font-size: 1rem; font-weight: bold; min-width: 70px; text-align: right; }
+.level-status { font-weight: bold; min-width: 70px; text-align: right; }
 
-/* ========== ПРАВАЯ ПАНЕЛЬ ========== */
+/* ========== ПАНЕЛЬ ЗАДАНИЙ ========== */
 .game-panel {
-    background: rgba(0,0,0,0.7);
+    background: rgba(0,0,0,0.75);
     border-radius: 60px;
     padding: 30px;
-    backdrop-filter: blur(8px);
-    transition: all var(--transition-medium);
+    backdrop-filter: blur(12px);
+    transition: all 0.4s;
 }
 .panel-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
     margin-bottom: 30px;
-    flex-wrap: wrap;
-    gap: 15px;
     padding-bottom: 15px;
     border-bottom: 1px solid var(--gold);
 }
-.panel-header h3 { font-size: 1.8rem; font-weight: 600; }
+.panel-header h3 { font-size: 1.8rem; }
 .header-actions { display: flex; gap: 12px; }
-.sound-btn, .reset-btn {
+.icon-btn {
     background: #5d4037;
     border: none;
     padding: 8px 18px;
     border-radius: 50px;
-    color: #fff;
+    color: white;
     cursor: pointer;
-    transition: var(--transition-fast);
+    transition: 0.2s;
     font-weight: bold;
-    display: flex;
-    align-items: center;
-    gap: 8px;
 }
-.sound-btn:hover, .reset-btn:hover {
-    background: #d32f2f;
-    transform: scale(1.02);
-    box-shadow: 0 0 10px rgba(211,47,47,0.5);
-}
-.quest-area { flex: 1; }
+.icon-btn:hover { background: #d32f2f; transform: scale(1.02); }
 .quest-info {
     display: flex;
     justify-content: space-between;
     margin-bottom: 25px;
-    padding-bottom: 12px;
-    border-bottom: 1px dashed var(--gold);
 }
 .level-badge {
     background: var(--gold);
-    color: #000;
+    color: black;
     padding: 5px 16px;
     border-radius: 40px;
     font-weight: bold;
 }
 .quest-text {
-    font-size: 1.6rem;
+    font-size: 1.5rem;
     font-weight: 600;
-    margin-bottom: 25px;
-    line-height: 1.4;
-    background: rgba(0,0,0,0.4);
+    background: rgba(0,0,0,0.5);
     padding: 20px;
     border-radius: 40px;
-    border: 1px solid rgba(212,175,55,0.3);
-    transition: var(--transition-fast);
-}
-.quest-text:hover {
-    transform: scale(1.01);
-    border-color: var(--gold);
-    box-shadow: 0 0 12px rgba(212,175,55,0.5);
+    border: 1px solid rgba(212,175,55,0.4);
+    transition: 0.2s;
+    margin-bottom: 20px;
 }
 .dynamic-input {
     background: #2c1a0e;
@@ -242,14 +176,10 @@ body {
     border-radius: 60px;
     padding: 14px 20px;
     width: 100%;
-    color: #fff;
+    color: white;
     font-size: 1rem;
 }
-.dynamic-input:focus {
-    outline: none;
-    border-color: var(--gold-light);
-    box-shadow: 0 0 12px gold;
-}
+.dynamic-input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 12px gold; }
 .random-btn {
     background: var(--gold);
     border: none;
@@ -258,53 +188,39 @@ body {
     margin-top: 12px;
     cursor: pointer;
     font-weight: bold;
-    transition: var(--transition-fast);
-    color: #000;
+    color: black;
 }
-.random-btn:hover {
-    background: var(--copper);
-    transform: scale(1.02);
-    box-shadow: 0 0 12px gold;
-}
+.random-btn:hover { background: var(--copper); transform: scale(1.02); box-shadow: 0 0 12px gold; }
 .action-buttons {
     display: flex;
     gap: 20px;
     margin-top: 35px;
-    flex-wrap: wrap;
 }
 .btn-primary, .btn-secondary {
     padding: 12px 32px;
     border-radius: 60px;
     font-weight: bold;
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: 0.2s;
     font-size: 1rem;
 }
 .btn-primary {
     background: var(--gold);
     border: none;
-    color: #000;
+    color: black;
 }
-.btn-primary:hover {
-    background: var(--copper);
-    transform: scale(1.02);
-    box-shadow: 0 0 12px gold;
-}
+.btn-primary:hover { background: var(--copper); transform: scale(1.02); box-shadow: 0 0 12px gold; }
 .btn-secondary {
     background: #5d4037;
     border: none;
-    color: #fff;
+    color: white;
 }
 .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
-.btn-secondary:hover:not(:disabled) {
-    background: #ff8c00;
-    color: #000;
-    transform: scale(1.02);
-}
+.btn-secondary:hover:not(:disabled) { background: #ff8c00; color: black; }
 
-/* ========== ТАБЛИЦА ЛИДЕРОВ ========== */
+/* ========== ЛИДЕРБОРД ========== */
 .leaderboard-panel {
-    background: rgba(0,0,0,0.6);
+    background: rgba(0,0,0,0.65);
     backdrop-filter: blur(8px);
     border-radius: 50px;
     padding: 20px;
@@ -317,154 +233,132 @@ body {
     margin-bottom: 15px;
     font-size: 1.2rem;
     font-weight: bold;
-    color: var(--gold-light);
+    color: var(--gold);
 }
 .hero-select {
     background: #2a1a0a;
     border: 1px solid var(--gold);
     border-radius: 30px;
     padding: 6px 12px;
-    color: var(--gold-light);
+    color: var(--gold);
     font-weight: bold;
-    cursor: pointer;
 }
-.leaderboard-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
+.leaderboard-list { display: flex; flex-direction: column; gap: 10px; }
 .leaderboard-row {
     display: flex;
     justify-content: space-between;
     padding: 8px 15px;
-    background: rgba(0,0,0,0.4);
-    border-radius: 40px;
-    font-size: 1.1rem;
-}
-.leaderboard-row span:first-child i { margin-right: 10px; color: var(--gold); }
-.chat-info {
-    margin-top: 15px;
     background: rgba(0,0,0,0.5);
     border-radius: 40px;
-    padding: 10px;
-    text-align: center;
+}
+.chat-info {
+    margin-top: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     font-size: 0.85rem;
 }
-
-/* ========== ТОСТ-УВЕДОМЛЕНИЯ ========== */
+.hint-trigger {
+    background: var(--gold);
+    border: none;
+    border-radius: 30px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-weight: bold;
+}
 .toast {
     position: fixed;
     bottom: 30px;
     right: 30px;
-    background: rgba(0,0,0,0.9);
+    background: black;
     border-left: 5px solid var(--gold);
     padding: 12px 24px;
     border-radius: 40px;
-    color: var(--gold-light);
-    font-weight: bold;
-    backdrop-filter: blur(10px);
+    color: var(--gold);
     z-index: 3000;
-    animation: slideIn 0.3s ease;
+    animation: slideIn 0.3s;
 }
-@keyframes slideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 .hidden { display: none; }
 
-/* ========== МОДАЛЬНЫЕ ОКНА ========== */
+/* ========== МОДАЛКИ ========== */
 .modal {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.92);
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.95);
     backdrop-filter: blur(20px);
     display: flex;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
     z-index: 2000;
-    animation: fadeIn 0.3s ease;
 }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .modal-content {
     background: rgba(20,15,10,0.98);
     border-radius: 70px;
     padding: 35px;
     text-align: center;
-    max-width: 550px;
-    width: 90%;
     border: 2px solid var(--gold);
-    box-shadow: 0 0 50px rgba(212,175,55,0.3);
-    animation: zoomIn 0.3s ease;
+    max-width: 500px;
 }
-@keyframes zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-.congrats-crown { font-size: 3.5rem; color: var(--gold-light); margin-bottom: 20px; animation: crownFloat 1.5s infinite; }
-@keyframes crownFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+.congrats-crown { font-size: 3rem; color: var(--gold); animation: bounce 1s infinite; }
+@keyframes bounce { 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-10px); } }
 
-/* ========== УНИКАЛЬНЫЕ ТЕМЫ УРОВНЕЙ (расширенные) ========== */
-/* Уровень 1: Таверна "Удача" - огонь и медь */
-body.theme-level1 { background: radial-gradient(circle at 20% 30%, #5a3a20, #1f0f05); background-attachment: fixed; }
+/* ========== УНИКАЛЬНЫЕ ТЕМЫ УРОВНЕЙ (частицы и анимации) ========== */
+/* Уровень 1: Огонь */
+body.theme-level1 { background: radial-gradient(circle at 20% 30%, #5a3a20, #1f0f05); }
 body.theme-level1::before {
     content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: radial-gradient(circle at 25% 40%, rgba(255,140,0,0.15) 2px, transparent 2px);
-    background-size: 40px 40px; pointer-events: none; animation: flickerFire 1.5s infinite;
+    background: repeating-radial-gradient(circle at 20% 40%, rgba(255,80,0,0.2) 2px, transparent 4px);
+    pointer-events: none; animation: fireFlicker 1.2s infinite;
 }
-@keyframes flickerFire { 0%,100%{opacity:0.4;} 50%{opacity:1;} }
+@keyframes fireFlicker { 0%{ opacity:0.6; } 50%{ opacity:1; } 100%{ opacity:0.6; } }
 [data-theme="level1"] .game-panel { background: linear-gradient(145deg, #4a2e1e, #24150a); border-color: #cd7f32; }
-[data-theme="level1"] .btn-primary, [data-theme="level1"] .random-btn { background: #cd7f32; }
 
-/* Уровень 2: Лес костей - падающие листья */
-body.theme-level2 { background: radial-gradient(circle at 30% 70%, #1a2a0a, #0a1a0a); background-attachment: fixed; }
+/* Уровень 2: Лес */
+body.theme-level2 { background: radial-gradient(circle at 70% 20%, #1a3a1a, #0a1a0a); }
 body.theme-level2::before {
-    content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: repeating-linear-gradient(45deg, rgba(100,150,50,0.1) 0px, rgba(100,150,50,0.1) 2px, transparent 2px, transparent 12px);
-    pointer-events: none; animation: fallingLeaves 10s linear infinite;
+    content: ""; position: fixed; top: 0; left: 0; width: 200%; height: 200%;
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="rgba(100,200,50,0.2)" d="M10,30 L20,10 L30,30 L20,50 Z"/></svg>') repeat;
+    background-size: 90px; pointer-events: none; animation: leafFall 15s linear infinite;
 }
-@keyframes fallingLeaves { 0%{background-position:0 0;} 100%{background-position:200px 200px;} }
-[data-theme="level2"] .game-panel { background: linear-gradient(145deg, #2a4020, #152010); border-color: #6b8e23; }
+@keyframes leafFall { 0%{ transform: translate(0,0); } 100%{ transform: translate(80px, 80px); } }
+[data-theme="level2"] .game-panel { background: #1e2a1a; border-color: #6b8e23; }
 
-/* Уровень 3: Гора блэкджека - снег */
-body.theme-level3 { background: radial-gradient(circle at 50% 20%, #2a2a3a, #0a0a1a); background-attachment: fixed; }
+/* Уровень 3: Лёд */
+body.theme-level3 { background: radial-gradient(circle at 50% 10%, #1a2a3a, #0a0a2a); }
 body.theme-level3::before {
-    content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background-image: radial-gradient(circle at 10% 20%, rgba(255,255,255,0.2) 1px, transparent 1px);
-    background-size: 50px 50px; pointer-events: none; animation: snowDrift 20s linear infinite;
+    content: ""; position: fixed; width: 100%; height: 100%;
+    background-image: radial-gradient(circle at 10% 20%, rgba(255,255,255,0.3) 1px, transparent 1px);
+    background-size: 35px 35px; animation: snowDrift 12s linear infinite;
 }
-@keyframes snowDrift { 0%{background-position:0 0;} 100%{background-position:150px 300px;} }
-[data-theme="level3"] .game-panel { background: linear-gradient(145deg, #2a3a4a, #101a2a); border-color: #b0c4de; }
+@keyframes snowDrift { 0%{ background-position: 0 0; } 100%{ background-position: 100px 200px; } }
+[data-theme="level3"] .game-panel { background: #1e2e3e; border-color: #7cb9e8; }
 
-/* Уровень 4: Пещера слотов - искры */
-body.theme-level4 { background: radial-gradient(circle at 20% 80%, #2a0a3a, #0a001a); background-attachment: fixed; }
+/* Уровень 4: Молния */
+body.theme-level4 { background: radial-gradient(circle at 20% 80%, #2a0a3a, #0a001a); }
 body.theme-level4::before {
-    content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background-image: radial-gradient(circle at 30% 40%, rgba(212,175,55,0.3) 2px, transparent 2px);
-    background-size: 60px 60px; pointer-events: none; animation: sparkles 2s infinite;
+    content: ""; position: fixed; width: 100%; height: 100%;
+    background-image: repeating-linear-gradient(45deg, rgba(138,43,226,0.2) 0px, rgba(138,43,226,0.2) 2px, transparent 2px, transparent 8px);
+    animation: lightningFlash 1.8s infinite;
 }
-@keyframes sparkles { 0%{opacity:0.3;} 50%{opacity:1;} 100%{opacity:0.3;} }
-[data-theme="level4"] .game-panel { background: linear-gradient(145deg, #3a1a4a, #1a0a2a); border-color: #8a2be2; }
+@keyframes lightningFlash { 0%,80%,100%{ opacity:0.3; } 90%{ opacity:1; background-color: rgba(255,255,200,0.3); } }
+[data-theme="level4"] .game-panel { background: #2a0a2a; border-color: #b77cff; }
 
-/* Уровень 5: Тронный зал джекпота - золото */
-body.theme-level5 { background: radial-gradient(circle at 30% 40%, #3a2a1a, #1a0e00); background-attachment: fixed; }
+/* Уровень 5: Золото */
+body.theme-level5 { background: radial-gradient(circle at 30% 30%, #3a2a1a, #1a0e00); }
 body.theme-level5::before {
-    content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: repeating-linear-gradient(90deg, rgba(255,215,0,0.12) 0px, rgba(255,215,0,0.12) 2px, transparent 2px, transparent 20px);
-    pointer-events: none; animation: goldenGlow 3s infinite;
+    content: ""; position: fixed; width: 100%; height: 100%;
+    background: linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(255,215,0,0) 50%);
+    animation: goldPulse 2s infinite;
 }
-@keyframes goldenGlow { 0%{filter:brightness(1);} 50%{filter:brightness(1.15);} 100%{filter:brightness(1);} }
-[data-theme="level5"] .game-panel { background: linear-gradient(145deg, #4a3a1a, #2a1a0a); border-color: #ffd700; }
-[data-theme="level5"] .btn-primary, [data-theme="level5"] .random-btn { background: #ffd700; color: #000; }
+@keyframes goldPulse { 0%{ opacity:0.4; } 50%{ opacity:1; } 100%{ opacity:0.4; } }
+[data-theme="level5"] .game-panel { background: #3a2a10; border-color: #ffd700; }
 
-/* Частицы Canvas */
-.particle-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
+.particle-layer { position: fixed; top:0; left:0; width:100%; height:100%; pointer-events: none; z-index: 2; }
 
-/* Адаптивность */
+/* Адаптив */
 @media (max-width: 900px) {
-    .game-container { flex-direction: column; padding: 20px; gap: 20px; }
+    .game-container { flex-direction: column; padding: 20px; }
     .quest-text { font-size: 1.2rem; }
-    .btn-primary, .btn-secondary { padding: 8px 20px; }
 }
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: #1a0e05; border-radius: 10px; }
-::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 10px; }
