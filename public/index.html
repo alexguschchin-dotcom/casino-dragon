@@ -1,105 +1,167 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Сага о проклятом рыцаре | Эпопея в 5 актах</title>
+    <title>Летний марафон · Казино-квиз</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-    <canvas id="particle-canvas" class="particle-layer"></canvas>
+    <div class="summer-bg"></div>
+    <div id="leaf-container"></div>
 
-    <div class="game-container">
-        <!-- ЛЕВАЯ КОЛОНКА -->
-        <div class="left-column">
-            <div class="knight-card">
-                <i class="fas fa-chess-knight knight-icon"></i>
-                <h2>Проклятый рыцарь</h2>
-                <div class="knight-stats">
-                    <div><i class="fas fa-shield-alt"></i> Уровень: <span id="player-level">1</span></div>
-                    <div><i class="fas fa-gem"></i> Осколки души: <span id="soul-shards">0</span></div>
-                </div>
-                <div class="exp-bar"><div class="exp-fill" id="exp-fill"></div></div>
-                <div class="exp-text">Опыт: <span id="exp-current">0</span> / <span id="exp-next">100</span></div>
+    <div class="game-wrapper">
+        <header class="game-header">
+            <div class="title-block">
+                <h1 class="game-title">
+                    <span class="title-glow">Летний марафон</span>
+                    <span class="title-casino">· Казино-квиз</span>
+                </h1>
+                <div class="date-badge">☀️  Летний кураж  ☀️</div>
             </div>
-            <div class="level-map" id="level-map"></div>
-        </div>
-
-        <!-- ПРАВАЯ КОЛОНКА -->
-        <div class="right-column">
-            <div class="game-panel" id="game-panel">
-                <div class="panel-header">
-                    <h3><i class="fas fa-scroll"></i> Текущее испытание</h3>
-                    <div class="header-actions">
-                        <button id="sound-toggle" class="icon-btn"><i class="fas fa-volume-up"></i></button>
-                        <button id="reset-progress" class="icon-btn"><i class="fas fa-skull"></i> Сброс</button>
-                    </div>
+            <div class="score-panel">
+                <div class="total-score-card">
+                    <i class="fas fa-coins"></i>
+                    <span id="total-score">0</span>
+                    <span class="score-label">баланс</span>
                 </div>
-                <div class="quest-area">
-                    <div class="quest-info">
-                        <span class="level-badge" id="current-level-badge">Уровень 1</span>
-                        <span class="quest-counter" id="quest-counter">Заданий: 0 / 20</span>
-                    </div>
-                    <div class="quest-text" id="quest-text">Загрузка...</div>
-                    <div class="quest-type-indicator" id="quest-type"></div>
-                    <div id="dynamic-area"></div>
-                    <div class="action-buttons">
-                        <button id="complete-quest" class="btn-primary"><i class="fas fa-check"></i> Выполнено в казино</button>
-                        <button id="next-quest" class="btn-secondary" disabled><i class="fas fa-arrow-right"></i> Следующее</button>
-                    </div>
-                </div>
+                <button id="edit-balance" class="edit-balance-btn"><i class="fas fa-pen"></i> Изменить баланс</button>
             </div>
+        </header>
 
-            <!-- ЛИДЕРБОРД -->
-            <div class="leaderboard-panel">
-                <div class="leaderboard-header">
-                    <i class="fas fa-trophy"></i> Помощники рыцаря
-                    <select id="active-hero" class="hero-select">
-                        <option value="alex">⚔️ Алексей</option>
-                        <option value="vika">🌿 Вика</option>
-                        <option value="batiya">🐉 Батя</option>
-                    </select>
-                </div>
-                <div class="leaderboard-list">
-                    <div class="leaderboard-row"><span><i class="fas fa-crown"></i> Алексей</span><span id="score-alex">0</span></div>
-                    <div class="leaderboard-row"><span><i class="fas fa-star"></i> Вика</span><span id="score-vika">0</span></div>
-                    <div class="leaderboard-row"><span><i class="fas fa-dragon"></i> Батя</span><span id="score-batiya">0</span></div>
-                </div>
-                <div class="chat-info">
-                    <i class="fas fa-comments"></i> Чат: напишите <strong>!помощь</strong> — подсказка
-                    <button id="hint-btn" class="hint-trigger"><i class="fas fa-question-circle"></i> Подсказка</button>
-                </div>
+        <div class="themes-grid" id="themes-grid"></div>
+
+        <div class="leaderboard-section">
+            <div class="leaderboard-header">
+                <i class="fas fa-trophy"></i>
+                <h2>Таблица лидеров</h2>
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="leaderboard-players" id="leaderboard-players"></div>
+            <div class="leaderboard-controls">
+                <button id="reset-scores" class="reset-scores-btn"><i class="fas fa-redo-alt"></i> Сбросить очки</button>
             </div>
         </div>
+
+        <footer class="game-footer">
+            <div class="footer-decoration">
+                <span>🍉</span> Летняя викторина <span>🍍</span>
+            </div>
+            <div class="footer-tip">
+                <i class="fas fa-lightbulb"></i> Выберите тему, затем вопрос — ответьте правильно, чтобы получить очки лидеров и задание казино!
+            </div>
+        </footer>
     </div>
 
-    <!-- МОДАЛЬНЫЕ ОКНА (изначально скрыты) -->
-    <div id="level-complete-modal" class="modal hidden">
+    <!-- Модалка с вопросами темы -->
+    <div id="theme-modal" class="modal hidden">
         <div class="modal-content glass">
-            <i class="fas fa-crown congrats-crown"></i>
-            <h2>Уровень пройден!</h2>
-            <p id="level-complete-text"></p>
-            <button id="next-level-btn" class="btn-primary">К следующему миру</button>
+            <div class="modal-header">
+                <h2 id="theme-name">Тема</h2>
+                <button class="close-modal" id="close-theme-modal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="questions-grid" id="questions-grid"></div>
         </div>
     </div>
-    <div id="game-complete-modal" class="modal hidden">
-        <div class="modal-content glass">
-            <i class="fas fa-dragon"></i>
-            <h2>Поздравляем!</h2>
-            <p>Рыцарь освобождён! Вы прошли все 5 уровней.<br>Вы — легенда казино.</p>
-            <button id="restart-game" class="btn-primary">Начать заново</button>
+
+    <!-- Карточка вопроса -->
+    <div id="question-modal" class="modal hidden">
+        <div class="question-card glass">
+            <div class="question-header">
+                <h3 id="question-category">Категория</h3>
+                <span id="question-value">💰 0</span>
+                <button class="close-modal" id="close-question-modal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="question-text" id="question-text">Текст вопроса</div>
+            
+            <div class="player-selector">
+                <label>Кто отвечает?</label>
+                <select id="answering-player">
+                    <option value="alex">Алексей</option>
+                    <option value="vika">Вика</option>
+                    <option value="batya">Батя</option>
+                </select>
+            </div>
+
+            <div class="options-area" id="options-area"></div>
+
+            <div class="help-buttons">
+                <button id="help-chat" class="help-btn"><i class="fas fa-comments"></i> Спросить чат</button>
+                <button id="help-vika" class="help-btn"><i class="fas fa-user-ninja"></i> Спросить Вику</button>
+                <button id="help-batya" class="help-btn"><i class="fas fa-user-tie"></i> Спросить Батю</button>
+                <button id="help-alex" class="help-btn"><i class="fas fa-user-astronaut"></i> Спросить Алексея</button>
+            </div>
+            <div class="feedback" id="feedback"></div>
         </div>
     </div>
-    <div id="hint-modal" class="modal hidden">
+
+    <!-- Модалка для выбора зрителя -->
+    <div id="viewer-modal" class="modal hidden">
         <div class="modal-content glass small">
-            <h3><i class="fas fa-lightbulb"></i> Подсказка зрителей</h3>
-            <p id="hint-text"></p>
-            <button id="close-hint" class="btn-primary">Понял</button>
+            <h3>👥 Помощь чата</h3>
+            <p>Введите ник зрителя, который поможет:</p>
+            <input type="text" id="viewer-name" placeholder="Ник зрителя">
+            <div class="modal-buttons">
+                <button id="confirm-viewer" class="btn-primary">Подтвердить</button>
+                <button id="cancel-viewer" class="btn-secondary">Отмена</button>
+            </div>
         </div>
     </div>
-    <div id="toast" class="toast hidden"></div>
+
+    <!-- Модалка результата -->
+    <div id="result-modal" class="modal hidden">
+        <div class="modal-content glass small">
+            <h3 id="result-title"></h3>
+            <p id="result-message"></p>
+            <button id="close-result" class="btn-primary">Продолжить</button>
+        </div>
+    </div>
+
+    <!-- Модалка изменения баланса -->
+    <div id="balance-modal" class="modal hidden">
+        <div class="modal-content glass small">
+            <h3>💰 Изменить баланс</h3>
+            <input type="number" id="new-balance" placeholder="Новый баланс" value="0">
+            <div class="modal-buttons">
+                <button id="save-balance" class="btn-primary">Сохранить</button>
+                <button id="cancel-balance" class="btn-secondary">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка поздравления -->
+    <div id="congrats-modal" class="modal hidden">
+        <div class="modal-content glass congrats-modal-content">
+            <div class="confetti-bg"></div>
+            <i class="fas fa-crown congrats-crown"></i>
+            <h2 class="congrats-title">🎉 Поздравляем! 🎉</h2>
+            <p class="congrats-subtitle">Вы прошли всю летнюю викторину! Отличный результат!</p>
+            <div class="congrats-scores" id="congrats-scores"></div>
+            <div class="congrats-buttons">
+                <button id="restart-game" class="btn-primary congrats-btn">🍉 Сыграть снова 🍍</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка правил -->
+    <div id="rules-modal" class="modal">
+        <div class="modal-content glass small rules-modal">
+            <i class="fas fa-sun rules-icon"></i>
+            <h2>☀️ Летние правила игры ☀️</h2>
+            <div class="rules-text">
+                <p><i class="fas fa-question-circle"></i> <strong>Выберите тему</strong> и вопрос (сложность 1–5).</p>
+                <p><i class="fas fa-edit"></i> <strong>Ответьте на вопрос</strong> — выберите один из четырёх вариантов. Правильный ответ приносит очки в таблицу лидеров, неправильный отнимает (по уровню сложности).</p>
+                <p><i class="fas fa-users"></i> <strong>Помощь чата</strong> — если зритель поможет правильно ответить, он получит 50$ (по желанию стримера), а задание казино усложнится на 50% (стример сам увеличивает сложность).</p>
+                <p><i class="fas fa-user-friends"></i> <strong>Помощь Вики, Бати или Алексея</strong> — сложность задания увеличивается на 15%.</p>
+                <p><i class="fas fa-balance-scale"></i> <strong>Баланс казино</strong> можно менять вручную кнопкой "Изменить баланс".</p>
+                <p><i class="fas fa-chart-line"></i> <strong>Таблица лидеров</strong> — очки начисляются за правильные ответы и снимаются за неправильные.</p>
+                <p><i class="fas fa-trophy"></i> <strong>После ответа на все вопросы</strong> вы увидите поздравление!</p>
+            </div>
+            <button id="close-rules" class="btn-primary">Погнали! 🚀</button>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
