@@ -1,7 +1,7 @@
 {
-  "name": "knight-quest",
+  "name": "summer-quiz",
   "version": "1.0.0",
-  "description": "RPG квест с заданиями казино «Сага о проклятом рыцаре»",
+  "description": "Летняя викторина Казино-квиз",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
