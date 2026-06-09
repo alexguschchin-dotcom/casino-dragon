@@ -13,19 +13,23 @@ body {
     overflow-x: hidden;
 }
 
-/* Летний фон */
+/* Летний фон с картинкой */
 .summer-bg {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: repeating-linear-gradient(45deg, rgba(255,215,0,0.05) 0px, rgba(255,215,0,0.05) 20px, transparent 20px, transparent 40px);
+    background-image: url('https://i.pinimg.com/originals/6c/06/1d/6c061dbafeefb0fb9d397ab4df771b94.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
     pointer-events: none;
     z-index: 0;
 }
 
-/* Падающие листья (вместо сакуры) */
+/* Падающие листья */
 #leaf-container {
     position: fixed;
     top: 0;
