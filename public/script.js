@@ -1,514 +1,495 @@
-(function(){
-    "use strict";
+// ========== ЛЕТНЯЯ ВИКТОРИНА "Солнце, фрукты, удача!" ==========
 
-    // ---------- КОНФИГ ----------
-    const TOTAL_LEVELS = 5;
-    const QUESTS_PER_LEVEL = 20;
-
-    // Задания для каждого уровня (уникальные)
-    const LEVEL_TASKS = [
-        [ // Уровень 1: Огонь – риск, ставки
-            "Сделай 10 спинов на любом слоте по минимальной ставке",
-            "Поставь на «красное» в рулетке и выиграй",
-            "Выиграй в блэкджеке одну раздачу",
-            "Сделай спин с максимальной ставкой",
-            "Купи бонус в любом слоте",
-            "Сыграй 3 раунда в блэкджек, проиграв не более одного",
-            "Поставь на «чёрное» и проиграй",
-            "Получи множитель x2 в любом слоте",
-            "Сделай 20 спинов подряд, не меняя слот",
-            "Выиграй 100$ одним спином",
-            "Сделай ставку на 0 в рулетке",
-            "Активируй бесплатные вращения (фриспины)",
-            "Поставь на 1-12 в рулетке и выиграй",
-            "Сделай 5 спинов в слоте с вулканом",
-            "Удвой выигрыш в блэкджеке",
-            "Сыграй в покер и выиграй раздачу",
-            "Пополни баланс на 20$ и сделай спин",
-            "Поставь на четное и выиграй 2 раза подряд",
-            "Забери джекпот (любой)",
-            "Сделай ставку на 13-24 и выиграй"
-        ],
-        [ // Уровень 2: Лес – викторины
-            "Сколько чисел в европейской рулетке? (37)",
-            "Какова вероятность выпадения одного числа в рулетке? (1/37)",
-            "Что означает RTP? (Return to Player)",
-            "Сколько очков даёт туз в блэкджеке? (1 или 11)",
-            "Что такое сплит в блэкджеке? (разделить пару)",
-            "Назови комбинацию «туз + карта 10» (блэкджек)",
-            "Сколько карт в колоде для блэкджека? (52)",
-            "Что такое «анте» в покере? (начальная ставка)",
-            "Какой символ в слотах заменяет все? (Wild)",
-            "Назови любой слот от Pragmatic Play",
-            "Как называется бонус с бесплатными вращениями? (фриспины)",
-            "Какой фильм про казино с Ди Каприо? (Волк с Уолл-стрит)",
-            "Что означает «дабл даун»? (удвоить ставку)",
-            "Сделай 15 спинов на любом слоте от Hacksaw",
-            "Поставь на зеро и выиграй",
-            "Выиграй в блэкджеке 2 руки подряд",
-            "Сделай ставку на 1-й дюжине и выиграй",
-            "Поймай любой бонус с множителем x5+",
-            "Сделай 30 спинов на слоте с высокой волатильностью",
-            "Что такое «холодный слот»? (давно не давал выигрыш)"
-        ],
-        [ // Уровень 3: Лёд – карты, блэкджек
-            "Собери блэкджек из туза и десятки",
-            "Выиграй в блэкджек 3 раздачи подряд",
-            "Сделай сплит и выиграй обе руки",
-            "Удвой ставку после двух карт и выиграй",
-            "Сыграй 5 раздач в блэкджек, проиграв не более 2",
-            "Поставь на страховку и выиграй",
-            "Выиграй с 16 очками, взяв ещё карту",
-            "Проиграй с 20 очками",
-            "Сделай ставку на 5$ в покере и выиграй",
-            "Сыграй в казино-покер и получи флеш",
-            "Назови любую карточную игру казино",
-            "Сделай 10 ставок в блэкджеке по минималке",
-            "Не бери карту на 17+",
-            "Выиграй раздачу с мультиплеером",
-            "Сделай 3 сплита подряд",
-            "Выиграй после удвоения ставки",
-            "Сыграй в мини-игру «Идеальная пара»",
-            "Поставь на бонус «21+3»",
-            "Заверши уровень, сделав 2 блэкджека за 3 раздачи",
-            "Сделай ставку на бонус Perfect Pair"
-        ],
-        [ // Уровень 4: Молния – быстрые действия
-            "Сделай 5 спинов за 1 минуту",
-            "Поставь на красное и чёрное одновременно",
-            "Найди слот с драконом и сделай 3 спина",
-            "Купи супер-бонус за максимальную ставку",
-            "За 30 секунд сделай 3 ставки в рулетке",
-            "Сделай 10 спинов в хаотичном порядке по слотам",
-            "Выиграй любой раунд в крэпсе",
-            "Сделай спин и поймай любой скаттер",
-            "Поставь на все числа в рулетке одним сплитом",
-            "Удвой выигрыш в блэкджеке и сдайся",
-            "Сыграй в видеослот с функцией «купить бонус»",
-            "Сделай 3 депозита по 10$ за 2 минуты",
-            "Поставь на 0 и 00 в американской рулетке",
-            "Выиграй 2 раза подряд в рулетке на чёт/нечет",
-            "Активируй бонусную игру и собери множитель x10",
-            "Сделай 20 спинов не глядя на экран",
-            "Поставь на число 7 в рулетке",
-            "Поймай джекпот в любом слоте",
-            "За 10 секунд выбери слот и сделай спин",
-            "Сделай ставку на линию в слоте и выиграй"
-        ],
-        [ // Уровень 5: Золото – смесь сложного
-            "Выиграй 500$ одним спином",
-            "Сделай 3 джекпота (не подряд)",
-            "Назови 5 любых слотов от NetEnt",
-            "Сделай 50 спинов без проигрыша более 30% баланса",
-            "Удвой выигрыш в рулетке 2 раза подряд",
-            "Собери комбинацию из 5 одинаковых символов в слоте",
-            "Выиграй в блэкджеке 5 раз подряд",
-            "Сделай ставку на все 36 чисел в рулетке",
-            "Активируй супер-бонус с ретриггерами",
-            "Кто написал роман «Игрок»? (Достоевский)",
-            "Назови город с самым известным казино (Монте-Карло)",
-            "Сделай 100 спинов суммарно за уровень",
-            "Поставь на 1-й дюжине и выиграй 3 из 5",
-            "Забери прогрессивный джекпот",
-            "Победи дилера в блэкджеке с 6 картами",
-            "Сделай сплит на 10-10 и выиграй обе руки",
-            "Выиграй в покер с парой тузов",
-            "Сделай 3 бонусные игры в разных слотах",
-            "Достигни множителя x25 в бонусной игре",
-            "Заверши игру любым выигрышем более 1000$"
+// Темы и вопросы (5 тем, по 5 вопросов)
+const themesData = {
+    beach: {
+        name: 'Пляж и море',
+        icon: 'fas fa-umbrella-beach',
+        questions: [
+            { value: 1, text: 'Как называется самый известный пляж в Рио-де-Жанейро?', options: ['Копакабана', 'Ипанема', 'Байя', 'Флорипа'], correct: 0, casinoTask: 'Сделайте 20 спинов по 20$ в слоте "Beach Life"' },
+            { value: 2, text: 'Какой океан омывает пляжи Майами?', options: ['Тихий', 'Атлантический', 'Индийский', 'Северный Ледовитый'], correct: 1, casinoTask: 'Поставьте 100$ на красное в рулетке' },
+            { value: 3, text: 'Где находится пляж "Белые пески"?', options: ['Мальдивы', 'Багамы', 'Сейшелы', 'Таиланд'], correct: 1, casinoTask: 'Купите бонус за 500$ в слоте с пальмами' },
+            { value: 4, text: 'Как называется традиционная гавайская рубашка?', options: ['Алоха', 'Гавайка', 'Оана', 'Мауи'], correct: 0, casinoTask: 'Сделайте 50 спинов по 10$ в слоте "Tiki Fiesta"' },
+            { value: 5, text: 'Самый популярный пляжный волейбольный турнир?', options: ['World Tour', 'Beach Pro', 'King of the Beach', 'FIVB'], correct: 0, casinoTask: 'Выиграйте 3 раунда в покере подряд' }
         ]
-    ];
-
-    const LEVEL_META = [
-        { name: "Пылающая таверна", icon: "fa-fire", theme: "level1", bg: "theme-level1", expNeeded: 100 },
-        { name: "Лес костей", icon: "fa-tree", theme: "level2", bg: "theme-level2", expNeeded: 150 },
-        { name: "Ледяная гора", icon: "fa-snowflake", theme: "level3", bg: "theme-level3", expNeeded: 200 },
-        { name: "Пещера молний", icon: "fa-bolt", theme: "level4", bg: "theme-level4", expNeeded: 250 },
-        { name: "Золотой чертог", icon: "fa-crown", theme: "level5", bg: "theme-level5", expNeeded: 300 }
-    ];
-
-    // Генерация заданий с определением типа (викторина, если в строке есть ответ в скобках)
-    function generateQuestsForLevel(levelIdx) {
-        let taskPool = LEVEL_TASKS[levelIdx];
-        let quests = [];
-        for (let i = 0; i < QUESTS_PER_LEVEL; i++) {
-            let raw = taskPool[i % taskPool.length];
-            let isQuiz = false;
-            let correctAnswer = null;
-            // Если текст содержит скобки с ответом
-            let match = raw.match(/\(([^)]+)\)/);
-            if (match) {
-                isQuiz = true;
-                correctAnswer = match[1].toLowerCase();
-                raw = raw.replace(/\([^)]+\)/, '').trim();
-            }
-            quests.push({
-                id: i,
-                text: raw,
-                type: isQuiz ? "quiz" : "action",
-                completed: false,
-                correctAnswer: correctAnswer,
-                dynamicData: null
-            });
-        }
-        return quests;
+    },
+    fruits: {
+        name: 'Фрукты и ягоды',
+        icon: 'fas fa-apple-alt',
+        questions: [
+            { value: 1, text: 'Какой фрукт изображён на логотипе Apple?', options: ['Груша', 'Апельсин', 'Яблоко', 'Банан'], correct: 2, casinoTask: 'Сделайте ставку на число 7 в рулетке' },
+            { value: 2, text: 'Родина кокоса – это...', options: ['Филиппины', 'Таиланд', 'Индонезия', 'Малайзия'], correct: 2, casinoTask: 'Купите бонус в слоте "Fruity Party" за 300$' },
+            { value: 3, text: 'Какой фрукт называют "королём фруктов" в Юго-Восточной Азии?', options: ['Манго', 'Дуриан', 'Папайя', 'Мангустин'], correct: 1, casinoTask: 'Сделайте 40 спинов по 25$ в слоте "Durian King"' },
+            { value: 4, text: 'Какая ягода символизирует лето в России?', options: ['Клубника', 'Малина', 'Черника', 'Арбуз'], correct: 0, casinoTask: 'Поставьте 200$ на красное в рулетке' },
+            { value: 5, text: 'Какой слот от Pragmatic Play посвящён фруктам?', options: ['Sweet Bonanza', 'Gates of Olympus', 'The Dog House', 'Big Bass Bonanza'], correct: 0, casinoTask: 'Купите бонус в Sweet Bonanza за 1000$' }
+        ]
+    },
+    travel: {
+        name: 'Путешествия и география',
+        icon: 'fas fa-globe-americas',
+        questions: [
+            { value: 1, text: 'Столица Таиланда?', options: ['Пхукет', 'Чиангмай', 'Бангкок', 'Патайя'], correct: 2, casinoTask: 'Сделайте 100 спинов по 10$ в слоте "Thai Paradise"' },
+            { value: 2, text: 'Какой водопад считается самым высоким в мире?', options: ['Ниагара', 'Анхель', 'Виктория', 'Игуасу'], correct: 1, casinoTask: 'Поставьте 500$ на зеро в рулетке' },
+            { value: 3, text: 'Какая страна славится своими каналами и гондолами?', options: ['Франция', 'Италия', 'Нидерланды', 'Греция'], correct: 1, casinoTask: 'Купите бонус за 700$ в слоте "Venice Dream"' },
+            { value: 4, text: 'Самый посещаемый город мира в 2023 году?', options: ['Париж', 'Лондон', 'Бангкок', 'Дубай'], correct: 2, casinoTask: 'Сделайте 150 спинов по 5$' },
+            { value: 5, text: 'Где находится озеро Байкал?', options: ['Казахстан', 'Монголия', 'Россия', 'Китай'], correct: 2, casinoTask: 'Выиграйте 5 рук в блэкджеке подряд' }
+        ]
+    },
+    summerMedia: {
+        name: 'Летнее кино и музыка',
+        icon: 'fas fa-film',
+        questions: [
+            { value: 1, text: 'Какой фильм с Леонардо Ди Каприо происходит на острове?', options: ['Пляж', 'Остров проклятых', 'Титаник', 'Начало'], correct: 0, casinoTask: 'Сделайте ставку 300$ на чёрное' },
+            { value: 2, text: 'Летний хит 2023 года – "Flowers" исполняет...', options: ['Beyoncé', 'Miley Cyrus', 'Taylor Swift', 'Dua Lipa'], correct: 1, casinoTask: 'Купите бонус в слоте "Pop Star"' },
+            { value: 3, text: 'Какой музыкальный фестиваль проходит в Калифорнии ежегодно?', options: ['Coachella', 'Lollapalooza', 'Woodstock', 'Tomorrowland'], correct: 0, casinoTask: 'Сделайте 60 спинов по 20$' },
+            { value: 4, text: 'Кто исполнил песню "Summertime Sadness"?', options: ['Lady Gaga', 'Lana Del Rey', 'Rihanna', 'Katy Perry'], correct: 1, casinoTask: 'Поставьте на число 13 в рулетке' },
+            { value: 5, text: 'Фильм "Достучаться до небес" о чём?', options: ['Путешествие', 'Любовь', 'Поиски счастья', 'Смерть'], correct: 0, casinoTask: 'Выиграйте джекпот в любом слоте' }
+        ]
+    },
+    casinoSummer: {
+        name: 'Казино: летний кураж',
+        icon: 'fas fa-dice',
+        questions: [
+            { value: 1, text: 'Какой слот наиболее популярен летом?', options: ['Starburst', 'Sweet Bonanza', 'Gonzo\'s Quest', 'Book of Dead'], correct: 1, casinoTask: 'Купите бонус в Sweet Bonanza за 500$' },
+            { value: 2, text: 'Что означает RTP?', options: ['Return to Player', 'Real Time Play', 'Random Table Payout', 'Реальный шанс выигрыша'], correct: 0, casinoTask: 'Сделайте 30 спинов по 50$' },
+            { value: 3, text: 'Сколько чисел в европейской рулетке?', options: ['36', '37', '38', '39'], correct: 1, casinoTask: 'Сделайте ставку на 0 в рулетке' },
+            { value: 4, text: 'В какой карточной игре можно удвоить ставку?', options: ['Блэкджек', 'Покер', 'Баккара', 'Дурак'], correct: 0, casinoTask: 'Выиграйте 2 раунда в блэкджеке подряд' },
+            { value: 5, text: 'Какой символ в слотах запускает бонусную игру?', options: ['Wild', 'Scatter', 'Bonus', 'Multiplier'], correct: 1, casinoTask: 'Поймайте 3 Scatter в любом слоте' }
+        ]
     }
+};
 
-    let LEVELS = [];
-    for (let i=0; i<TOTAL_LEVELS; i++) {
-        LEVELS.push({
-            meta: LEVEL_META[i],
-            quests: generateQuestsForLevel(i),
-            completedCount: 0
-        });
-    }
+// Игроки
+const players = [
+    { id: 'alex', name: 'Алексей', icon: 'fas fa-user-astronaut', score: 0 },
+    { id: 'vika', name: 'Вика', icon: 'fas fa-user-ninja', score: 0 },
+    { id: 'batya', name: 'Батя', icon: 'fas fa-user-tie', score: 0 }
+];
 
-    // Состояние игры
-    let game = {
-        currentLevel: 0,
-        currentQuestIdx: 0,
-        exp: 0,
-        soulShards: 0,
-        completedQuests: [],
-        levelCompletedCount: new Array(TOTAL_LEVELS).fill(0)
-    };
-    let currentQuestObj = null;
+let currentScore = 0;
+let selectedTheme = null;
+let selectedQuestion = null;
+let waitingForViewer = false;
+let viewerName = '';
+let isChatHelpUsed = false;
+let answeredQuestions = {};
 
-    // Лидерборд
-    let leaderboard = { alex: 0, vika: 0, batiya: 0 };
-    let activeHero = "alex";
+// DOM элементы
+const themeGrid = document.getElementById('themes-grid');
+const themeModal = document.getElementById('theme-modal');
+const questionModal = document.getElementById('question-modal');
+const viewerModal = document.getElementById('viewer-modal');
+const resultModal = document.getElementById('result-modal');
+const balanceModal = document.getElementById('balance-modal');
+const congratsModal = document.getElementById('congrats-modal');
+const rulesModal = document.getElementById('rules-modal');
 
-    // DOM элементы
-    const levelMapDiv = document.getElementById('level-map');
-    const playerLevelSpan = document.getElementById('player-level');
-    const soulShardsSpan = document.getElementById('soul-shards');
-    const expFill = document.getElementById('exp-fill');
-    const expCurrentSpan = document.getElementById('exp-current');
-    const expNextSpan = document.getElementById('exp-next');
-    const currentLevelBadge = document.getElementById('current-level-badge');
-    const questCounterSpan = document.getElementById('quest-counter');
-    const questTextDiv = document.getElementById('quest-text');
-    const questTypeDiv = document.getElementById('quest-type');
-    const dynamicArea = document.getElementById('dynamic-area');
-    const completeBtn = document.getElementById('complete-quest');
-    const nextBtn = document.getElementById('next-quest');
-    const resetBtn = document.getElementById('reset-progress');
-    const soundToggle = document.getElementById('sound-toggle');
-    const hintBtn = document.getElementById('hint-btn');
-    const closeHintBtn = document.getElementById('close-hint');
-    const hintModal = document.getElementById('hint-modal');
-    const hintTextSpan = document.getElementById('hint-text');
-    const levelCompleteModal = document.getElementById('level-complete-modal');
-    const gameCompleteModal = document.getElementById('game-complete-modal');
-    const nextLevelBtn = document.getElementById('next-level-btn');
-    const restartGameBtn = document.getElementById('restart-game');
-    const toastDiv = document.getElementById('toast');
-    const heroSelect = document.getElementById('active-hero');
-    const scoreEls = {
-        alex: document.getElementById('score-alex'),
-        vika: document.getElementById('score-vika'),
-        batiya: document.getElementById('score-batiya')
-    };
+const themeNameSpan = document.getElementById('theme-name');
+const questionsGrid = document.getElementById('questions-grid');
+const questionCategory = document.getElementById('question-category');
+const questionValueSpan = document.getElementById('question-value');
+const questionTextEl = document.getElementById('question-text');
+const optionsArea = document.getElementById('options-area');
+const helpChat = document.getElementById('help-chat');
+const helpVika = document.getElementById('help-vika');
+const helpBatya = document.getElementById('help-batya');
+const helpAlex = document.getElementById('help-alex');
+const feedbackDiv = document.getElementById('feedback');
+const viewerNameInput = document.getElementById('viewer-name');
+const confirmViewer = document.getElementById('confirm-viewer');
+const cancelViewer = document.getElementById('cancel-viewer');
+const closeThemeModal = document.getElementById('close-theme-modal');
+const closeQuestionModal = document.getElementById('close-question-modal');
+const closeResultBtn = document.getElementById('close-result');
+const totalScoreSpan = document.getElementById('total-score');
+const editBalanceBtn = document.getElementById('edit-balance');
+const saveBalanceBtn = document.getElementById('save-balance');
+const cancelBalanceBtn = document.getElementById('cancel-balance');
+const newBalanceInput = document.getElementById('new-balance');
+const resetScoresBtn = document.getElementById('reset-scores');
+const restartGameBtn = document.getElementById('restart-game');
+const answeringPlayerSelect = document.getElementById('answering-player');
+const closeRulesBtn = document.getElementById('close-rules');
 
-    let soundEnabled = true;
-    let audioCtx = null;
-    function initAudio() { 
-        if(!audioCtx && window.AudioContext) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); 
-    }
-    function playSound(type) {
-        if(!soundEnabled) return;
-        initAudio();
-        if(!audioCtx) return;
-        const now = audioCtx.currentTime;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.type = "sine";
-        gain.gain.setValueAtTime(0.15, now);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now+0.6);
-        if(type==="success") osc.frequency.value = 880;
-        else if(type==="error") osc.frequency.value = 220;
-        else if(type==="levelup") { osc.frequency.value = 660; osc.frequency.setValueAtTime(880, now+0.1); }
-        else osc.frequency.value = 523;
-        osc.start();
-        osc.stop(now+0.5);
-    }
-
-    function showToast(msg) {
-        if(!toastDiv) return;
-        toastDiv.innerText = msg;
-        toastDiv.classList.remove('hidden');
-        setTimeout(()=> toastDiv.classList.add('hidden'), 2500);
-    }
-
-    function saveGame() {
-        let data = {
-            currentLevel: game.currentLevel,
-            currentQuestIdx: game.currentQuestIdx,
-            exp: game.exp,
-            soulShards: game.soulShards,
-            completedQuests: game.completedQuests,
-            levelCompletedCount: game.levelCompletedCount,
-            leaderboard, activeHero
-        };
-        localStorage.setItem('knightSaga', JSON.stringify(data));
-        for(let l=0; l<TOTAL_LEVELS; l++) {
-            for(let q of LEVELS[l].quests) {
-                q.completed = game.completedQuests.some(c => c.level===l && c.questId===q.id);
-            }
-            LEVELS[l].completedCount = game.levelCompletedCount[l];
-        }
-    }
-
-    function loadGame() {
-        let saved = localStorage.getItem('knightSaga');
-        if(saved) {
-            try {
-                let d = JSON.parse(saved);
-                game.currentLevel = d.currentLevel;
-                game.currentQuestIdx = d.currentQuestIdx;
-                game.exp = d.exp;
-                game.soulShards = d.soulShards;
-                game.completedQuests = d.completedQuests || [];
-                game.levelCompletedCount = d.levelCompletedCount || new Array(TOTAL_LEVELS).fill(0);
-                leaderboard = d.leaderboard || {alex:0, vika:0, batiya:0};
-                activeHero = d.activeHero || "alex";
-            } catch(e) { console.warn(e); }
-        }
-        for(let l=0; l<TOTAL_LEVELS; l++) {
-            for(let q of LEVELS[l].quests) {
-                q.completed = game.completedQuests.some(c => c.level===l && c.questId===q.id);
-                if(q.completed) game.levelCompletedCount[l]++;
-            }
-        }
-        if(heroSelect) heroSelect.value = activeHero;
-        updateLeaderboardUI();
-        let curLevelQuests = LEVELS[game.currentLevel].quests;
-        let nxt = curLevelQuests.findIndex(q => !q.completed);
-        if(nxt===-1) nxt = 0;
-        game.currentQuestIdx = nxt;
-        saveGame();
-    }
-
-    function updateLeaderboardUI() {
-        if(scoreEls.alex) scoreEls.alex.innerText = leaderboard.alex;
-        if(scoreEls.vika) scoreEls.vika.innerText = leaderboard.vika;
-        if(scoreEls.batiya) scoreEls.batiya.innerText = leaderboard.batiya;
-    }
-
-    function addPoints(p=1) {
-        leaderboard[activeHero] += p;
-        updateLeaderboardUI();
-        saveGame();
-        showToast(`+${p} очков ${heroSelect.options[heroSelect.selectedIndex].text}`);
-    }
-
-    function updateUI() {
-        let lvl = game.currentLevel;
-        let meta = LEVEL_META[lvl];
-        let needed = meta.expNeeded;
-        expCurrentSpan.innerText = game.exp;
-        expNextSpan.innerText = needed;
-        let percent = Math.min(100, (game.exp/needed)*100);
-        expFill.style.width = `${percent}%`;
-        playerLevelSpan.innerText = lvl+1;
-        soulShardsSpan.innerText = game.soulShards;
-        currentLevelBadge.innerText = `Уровень ${lvl+1}: ${meta.name}`;
-        let done = game.levelCompletedCount[lvl];
-        questCounterSpan.innerText = `Заданий: ${done} / ${QUESTS_PER_LEVEL}`;
-        nextBtn.disabled = !(done>0 && done<QUESTS_PER_LEVEL);
-        renderLevelMap();
-        applyTheme(lvl);
-    }
-
-    function renderLevelMap() {
-        if(!levelMapDiv) return;
-        levelMapDiv.innerHTML = '';
-        for(let i=0; i<TOTAL_LEVELS; i++) {
-            let lvl = LEVELS[i];
-            let done = game.levelCompletedCount[i];
-            let isActive = (i===game.currentLevel);
-            let div = document.createElement('div');
-            div.className = `level-item ${isActive ? 'active' : ''}`;
-            div.addEventListener('click', ()=> switchLevel(i));
-            let dotsHtml = '';
-            for(let idx=0; idx<QUESTS_PER_LEVEL; idx++) {
-                let completedClass = lvl.quests[idx].completed ? 'completed' : '';
-                dotsHtml += `<div class="dot ${completedClass}"></div>`;
-            }
-            div.innerHTML = `
-                <div class="level-icon"><i class="fas ${lvl.meta.icon}"></i></div>
-                <div class="level-info">
-                    <div class="level-title">${lvl.meta.name}</div>
-                    <div class="progress-dots">${dotsHtml}</div>
-                </div>
-                <div class="level-status">${done}/${QUESTS_PER_LEVEL}</div>
-            `;
-            levelMapDiv.appendChild(div);
-        }
-    }
-
-    function applyTheme(levelIdx) {
-        let themeName = LEVEL_META[levelIdx].theme;
-        document.body.className = '';
-        document.body.classList.add(LEVEL_META[levelIdx].bg);
-        let rightCol = document.getElementById('right-column');
-        if(rightCol) rightCol.setAttribute('data-theme', themeName);
-    }
-
-    function switchLevel(newLevel) {
-        if(newLevel === game.currentLevel) return;
-        game.currentLevel = newLevel;
-        let quests = LEVELS[newLevel].quests;
-        let nextIdx = quests.findIndex(q=> !q.completed);
-        if(nextIdx === -1) nextIdx = 0;
-        game.currentQuestIdx = nextIdx;
-        saveGame();
-        updateUI();
-        loadCurrentQuest();
-        playSound("click");
-    }
-
-    function loadCurrentQuest() {
-        if(!LEVELS[game.currentLevel]) return;
-        let quest = LEVELS[game.currentLevel].quests[game.currentQuestIdx];
-        if(!quest) return;
-        currentQuestObj = quest;
-        if(quest.completed) { moveToNextQuest(); return; }
-        renderQuest();
-    }
-
-    function renderQuest() {
-        if(!currentQuestObj) return;
-        questTextDiv.innerText = currentQuestObj.text;
-        questTypeDiv.innerText = currentQuestObj.type === "quiz" ? "❓ Викторина (введите ответ)" : "⚔️ Боевое задание";
-        dynamicArea.innerHTML = "";
-        if(currentQuestObj.type === "quiz") {
-            let input = document.createElement('input');
-            input.type = 'text';
-            input.placeholder = 'Введите ответ...';
-            input.className = 'dynamic-input';
-            input.id = 'quizInput';
-            dynamicArea.appendChild(input);
+// Рендер вариантов ответа
+function renderOptions(question) {
+    optionsArea.innerHTML = '';
+    const letters = ['A', 'B', 'C', 'D'];
+    question.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerHTML = `<span class="option-letter">${letters[idx]}</span> <span class="option-text">${opt}</span>`;
+        btn.dataset.index = idx;
+        if (gameStateAnswered || gameStateCompleted) {
+            btn.disabled = true;
         } else {
-            let info = document.createElement('p');
-            info.innerHTML = '<i class="fas fa-dice-d6"></i> Выполните это действие в казино и нажмите «Выполнено»';
-            dynamicArea.appendChild(info);
+            btn.disabled = false;
         }
-    }
-
-    function completeQuest() {
-        if(!currentQuestObj || currentQuestObj.completed) { showToast("Уже выполнено!"); return; }
-        if(currentQuestObj.type === "quiz") {
-            let inp = document.getElementById('quizInput');
-            if(!inp) { showToast("Ошибка ввода"); return; }
-            let answer = inp.value.trim().toLowerCase();
-            let correct = currentQuestObj.correctAnswer;
-            if(!correct || answer !== correct) {
-                playSound("error");
-                showToast(`❌ Неправильно! Правильный ответ: ${correct}`);
+        btn.addEventListener('click', () => {
+            if (gameStateAnswered || gameStateCompleted) {
+                showToast('На этот вопрос уже ответили!');
                 return;
             }
+            const answerIndex = parseInt(btn.dataset.index);
+            submitAnswer(answerIndex);
+        });
+        optionsArea.appendChild(btn);
+    });
+}
+
+let gameStateAnswered = false;
+let gameStateCompleted = false;
+
+function openQuestion(index) {
+    const theme = themesData[selectedTheme];
+    const q = theme.questions[index];
+    selectedQuestion = { theme: selectedTheme, index, data: q };
+    questionCategory.innerText = theme.name;
+    questionValueSpan.innerText = `💰 ${q.value} очков`;
+    questionTextEl.innerText = q.text;
+    feedbackDiv.innerHTML = '';
+    isChatHelpUsed = false;
+    gameStateAnswered = false;
+    gameStateCompleted = false;
+    renderOptions(q);
+    questionModal.classList.remove('hidden');
+}
+
+function submitAnswer(answerIndex) {
+    if (!selectedQuestion) return;
+    const isCorrect = (answerIndex === selectedQuestion.data.correct);
+    const questionLevel = selectedQuestion.data.value;
+    const selectedPlayerId = answeringPlayerSelect.value;
+    let message = '';
+
+    if (isCorrect) {
+        message = `✅ Правильно!`;
+        const casinoTask = selectedQuestion.data.casinoTask;
+        message += `<br>🎰 Задание казино: ${casinoTask}`;
+        addPlayerScore(selectedPlayerId, questionLevel);
+        if (isChatHelpUsed && viewerName) {
+            message += `<br>💬 Зритель ${viewerName} получает 50$ за правильный ответ!`;
         }
-        // Награда
-        let lvlIdx = game.currentLevel;
-        let expGain = 20 + lvlIdx*5;
-        let shardGain = 5 + lvlIdx*2;
-        game.exp += expGain;
-        game.soulShards += shardGain;
-        currentQuestObj.completed = true;
-        game.completedQuests.push({ level: lvlIdx, questId: currentQuestObj.id });
-        game.levelCompletedCount[lvlIdx]++;
-        addPoints(1);
-        playSound("success");
-        showToast(`+${expGain} опыта, +${shardGain} осколков`);
-        
-        // Проверка повышения уровня рыцаря
-        let needed = LEVEL_META[lvlIdx].expNeeded;
-        while(game.exp >= needed && lvlIdx < TOTAL_LEVELS-1) {
-            game.exp -= needed;
-            lvlIdx++;
-            needed = LEVEL_META[lvlIdx].expNeeded;
-            playSound("levelup");
-            showToast(`✨ Рыцарь достиг ${lvlIdx+1} уровня! ✨`);
+    } else {
+        const correctOption = selectedQuestion.data.options[selectedQuestion.data.correct];
+        message = `❌ Неправильно. Правильный ответ: ${correctOption}.<br>🎰 Задание казино: ${selectedQuestion.data.casinoTask} (необходимо выполнить дважды, так как вы ошиблись)`;
+        addPlayerScore(selectedPlayerId, -questionLevel);
+        if (isChatHelpUsed && viewerName) {
+            message += `<br>💬 К сожалению, зритель ${viewerName} не получает бонус, так как ответ неверный.`;
         }
-        game.currentLevel = lvlIdx;
-        saveGame();
-        updateUI();
-        moveToNextQuest();
     }
 
-    function moveToNextQuest() {
-        let level = LEVELS[game.currentLevel];
-        let current = game.currentQuestIdx;
-        let next = level.quests.findIndex((q,i)=> !q.completed && i>current);
-        if(next !== -1) {
-            game.currentQuestIdx = next;
-            saveGame();
-            loadCurrentQuest();
-            updateUI();
+    gameStateAnswered = true;
+    const wasLastQuestion = checkIfLastQuestion();
+    showResultMessage(isCorrect ? 'Верно!' : 'Неверно', message, wasLastQuestion);
+    isChatHelpUsed = false;
+    viewerName = '';
+}
+
+function checkIfLastQuestion() {
+    let answeredCount = 0;
+    for (const themeKey of Object.keys(themesData)) {
+        const answered = answeredQuestions[themeKey] ? answeredQuestions[themeKey].length : 0;
+        answeredCount += answered;
+    }
+    const totalQuestions = 25;
+    return answeredCount === totalQuestions - 1;
+}
+
+function showResultMessage(title, message, isLastQuestion) {
+    document.getElementById('result-title').innerText = title;
+    document.getElementById('result-message').innerHTML = message;
+    resultModal.classList.remove('hidden');
+    if (isLastQuestion) {
+        pendingLastQuestion = true;
+    } else {
+        pendingLastQuestion = false;
+    }
+}
+
+let pendingLastQuestion = false;
+
+closeResultBtn.onclick = () => {
+    resultModal.classList.add('hidden');
+    if (selectedQuestion) {
+        const themeKey = selectedQuestion.theme;
+        const qIndex = selectedQuestion.index;
+        if (!answeredQuestions[themeKey]) answeredQuestions[themeKey] = [];
+        if (!answeredQuestions[themeKey].includes(qIndex)) {
+            answeredQuestions[themeKey].push(qIndex);
+        }
+        selectedQuestion = null;
+        gameStateAnswered = false;
+        questionModal.classList.add('hidden');
+        if (!themeModal.classList.contains('hidden') && selectedTheme === themeKey) {
+            openTheme(themeKey);
+        }
+        if (pendingLastQuestion) {
+            checkAllQuestionsAnswered();
+        }
+    }
+    pendingLastQuestion = false;
+};
+
+function checkAllQuestionsAnswered() {
+    let totalAnswered = 0;
+    let totalQuestions = 0;
+    for (const themeKey of Object.keys(themesData)) {
+        const theme = themesData[themeKey];
+        totalQuestions += theme.questions.length;
+        const answered = answeredQuestions[themeKey] ? answeredQuestions[themeKey].length : 0;
+        totalAnswered += answered;
+    }
+    if (totalAnswered === totalQuestions && totalQuestions > 0) {
+        showCongratsModal();
+    }
+}
+
+function showCongratsModal() {
+    const container = document.getElementById('congrats-scores');
+    container.innerHTML = '';
+    const sorted = [...players].sort((a,b) => b.score - a.score);
+    sorted.forEach(player => {
+        const item = document.createElement('div');
+        item.className = 'congrats-score-item';
+        item.innerHTML = `
+            <div class="congrats-score-name"><i class="${player.icon}"></i> ${player.name}</div>
+            <div class="congrats-score-value">${player.score} очков</div>
+        `;
+        container.appendChild(item);
+    });
+    congratsModal.classList.remove('hidden');
+}
+
+function addPlayerScore(playerId, delta) {
+    const player = players.find(p => p.id === playerId);
+    if (player) {
+        player.score += delta;
+        updateLeaderScoreUI(playerId, player.score);
+    }
+}
+
+function updateLeaderScoreUI(id, score) {
+    const span = document.getElementById(`score-${id}`);
+    if (span) span.innerText = score;
+}
+
+function updateTotalScoreUI() {
+    totalScoreSpan.innerText = currentScore;
+}
+
+function renderThemes() {
+    themeGrid.innerHTML = '';
+    for (const [key, theme] of Object.entries(themesData)) {
+        const answeredCount = answeredQuestions[key] ? answeredQuestions[key].length : 0;
+        const remaining = 5 - answeredCount;
+        const questionsText = remaining === 1 ? 'вопрос' : 'вопросов';
+        const card = document.createElement('div');
+        card.className = 'theme-card';
+        card.dataset.theme = key;
+        card.innerHTML = `
+            <div class="theme-icon"><i class="${theme.icon}"></i></div>
+            <div class="theme-name">${theme.name}</div>
+            <div class="theme-desc">${remaining} ${questionsText}</div>
+        `;
+        card.addEventListener('click', () => openTheme(key));
+        themeGrid.appendChild(card);
+    }
+}
+
+function openTheme(themeKey) {
+    selectedTheme = themeKey;
+    const theme = themesData[themeKey];
+    themeNameSpan.innerText = theme.name;
+    questionsGrid.innerHTML = '';
+    for (let i = 0; i < theme.questions.length; i++) {
+        const q = theme.questions[i];
+        const cell = document.createElement('div');
+        cell.className = 'question-cell';
+        cell.innerText = q.value;
+        const answered = answeredQuestions[themeKey] && answeredQuestions[themeKey].includes(i);
+        if (answered) {
+            cell.classList.add('disabled');
         } else {
-            let any = level.quests.findIndex(q=> !q.completed);
-            if(any !== -1) {
-                game.currentQuestIdx = any;
-                saveGame();
-                loadCurrentQuest();
-                updateUI();
-            } else if(game.levelCompletedCount[game.currentLevel] === QUESTS_PER_LEVEL) {
-                if(game.currentLevel + 1 < TOTAL_LEVELS) {
-                    levelCompleteModal.classList.remove('hidden');
-                    document.getElementById('level-complete-text').innerHTML = `Вы прошли ${LEVEL_META[game.currentLevel].name}! Открыт следующий мир.`;
-                } else {
-                    gameCompleteModal.classList.remove('hidden');
-                }
+            cell.addEventListener('click', () => openQuestion(i));
+        }
+        questionsGrid.appendChild(cell);
+    }
+    themeModal.classList.remove('hidden');
+}
+
+function renderLeaderboard() {
+    const container = document.getElementById('leaderboard-players');
+    container.innerHTML = '';
+    players.forEach(player => {
+        const card = document.createElement('div');
+        card.className = 'leader-card';
+        card.innerHTML = `
+            <div class="leader-avatar"><i class="${player.icon}"></i></div>
+            <div class="leader-name">${player.name}</div>
+            <div class="leader-score" id="score-${player.id}">${player.score}</div>
+            <div class="score-controls">
+                <button class="inc-score" data-id="${player.id}">+1</button>
+                <button class="dec-score" data-id="${player.id}">-1</button>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+    document.querySelectorAll('.inc-score').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = btn.dataset.id;
+            const player = players.find(p => p.id === id);
+            if (player) {
+                player.score++;
+                updateLeaderScoreUI(id, player.score);
             }
-        }
-    }
-
-    function showHint() {
-        if(!currentQuestObj || currentQuestObj.completed) hintTextSpan.innerText = "Активного задания нет";
-        else if(currentQuestObj.type === "quiz") hintTextSpan.innerText = `Подсказка: правильный ответ начинается с "${currentQuestObj.correctAnswer[0]}"`;
-        else hintTextSpan.innerText = "Сделайте описанное действие в казино и отметьте выполненным.";
-        hintModal.classList.remove('hidden');
-    }
-
-    function resetAll() {
-        if(confirm("Сбросить весь прогресс и лидерборд?")) {
-            localStorage.removeItem('knightSaga');
-            location.reload();
-        }
-    }
-
-    // Инициализация
-    loadGame();
-    updateUI();
-    loadCurrentQuest();
-    initAudio();
-
-    // Обработчики
-    if(completeBtn) completeBtn.addEventListener('click', completeQuest);
-    if(nextBtn) nextBtn.addEventListener('click', moveToNextQuest);
-    if(resetBtn) resetBtn.addEventListener('click', resetAll);
-    if(soundToggle) soundToggle.addEventListener('click', ()=>{
-        soundEnabled = !soundEnabled;
-        soundToggle.innerHTML = soundEnabled ? '<i class="fas fa-volume-up"></i>' : '<i class="fas fa-volume-mute"></i>';
-        if(soundEnabled && audioCtx) audioCtx.resume();
+        });
     });
-    if(hintBtn) hintBtn.addEventListener('click', showHint);
-    if(closeHintBtn) closeHintBtn.addEventListener('click', ()=> hintModal.classList.add('hidden'));
-    if(heroSelect) heroSelect.addEventListener('change', (e)=> { activeHero = e.target.value; saveGame(); });
-    if(nextLevelBtn) nextLevelBtn.addEventListener('click', ()=>{
-        levelCompleteModal.classList.add('hidden');
-        if(game.currentLevel + 1 < TOTAL_LEVELS) {
-            game.currentLevel++;
-            game.currentQuestIdx = LEVELS[game.currentLevel].quests.findIndex(q=>!q.completed);
-            if(game.currentQuestIdx === -1) game.currentQuestIdx = 0;
-            saveGame();
-            updateUI();
-            loadCurrentQuest();
-        }
+    document.querySelectorAll('.dec-score').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = btn.dataset.id;
+            const player = players.find(p => p.id === id);
+            if (player) {
+                player.score--;
+                updateLeaderScoreUI(id, player.score);
+            }
+        });
     });
-    if(restartGameBtn) restartGameBtn.addEventListener('click', resetAll);
-    window.showHint = showHint;
-})();
+}
+
+function useHelp(type) {
+    if (waitingForViewer) return;
+    if (type === 'chat') {
+        waitingForViewer = true;
+        viewerModal.classList.remove('hidden');
+        return;
+    } else if (type === 'vika') {
+        feedbackDiv.innerHTML = `🤝 Вы спросили ответ у Вики. Увеличьте сложность задания на 15% при правильном ответе.`;
+    } else if (type === 'batya') {
+        feedbackDiv.innerHTML = `🤝 Вы спросили у Бати. Увеличьте сложность задания на 15% при правильном ответе.`;
+    } else if (type === 'alex') {
+        feedbackDiv.innerHTML = `🤝 Вы спросили у Алексея. Увеличьте сложность задания на 15% при правильном ответе.`;
+    }
+}
+
+confirmViewer.addEventListener('click', () => {
+    const viewer = viewerNameInput.value.trim();
+    if (!viewer) {
+        alert('Введите ник зрителя');
+        return;
+    }
+    viewerName = viewer;
+    feedbackDiv.innerHTML = `💬 Чат: ${viewer} помогает! Если ответ будет правильным, зритель получит 50$. Увеличьте сложность задания на 50% при правильном ответе.`;
+    isChatHelpUsed = true;
+    waitingForViewer = false;
+    viewerModal.classList.add('hidden');
+    viewerNameInput.value = '';
+});
+
+cancelViewer.addEventListener('click', () => {
+    waitingForViewer = false;
+    viewerModal.classList.add('hidden');
+    viewerNameInput.value = '';
+});
+
+editBalanceBtn.addEventListener('click', () => {
+    newBalanceInput.value = currentScore;
+    balanceModal.classList.remove('hidden');
+});
+saveBalanceBtn.addEventListener('click', () => {
+    const newVal = parseInt(newBalanceInput.value);
+    if (!isNaN(newVal)) {
+        currentScore = newVal;
+        updateTotalScoreUI();
+    }
+    balanceModal.classList.add('hidden');
+});
+cancelBalanceBtn.addEventListener('click', () => {
+    balanceModal.classList.add('hidden');
+});
+
+resetScoresBtn.addEventListener('click', () => {
+    players.forEach(p => p.score = 0);
+    renderLeaderboard();
+});
+
+restartGameBtn.addEventListener('click', () => {
+    currentScore = 0;
+    updateTotalScoreUI();
+    players.forEach(p => p.score = 0);
+    renderLeaderboard();
+    answeredQuestions = {};
+    selectedTheme = null;
+    selectedQuestion = null;
+    congratsModal.classList.add('hidden');
+    renderThemes();
+    themeModal.classList.add('hidden');
+    questionModal.classList.add('hidden');
+});
+
+closeThemeModal.addEventListener('click', () => themeModal.classList.add('hidden'));
+closeQuestionModal.addEventListener('click', () => {
+    questionModal.classList.add('hidden');
+    selectedQuestion = null;
+});
+closeRulesBtn.addEventListener('click', () => {
+    rulesModal.classList.add('hidden');
+});
+
+helpChat.addEventListener('click', () => useHelp('chat'));
+helpVika.addEventListener('click', () => useHelp('vika'));
+helpBatya.addEventListener('click', () => useHelp('batya'));
+helpAlex.addEventListener('click', () => useHelp('alex'));
+
+window.addEventListener('click', (e) => {
+    if (e.target === themeModal) themeModal.classList.add('hidden');
+    if (e.target === questionModal) {
+        questionModal.classList.add('hidden');
+        selectedQuestion = null;
+    }
+    if (e.target === viewerModal) viewerModal.classList.add('hidden');
+    if (e.target === balanceModal) balanceModal.classList.add('hidden');
+    if (e.target === congratsModal) congratsModal.classList.add('hidden');
+    if (e.target === rulesModal) rulesModal.classList.add('hidden');
+});
+
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.remove('hidden');
+    setTimeout(() => toast.classList.add('hidden'), 3000);
+}
+
+// Падающие листья
+function createLeaves() {
+    const container = document.getElementById('leaf-container');
+    if (!container) return;
+    function createLeaf() {
+        const leaf = document.createElement('div');
+        leaf.classList.add('leaf');
+        const size = Math.random() * 18 + 10;
+        leaf.style.width = `${size}px`;
+        leaf.style.height = `${size}px`;
+        leaf.style.left = `${Math.random() * 100}%`;
+        const duration = Math.random() * 4 + 3;
+        leaf.style.animationDuration = `${duration}s`;
+        leaf.style.animationDelay = `${Math.random() * 5}s`;
+        leaf.style.background = `linear-gradient(145deg, #${Math.floor(100 + Math.random()*155).toString(16)}${Math.floor(100 + Math.random()*155).toString(16)}33, #${Math.floor(50 + Math.random()*100).toString(16)}${Math.floor(50 + Math.random()*100).toString(16)}1a)`;
+        container.appendChild(leaf);
+        leaf.addEventListener('animationend', () => leaf.remove());
+    }
+    for (let i = 0; i < 60; i++) {
+        setTimeout(() => createLeaf(), Math.random() * 2000);
+    }
+    setInterval(() => {
+        if (container.children.length < 100) createLeaf();
+    }, 500);
+}
+
+renderThemes();
+renderLeaderboard();
+updateTotalScoreUI();
+window.addEventListener('load', () => {
+    createLeaves();
+    rulesModal.classList.remove('hidden');
+});
